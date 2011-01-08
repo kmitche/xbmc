@@ -5,21 +5,22 @@
 # how to reach the author.
 #
 
-LIBS   = -ldl
+LIBS   = tinyxml/tinyxml.a libmythxml/libmythxml.a -ldl
 LIBDIR = ../../../addons/pvr.mythtv
 LIB    = ../../../addons/pvr.mythtv/XBMC_MythTV.pvr
 
-SRCS=client.cpp \
-	MythXml.cpp
+SRCS = client.cpp MythXml.cpp
 
 include ../Makefile.include
 
 clean:
 	-rm -f $(OBJS) $(LIB) *~
+	$(MAKE) -C tinyxml clean
 	$(MAKE) -C libmythxml clean
 
 INCLUDES += -I../../linux
 
 $(LIB): $(OBJS)
+	$(MAKE) -C tinyxml
 	$(MAKE) -C libmythxml
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -shared -g $(OBJS) $(LIBS) $(LIBDIRS) $(SILIB) -o $(LIB)
