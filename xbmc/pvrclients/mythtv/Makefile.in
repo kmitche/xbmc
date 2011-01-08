@@ -1,22 +1,19 @@
-#
-# Makefile for the XBMC MythTV PVR AddOn
-#
-# See the README for copyright information and
-# how to reach the author.
-#
+# See the README for copyright information and how to reach the author.
 
-LIBS   = tinyxml/tinyxml.a libmythxml/libmythxml.a -ldl
+LIBS = tinyxml/tinyxml.a libmythxml/libmythxml.a -ldl
 LIBDIR = ../../../addons/pvr.mythtv
-LIB    = ../../../addons/pvr.mythtv/XBMC_MythTV.pvr
+LIB = ../../../addons/pvr.mythtv/XBMC_MythTV.pvr
 
-SRCS = client.cpp MythXml.cpp
+DIRS = tinyxml libmythxml
+
+SRCS = \
+	client.cpp \
+	MythXml.cpp
 
 include ../Makefile.include
 
-clean:
-	-rm -f $(OBJS) $(LIB) *~
-	$(MAKE) -C tinyxml clean
-	$(MAKE) -C libmythxml clean
+# Additional include for PlatformDefs.h from IFile.h
+INCLUDES += -I. -I../../linux
 
 $(LIB): $(OBJS)
 	$(MAKE) -C tinyxml
