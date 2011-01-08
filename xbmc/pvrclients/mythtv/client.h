@@ -31,6 +31,8 @@
 #define DEFAULT_MYTHXML_PORT  6544
 #define DEFAULT_PIN           0000
 #define DEFAULT_MYTHXML_CONNECTION_TIMEOUT 30000
+#define DEFAULT_USER "mythtv"
+#define DEFAULT_PASS "mythtv"
 
 extern bool         g_bCreated;           ///< Shows that the Create function was successfully called
 extern int          g_iClientID;          ///< The PVR client ID used by XBMC for this driver
@@ -38,6 +40,8 @@ extern CStdString   g_szUserPath;         ///< The Path to the user directory in
 extern CStdString   g_szClientPath;       ///< The Path where this driver is located
 
 /* Client Settings */
+extern CStdString	  g_szUserName;		      ///< The User Name to use to connect to the mythtv server (default is mythtv)
+extern CStdString	  g_szPassword;		      ///< The Password to use to connect to the mythtv server (default is mythtv)
 extern CStdString   g_szHostname;         ///< The Host name or IP of the mythtv server
 extern int          g_iMythXmlPort;       ///< The MYTHXML Port (default is 6544)
 extern int          g_iPin;               ///< The Mythtv server PIN (default is 0000)

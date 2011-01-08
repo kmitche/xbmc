@@ -31,6 +31,8 @@ using namespace std;
  * Default values are defined inside client.h
  * and exported to the other source files.
  */
+CStdString   g_szUserName             = DEFAULT_USER;///< The User Name to use to connect to the mythtv server (default is mythtv)
+CStdString   g_szPassword             = DEFAULT_PASS; ///< The Password to use to connect to the mythtv server (default is mythtv)
 CStdString   g_szHostname             = DEFAULT_HOST;         ///< The Host name or IP of MythTV
 int          g_iMythXmlPort           = DEFAULT_MYTHXML_PORT; ///< The MyhtXML Port of MythTV (default is 6544)
 int          g_iPin                   = DEFAULT_PIN; ///< The Mythtv server PIN (default is 0000)
@@ -48,7 +50,7 @@ bool         g_bCreated               = false;
 int          g_iClientID              = -1;
 CStdString   g_szUserPath             = "";
 CStdString   g_szClientPath           = "";
-MythXml		 *MythXmlApi			  = NULL;
+MythXml*     MythXmlApi               = NULL;
 cHelper_libXBMC_addon *XBMC           = NULL;
 cHelper_libXBMC_pvr   *PVR            = NULL;
 
@@ -122,14 +124,25 @@ ADDON_STATUS Create(void* hdl, void* props)
     XBMC->Log(LOG_ERROR, "Couldn't get 'pin' setting, falling back to '%i' as default", DEFAULT_PIN);
     g_iPin = DEFAULT_PIN;
   }
-
-  MythXmlApi = new MythXml();
-  if (!MythXmlApi->open(g_szHostname, g_iMythXmlPort, "", "", g_iPin, g_iMythXmlConnectTimeout))
+  
+  /* Read setting "username" from settings.xml */
+  if (!XBMC->GetSetting("username", &g_szUserName))
   {
-	m_CurStatus = STATUS_LOST_CONNECTION;
-    return m_CurStatus;
+    /* If setting is unknown fallback to defaults */
+    XBMC->Log(LOG_ERROR, "Couldn't get 'username' setting, falling back to '%s' as default", DEFAULT_USER);
+    g_szUserName = DEFAULT_USER;
+  }
+  
+  /* Read setting "pin" from settings.xml */
+  if (!XBMC->GetSetting("password", &g_szPassword))
+  {
+    /* If setting is unknown fallback to defaults */
+    XBMC->Log(LOG_ERROR, "Couldn't get 'password' setting, falling back to '%s' as default", DEFAULT_PASS);
+    g_szPassword = DEFAULT_PASS;
   }
 
+  MythXmlApi = new MythXml(g_szHostname, g_iMythXmlPort, g_szUserName, g_szPassword, g_iPin, g_iMythXmlConnectTimeout);
+  MythXmlApi->Init();
   m_CurStatus = STATUS_OK;
 
   g_bCreated = true;
@@ -140,8 +153,9 @@ void Destroy()
 {
   if (g_bCreated)
   {
-	  delete MythXmlApi;
-	  MythXmlApi = NULL;
+    MythXmlApi->Cleanup();
+    delete MythXmlApi;
+    MythXmlApi = NULL;
     g_bCreated = false;
   }
   m_CurStatus = STATUS_UNKNOWN;
@@ -198,10 +212,28 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
     XBMC->Log(LOG_INFO, "Changed Setting 'pin' from %u to %u", g_iPin, *(int*) settingValue);
     if (g_iPin != *(int*) settingValue)
     {
-	  g_iPin = *(int*) settingValue;
+      g_iPin = *(int*) settingValue;
       return STATUS_NEED_RESTART;
     }
   }
+  else if (str == "username")
+  {
+    string tmp_sUserName;
+    XBMC->Log(LOG_INFO, "Changed Setting 'username' from %s to %s", g_szUserName.c_str(), (const char*) settingValue);
+    tmp_sUserName = g_szUserName;
+    g_szUserName = (const char*) settingValue;
+    if (tmp_sUserName != g_szUserName)
+      return STATUS_NEED_RESTART;
+  }
+  else if (str == "password")
+  {
+    string tmp_sPassword;
+    XBMC->Log(LOG_INFO, "Changed Setting 'host' from %s to %s", g_szPassword.c_str(), (const char*) settingValue);
+    tmp_sPassword = g_szPassword;
+    g_szPassword = (const char*) settingValue;
+    if (tmp_sPassword != g_szPassword)
+      return STATUS_NEED_RESTART;
+  } 
   return STATUS_OK;
 }
 
@@ -225,9 +257,9 @@ PVR_ERROR GetProperties(PVR_SERVERPROPS* props)
   props->SupportChannelLogo        = false;
   props->SupportTimeShift          = false;
   props->SupportEPG                = true;
-  props->SupportRecordings         = false;
+  props->SupportRecordings         = true;
   props->SupportTimers             = false;
-  props->SupportTV                 = false;
+  props->SupportTV                 = true;
   props->SupportRadio              = false;
   props->SupportChannelSettings    = false;
   props->SupportDirector           = false;
@@ -246,27 +278,42 @@ PVR_ERROR GetStreamProperties(PVR_STREAMPROPS* props)
 
 const char * GetBackendName()
 {
-  return "";
+  if (MythXmlApi == NULL)
+    return "";
+
+  return MythXmlApi->GetBackendName();
 }
 
 const char * GetBackendVersion()
 {
-  return "";
+  if (MythXmlApi == NULL)
+    return "";
+
+  return MythXmlApi->GetBackendVersion();
 }
 
 const char * GetConnectionString()
 {
-  return "";
+  if (MythXmlApi == NULL)
+    return "";
+
+  return MythXmlApi->GetConnectionString();
 }
 
 PVR_ERROR GetDriveSpace(long long *total, long long *used)
 {
-  return PVR_ERROR_NOT_IMPLEMENTED;
+  if (MythXmlApi == NULL)
+    return PVR_ERROR_SERVER_ERROR;
+
+  return MythXmlApi->GetDriveSpace(total, used);
 }
 
 PVR_ERROR GetBackendTime(time_t *localTime, int *gmtOffset)
 {
-  return PVR_ERROR_NOT_IMPLEMENTED;
+  if (MythXmlApi == NULL)
+    return PVR_ERROR_SERVER_ERROR;
+
+  return MythXmlApi->getBackendTime(localTime, gmtOffset);
 }
 
 PVR_ERROR DialogChannelScan()
@@ -284,10 +331,10 @@ PVR_ERROR MenuHook(const PVR_MENUHOOK &menuhook)
 
 PVR_ERROR RequestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &channel, time_t start, time_t end)
 {
-	if (MythXmlApi == NULL)
-	    return PVR_ERROR_SERVER_ERROR;
+  if (MythXmlApi == NULL)
+    return PVR_ERROR_SERVER_ERROR;
 
-	return MythXmlApi->requestEPGForChannel(handle, channel, start, end);
+  return MythXmlApi->requestEPGForChannel(handle, channel, start, end);
 }
 
 
@@ -310,18 +357,18 @@ PVR_ERROR RequestBouquetsList(PVRHANDLE handle, int radio)
 
 int GetNumChannels()
 {
-	if (MythXmlApi == NULL)
-		return PVR_ERROR_SERVER_ERROR;
+  if (MythXmlApi == NULL)
+    return PVR_ERROR_SERVER_ERROR;
 
-	return MythXmlApi->getNumChannels();
+  return MythXmlApi->getNumChannels();
 }
 
 PVR_ERROR RequestChannelList(PVRHANDLE handle, int radio)
 {
-	if (MythXmlApi == NULL)
-			return PVR_ERROR_SERVER_ERROR;
+  if (MythXmlApi == NULL)
+    return PVR_ERROR_SERVER_ERROR;
 
-	return MythXmlApi->requestChannelList(handle, radio);
+  return MythXmlApi->requestChannelList(handle, radio);
 }
 
 PVR_ERROR DeleteChannel(unsigned int number)
@@ -355,12 +402,18 @@ PVR_ERROR DialogAddChannel(const PVR_CHANNEL &channelinfo)
 
 int GetNumRecordings(void)
 {
-  return 0;
+  if (MythXmlApi == NULL)
+    return PVR_ERROR_SERVER_ERROR;
+
+  return MythXmlApi->getNumRecordings();
 }
 
 PVR_ERROR RequestRecordingsList(PVRHANDLE handle)
 {
-  return PVR_ERROR_NOT_IMPLEMENTED;
+  if (MythXmlApi == NULL)
+    return PVR_ERROR_SERVER_ERROR;
+
+  return MythXmlApi->requestRecordingsList(handle);
 }
 
 PVR_ERROR DeleteRecording(const PVR_RECORDINGINFO &recinfo)
@@ -452,7 +505,7 @@ void CloseLiveStream()
 
 int ReadLiveStream(unsigned char* buf, int buf_size)
 {
-	return -1;
+  return -1;
 }
 
 int GetCurrentClientChannel()
@@ -515,7 +568,7 @@ int ReadRecordedStream(unsigned char* buf, int buf_size)
 
 long long SeekRecordedStream(long long pos, int whence)
 {
-	return -1;
+  return -1;
 }
 
 long long PositionRecordedStream(void)
@@ -525,7 +578,7 @@ long long PositionRecordedStream(void)
 
 long long LengthRecordedStream(void)
 {
-	return 0;
+  return 0;
 }
 
 

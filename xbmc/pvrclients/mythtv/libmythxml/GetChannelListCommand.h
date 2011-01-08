@@ -1,25 +1,19 @@
-/*
- * GetChannelListCommand.h
- *
- *  Created on: Oct 7, 2010
- *      Author: tafypz
- */
-
-#ifndef XBMC_PVRCLIENTS_MYTHTV_LIBMYTHXML_GETCHANNELLISTCOMMAND_H_
-#define XBMC_PVRCLIENTS_MYTHTV_LIBMYTHXML_GETCHANNELLISTCOMMAND_H_
+#pragma once
 
 #include "MythXmlCommand.h"
 
-class GetChannelListCommand: public MythXmlCommand {
+#include <vector>
 
-public:
-	GetChannelListCommand() {};
-	virtual ~GetChannelListCommand() {};
-protected:
-	virtual const CStdString& getCommand() const {
-		static CStdString result = "GetProgramGuide";
-		return result;
-	};
+#include "SChannel.h"
+
+class GetChannelListCommand: public MythXmlCommand
+{
+  public:
+    GetChannelListCommand();
+    const std::vector<SChannel>& GetChannels();
+
+    bool ParseResponse(const CStdString& reponse);
+
+  private:
+    std::vector<SChannel> m_channels;
 };
-
-#endif /* XBMC_PVRCLIENTS_MYTHTV_LIBMYTHXML_GETCHANNELLISTCOMMAND_H_ */

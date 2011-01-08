@@ -2,6 +2,8 @@
 <strings>
     <!-- settings labels -->
     <string id="30000">MythTV Backend Hostname or IP</string>
+    <string id="30002">MythTV Backend PIN</string>
     <string id="30001">MythXML Port</string>
+    <string id="30003">MythXML Connection Timeout (seconds)</string>
 </strings>
 

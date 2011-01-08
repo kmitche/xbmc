@@ -11,7 +11,7 @@ struct SChannel
   CStdString      number;
 
   SChannel() {
-	id = 0;
+    id = 0;
   }
 };
 
