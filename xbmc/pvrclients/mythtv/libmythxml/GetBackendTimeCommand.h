@@ -9,7 +9,7 @@ class GetBackendTimeCommand: public MythXmlCommand
     time_t  GetDateTime();
     int     GetGmtOffset();
 
-    bool ParseResponse(const CStdString& response);
+    bool ParseResponse(CStdString response);
 
   private:
     time_t  m_datetime;

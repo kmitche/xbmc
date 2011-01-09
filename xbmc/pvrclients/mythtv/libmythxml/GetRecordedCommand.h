@@ -13,7 +13,7 @@ class GetRecordedCommand: public MythXmlCommand
 
     const std::vector<SRecordingInfo>& GetRecordings();
 
-    bool ParseResponse(const CStdString& response);
+    bool ParseResponse(CStdString response);
 
   private:
     std::vector<SRecordingInfo> m_recordings;

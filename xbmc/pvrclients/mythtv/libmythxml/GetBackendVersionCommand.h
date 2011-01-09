@@ -8,7 +8,7 @@ class GetBackendVersionCommand: public MythXmlCommand
     GetBackendVersionCommand();
 
     CStdString GetVersion();
-    bool ParseResponse(const CStdString& response);
+    bool ParseResponse(CStdString response);
 
   private:
     CStdString m_version;

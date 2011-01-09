@@ -4,7 +4,7 @@
 
 // TODO: Same as all files
 #include "../client.h"
-#include "../tinyxml/tinyxml.h"
+#include "tinyxml/tinyxml.h"
 
 GetChannelListCommand::GetChannelListCommand()
 {
@@ -26,7 +26,7 @@ const std::vector<SChannel>& GetChannelListCommand::GetChannels()
   return m_channels;
 }
 
-bool GetChannelListCommand::ParseResponse(const CStdString& response)
+bool GetChannelListCommand::ParseResponse(CStdString response)
 {
   TiXmlDocument xml;
   xml.Parse(response.c_str(), 0, TIXML_ENCODING_LEGACY); // TODO: UTF8?
@@ -41,7 +41,7 @@ bool GetChannelListCommand::ParseResponse(const CStdString& response)
     int errorCode;
     CStdString errorDesc;
     MythXmlResponse::parseErrorNode(child, errorCode, errorDesc);
-    XBMC->Log(LOG_ERROR, "MythXML - GetChannelListResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
+    //XBMC->Log(LOG_ERROR, "MythXML - GetChannelListResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
     return false;
   }
 
@@ -62,7 +62,7 @@ bool GetChannelListCommand::ParseResponse(const CStdString& response)
     return true;
   }
 
-  XBMC->Log(LOG_ERROR, "MythXML - GetChannelListResult - xml data doesn't have the expected information - %s",
-      response.c_str());
+  //XBMC->Log(LOG_ERROR, "MythXML - GetChannelListResult - xml data doesn't have the expected information - %s",
+   //   response.c_str());
   return false;
 }

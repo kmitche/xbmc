@@ -1423,7 +1423,6 @@ OUTPUT_FILES="Makefile \
     xbmc/FileSystem/Makefile \
     xbmc/pvrclients/Makefile.include \
     xbmc/pvrclients/MediaPortal/Makefile \
-    xbmc/pvrclients/mythtv/Makefile \
     xbmc/pvrclients/tvheadend/Makefile \
     xbmc/pvrclients/vdr-streamdev/Makefile \
     xbmc/pvrclients/vdr-vnsi/Makefile \

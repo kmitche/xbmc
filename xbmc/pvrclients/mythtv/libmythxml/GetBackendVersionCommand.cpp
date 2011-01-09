@@ -3,7 +3,7 @@
 #include "MythXmlResponse.h"
 
 // TODO: As for all other files...
-#include "../tinyxml/tinyxml.h"
+#include "tinyxml/tinyxml.h"
 #include "../client.h"
 
 GetBackendVersionCommand::GetBackendVersionCommand()
@@ -12,7 +12,7 @@ GetBackendVersionCommand::GetBackendVersionCommand()
   Init("GetStatus", parameters);
 }
 
-bool GetBackendVersionCommand::ParseResponse(const CStdString& response)
+bool GetBackendVersionCommand::ParseResponse(CStdString response)
 {
   TiXmlDocument xml;
   xml.Parse(response.c_str(), 0, TIXML_ENCODING_LEGACY);
@@ -27,7 +27,7 @@ bool GetBackendVersionCommand::ParseResponse(const CStdString& response)
     int errorCode;
     CStdString errorDesc;
     MythXmlResponse::parseErrorNode(child, errorCode, errorDesc);
-    XBMC->Log(LOG_ERROR, "MythXML - GetBackendVersionResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
+    //XBMC->Log(LOG_ERROR, "MythXML - GetBackendVersionResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
     return false;
   }
 
@@ -37,8 +37,8 @@ bool GetBackendVersionCommand::ParseResponse(const CStdString& response)
     m_version = child->Attribute("version");
     return true;
   }
-  XBMC->Log(LOG_ERROR, "MythXML - GetBackendVersionResult - xml data doesn't have the expected information - %s",
-      response.c_str());
+  //XBMC->Log(LOG_ERROR, "MythXML - GetBackendVersionResult - xml data doesn't have the expected information - %s",
+  //    response.c_str());
   return false;
 }
 

@@ -161,7 +161,7 @@ class GetProgramGuideCommand: public MythXmlCommand
   public:
     GetProgramGuideCommand(const int &channel, const time_t &start, const time_t &end);
 
-    bool ParseResponse(const CStdString& response);
+    bool ParseResponse(CStdString response);
 
     const std::vector<SEpg>& GetEpg();
 

@@ -6,7 +6,7 @@
 #include <map>
 
 // TODO: path alteration for tinyxml.h?
-#include "../tinyxml/tinyxml.h"
+#include "tinyxml/tinyxml.h"
 
 // TODO: understand if there is a better way to log from what should be "binary" libraries that don't know anything about XBMC.
 #include "../client.h"
@@ -27,7 +27,7 @@ GetProgramGuideCommand::GetProgramGuideCommand(const int &channel, const time_t 
   Init("Myth/GetProgramGuide", parameters);
 }
 
-bool GetProgramGuideCommand::ParseResponse(const CStdString& response)
+bool GetProgramGuideCommand::ParseResponse(CStdString response)
 {
   TiXmlDocument document;
   document.Parse(response.c_str(), 0, TIXML_ENCODING_LEGACY);
@@ -42,7 +42,7 @@ bool GetProgramGuideCommand::ParseResponse(const CStdString& response)
     int errorCode;
     CStdString errorDesc;
     MythXmlResponse::parseErrorNode(channels, errorCode, errorDesc);
-    XBMC->Log(LOG_ERROR, "MythXML - GetProgramGuideResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
+    //XBMC->Log(LOG_ERROR, "MythXML - GetProgramGuideResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
     return false;
   }
 
@@ -75,8 +75,8 @@ bool GetProgramGuideCommand::ParseResponse(const CStdString& response)
     return true;
   }
 
-  XBMC->Log(LOG_ERROR, "MythXML - GetProgramGuideResult - xml data doesn't have the expected information - %s",
-      response.c_str());
+  //XBMC->Log(LOG_ERROR, "MythXML - GetProgramGuideResult - xml data doesn't have the expected information - %s",
+  //    response.c_str());
   return false;
 }
 

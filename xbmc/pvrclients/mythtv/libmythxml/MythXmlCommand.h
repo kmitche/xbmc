@@ -6,7 +6,7 @@
  *      Author: tafypz
  */
 
-#include "../StdString.h"
+#include "StdString.h"
 
 #include "MythXmlParameters.h"
 
@@ -14,7 +14,7 @@ class MythXmlCommand
 {
   public:
     CStdString GetPath();
-    virtual bool ParseResponse(const CStdString& response) = 0;
+    virtual bool ParseResponse(CStdString response) = 0;
 
   protected:
     // TODO: optional parameters argument.

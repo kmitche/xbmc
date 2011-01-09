@@ -2,7 +2,7 @@
 
 #include "MythXmlResponse.h"
 
-#include "../tinyxml/tinyxml.h"
+#include "tinyxml/tinyxml.h"
 #include "../client.h"
 
 /*
@@ -38,7 +38,7 @@ GetDriveSpaceCommand::GetDriveSpaceCommand()
   Init("GetStatus", parameters);
 }
 
-bool GetDriveSpaceCommand::ParseResponse(const CStdString& response)
+bool GetDriveSpaceCommand::ParseResponse(CStdString response)
 {
   TiXmlDocument xml;
   xml.Parse(response.c_str(), 0, TIXML_ENCODING_LEGACY);
@@ -52,7 +52,7 @@ bool GetDriveSpaceCommand::ParseResponse(const CStdString& response)
     int errorCode;
     CStdString errorDesc;
     MythXmlResponse::parseErrorNode(child, errorCode, errorDesc);
-    XBMC->Log(LOG_ERROR, "MythXML - GetDriveSpaceCommand - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
+    //XBMC->Log(LOG_ERROR, "MythXML - GetDriveSpaceCommand - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
     return false;
   }
 
@@ -74,8 +74,8 @@ bool GetDriveSpaceCommand::ParseResponse(const CStdString& response)
     }
     return true;
   }
-  XBMC->Log(LOG_ERROR, "MythXML - GetDriveSpaceCommand - xml data doesn't have the expected information - %s",
-      response.c_str());
+  //XBMC->Log(LOG_ERROR, "MythXML - GetDriveSpaceCommand - xml data doesn't have the expected information - %s",
+  //    response.c_str());
   return false;
 }
 

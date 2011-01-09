@@ -17,7 +17,7 @@ class GetDriveSpaceCommand: public MythXmlCommand
     long long GetTotal();
     long long GetUsed();
 
-    bool ParseResponse(const CStdString& response);
+    bool ParseResponse(CStdString response);
 
   private:
     long long m_total;

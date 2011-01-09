@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../StdString.h"
+#include "StdString.h"
 
 struct SEpg
 {

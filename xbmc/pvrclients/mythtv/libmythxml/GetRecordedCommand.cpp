@@ -3,7 +3,7 @@
 #include "MythXmlResponse.h"
 
 // TODO: Update includes so these don't need to reference up the folder hierarchy. Assume in path.
-#include "../tinyxml/tinyxml.h"
+#include "tinyxml/tinyxml.h"
 #include "../client.h"
 
 GetRecordedCommand::GetRecordedCommand()
@@ -12,7 +12,7 @@ GetRecordedCommand::GetRecordedCommand()
   Init("Myth/GetRecorded", parameters);
 }
 
-bool GetRecordedCommand::ParseResponse(const CStdString& response)
+bool GetRecordedCommand::ParseResponse(CStdString response)
 {
   TiXmlDocument xml;
   xml.Parse(response.c_str(), 0, TIXML_ENCODING_LEGACY);
@@ -26,7 +26,7 @@ bool GetRecordedCommand::ParseResponse(const CStdString& response)
     int errorCode;
     CStdString errorDesc;
     MythXmlResponse::parseErrorNode(child, errorCode, errorDesc);
-    XBMC->Log(LOG_ERROR, "MythXML - GetRecordingListResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
+    //XBMC->Log(LOG_ERROR, "MythXML - GetRecordingListResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
     return false;
   }
 
@@ -68,8 +68,8 @@ bool GetRecordedCommand::ParseResponse(const CStdString& response)
     }
     return true;
   }
-  XBMC->Log(LOG_ERROR, "MythXML - GetRecordingListResult - xml data doesn't have the expected information - %s",
-      response.c_str());
+  //XBMC->Log(LOG_ERROR, "MythXML - GetRecordingListResult - xml data doesn't have the expected information - %s",
+  //    response.c_str());
   return false;
 }
 

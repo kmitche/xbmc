@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../StdString.h"
+#include "StdString.h"
 
 // TODO: Rename to just Recording or RecordedProgram. Move to the top level MythXML files when they are moved into this tree.
 struct SRecordingInfo

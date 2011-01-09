@@ -5,7 +5,7 @@
 #include "MythXmlResponse.h"
 
 // TODO: Assume tinyXML on path?
-#include "../tinyxml/tinyxml.h"
+#include "tinyxml/tinyxml.h"
 
 // TODO: Logging without XBMC handle?
 #include "../client.h"
@@ -26,7 +26,7 @@ time_t GetBackendTimeCommand::GetDateTime()
   return m_datetime;
 }
 
-bool GetBackendTimeCommand::ParseResponse(const CStdString& response)
+bool GetBackendTimeCommand::ParseResponse(CStdString response)
 {
   TiXmlDocument xml;
   xml.Parse(response.c_str(), 0, TIXML_ENCODING_LEGACY);
@@ -41,7 +41,7 @@ bool GetBackendTimeCommand::ParseResponse(const CStdString& response)
     int errorCode;
     CStdString errorDesc;
     MythXmlResponse::parseErrorNode(child, errorCode, errorDesc);
-    XBMC->Log(LOG_ERROR, "MythXML - GetBackendVersionResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
+    //XBMC->Log(LOG_ERROR, "MythXML - GetBackendVersionResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
     return false;
   }
 
@@ -49,28 +49,28 @@ bool GetBackendTimeCommand::ParseResponse(const CStdString& response)
   if (child != NULL)
   {
     m_datetime = MythXmlResponse::toDateTime(child->Attribute("ISODate"));
-    //the date comes without a gmt offset let's emulate that.
-    time_t raw;
-    time(&raw);
-    struct tm* timeinfo;
-    timeinfo = localtime(&raw);
-    int localoffset = timeinfo->tm_gmtoff;
-    timeinfo->tm_gmtoff = 0;
-    time_t serverTime = mktime(timeinfo);
-    int timediff = raw - serverTime;
-    if (abs(timediff) < 3600)
-    {
-      // same zone
-      m_gmtoffset = localoffset;
-    }
-    else
-    {
-      int off = timediff / 3600;
-      m_gmtoffset = localoffset + off;
-    }
+//    //the date comes without a gmt offset let's emulate that.
+//    time_t raw;
+//    time(&raw);
+//    struct tm* timeinfo;
+//    timeinfo = localtime(&raw);
+//    int localoffset = timeinfo->tm_gmtoff;
+//    timeinfo->tm_gmtoff = 0;
+//    time_t serverTime = mktime(timeinfo);
+//    int timediff = raw - serverTime;
+//    if (abs(timediff) < 3600)
+//    {
+//      // same zone
+//      m_gmtoffset = localoffset;
+//    }
+//    else
+//    {
+//      int off = timediff / 3600;
+//      m_gmtoffset = localoffset + off;
+//    }
     return true;
   }
-  XBMC->Log(LOG_ERROR, "MythXML - GetBackendVersionResult - xml data doesn't have the expected information - %s",
-      response.c_str());
+  //XBMC->Log(LOG_ERROR, "MythXML - GetBackendVersionResult - xml data doesn't have the expected information - %s",
+  //          response.c_str());
   return false;
 }

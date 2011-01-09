@@ -1,6 +1,7 @@
-LIBS = ../tinyxml/tinyxml.a -ldl
-
+# See the README for copyright information and how to reach the author.
 LIB = libmythxml.a
+
+DIRS = tinyxml
 
 SRCS = \
 	GetBackendTimeCommand.cpp \
@@ -16,8 +17,17 @@ SRCS = \
 	MythXmlResponse.cpp \
 
 include ../../../../Makefile.include
+-include $(patsubst %.cpp,%.P,$(patsubst %.c,%.P,$(SRCS)))
 
-INCLUDES += -I../../../addons/include -I../../../FileSystem
+# Includes for StdString
+INCLUDES = -I..
 
-$(LIB): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -shared -g $(OBJS) $(LIBS) $(LIBDIRS) $(SILIB) -o $(LIB)
+# Additional includes for the addon handles.
+INCLUDES += -I../../../addons/include
+	
+# "deps" ensures that the LIBS are always made by default. This, unfortunately, means LIB is
+# built for each make but it doesn't take very long.
+$(LIB): deps
+
+deps:
+	$(MAKE) -C tinyxml

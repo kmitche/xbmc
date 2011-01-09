@@ -10,7 +10,7 @@
 #include "MythXmlResponse.h"
 
 // TODO: Same as for all classes...
-#include "../tinyxml/tinyxml.h"
+#include "tinyxml/tinyxml.h"
 #include "../client.h"
 
 GetNumOfChannelsCommand::GetNumOfChannelsCommand()
@@ -29,7 +29,7 @@ GetNumOfChannelsCommand::GetNumOfChannelsCommand()
   Init("Myth/GetProgramGuide", parameters);
 }
 
-bool GetNumOfChannelsCommand::ParseResponse(const CStdString& response)
+bool GetNumOfChannelsCommand::ParseResponse(CStdString response)
 {
   m_number_of_channels = 0;
   // TODO: I thought that all of the MythXML responses were in UTF8?
@@ -45,7 +45,7 @@ bool GetNumOfChannelsCommand::ParseResponse(const CStdString& response)
     int errorCode;
     CStdString errorDesc;
     MythXmlResponse::parseErrorNode(child, errorCode, errorDesc);
-    XBMC->Log(LOG_ERROR, "MythXML - GetNumChannelsResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
+    //XBMC->Log(LOG_ERROR, "MythXML - GetNumChannelsResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
     return false;
   }
 
@@ -56,8 +56,8 @@ bool GetNumOfChannelsCommand::ParseResponse(const CStdString& response)
     return true;
   }
 
-  XBMC->Log(LOG_ERROR, "MythXML - GetNumChannelsResult - xml data doesn't have the expected information - %s",
-      response.c_str());
+  //XBMC->Log(LOG_ERROR, "MythXML - GetNumChannelsResult - xml data doesn't have the expected information - %s",
+  //    response.c_str());
   return false;
 }
 

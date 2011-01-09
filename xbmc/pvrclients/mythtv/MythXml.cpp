@@ -7,20 +7,21 @@
 
 #include "MythXml.h"
 
-#include "FileSystem/FileCurl.h"
 #include <time.h>
 
-#include "libmythxml/GetNumOfChannelsCommand.h"
-#include "libmythxml/GetChannelListCommand.h"
-#include "libmythxml/GetProgramGuideCommand.h"
-#include "libmythxml/GetRecordedCommand.h"
-#include "libmythxml/GetNumOfRecordingsCommand.h"
+#include "FileSystem/FileCurl.h"
+
 #include "libmythxml/GetBackendTimeCommand.h"
 #include "libmythxml/GetBackendVersionCommand.h"
+#include "libmythxml/GetChannelListCommand.h"
 #include "libmythxml/GetDriveSpaceCommand.h"
+#include "libmythxml/GetNumOfChannelsCommand.h"
+#include "libmythxml/GetNumOfRecordingsCommand.h"
+#include "libmythxml/GetProgramGuideCommand.h"
+#include "libmythxml/GetRecordedCommand.h"
 
-using namespace XFILE;
 using std::vector;
+using XFILE::CFileCurl;
 
 /*
  * TODO: Move MythXML to the libmythxml folder and take out the PVR struct information.
