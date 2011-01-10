@@ -1185,8 +1185,6 @@ autom4te.cache
 
 # /xbmc/pvrclients
 /xbmc/pvrclients/Makefile.include
-/xbmc/pvrclients/*/.dependencies
-/xbmc/pvrclients/*/Makefile
 
 /xbmc/screensavers/Makefile
 
