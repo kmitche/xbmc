@@ -1,0 +1,3 @@
+0.1.0
+- Displays list of Live TV channels
+- Loads EPG information
