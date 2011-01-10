@@ -3,13 +3,17 @@
 #include "MythXmlResponse.h"
 
 // TODO: Update includes so these don't need to reference up the folder hierarchy. Assume in path.
-#include "tinyxml/tinyxml.h"
+#include "tinyXML/tinyxml.h"
 #include "../client.h"
 
 GetRecordedCommand::GetRecordedCommand()
 {
   MythXmlParameters parameters;
   Init("Myth/GetRecorded", parameters);
+}
+
+GetRecordedCommand::~GetRecordedCommand()
+{
 }
 
 bool GetRecordedCommand::ParseResponse(CStdString response)

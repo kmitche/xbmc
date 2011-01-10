@@ -13,10 +13,23 @@ SRCS = \
 	client.cpp \
 	MythXml.cpp
 
-include ../Makefile.include
+include ../../../Makefile.include
+
+# Reset INCLUDES to just be the libraries needed for the addon.
+INCLUDES = -I../../addons/include -I../../../addons/library.xbmc.pvr -I../../../addons/library.xbmc.addon
+
+# Additional include for FileCurl (and it's associated dependencies)
+INCLUDES += -I../..
+
+# Additional include for StdString (referenced by FileCurls associated dependencies)
+INCLUDES += -I../../../guilib
 
 # Additional include for PlatformDefs.h from IFile.h.
 INCLUDES += -I../../linux
+
+# Need to create a shared library since FileCurl cannot be referenced as its "in" XBMC
+$(LIB): $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -shared $(OBJS) $(LIBS) -o $(LIB)
 
 # "deps" ensures that the LIBS are always made by default. This, unfortunately, means LIB is
 # built for each make but it doesn't take very long.

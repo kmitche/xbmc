@@ -2,7 +2,7 @@
 
 #include "MythXmlResponse.h"
 
-#include "tinyxml/tinyxml.h"
+#include "tinyXML/tinyxml.h"
 #include "../client.h"
 
 /*
@@ -36,6 +36,10 @@ GetDriveSpaceCommand::GetDriveSpaceCommand()
 {
   MythXmlParameters parameters;
   Init("GetStatus", parameters);
+}
+
+GetDriveSpaceCommand::~GetDriveSpaceCommand()
+{
 }
 
 bool GetDriveSpaceCommand::ParseResponse(CStdString response)

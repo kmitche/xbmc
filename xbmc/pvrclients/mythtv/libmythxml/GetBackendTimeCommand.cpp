@@ -5,7 +5,7 @@
 #include "MythXmlResponse.h"
 
 // TODO: Assume tinyXML on path?
-#include "tinyxml/tinyxml.h"
+#include "tinyXML/tinyxml.h"
 
 // TODO: Logging without XBMC handle?
 #include "../client.h"
@@ -14,6 +14,10 @@ GetBackendTimeCommand::GetBackendTimeCommand()
 {
   MythXmlParameters parameters;
   Init("GetStatus", parameters);
+}
+
+GetBackendTimeCommand::~GetBackendTimeCommand()
+{
 }
 
 int GetBackendTimeCommand::GetGmtOffset()

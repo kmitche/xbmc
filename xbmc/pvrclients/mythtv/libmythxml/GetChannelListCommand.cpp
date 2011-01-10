@@ -4,7 +4,7 @@
 
 // TODO: Same as all files
 #include "../client.h"
-#include "tinyxml/tinyxml.h"
+#include "tinyXML/tinyxml.h"
 
 GetChannelListCommand::GetChannelListCommand()
 {
@@ -19,6 +19,10 @@ GetChannelListCommand::GetChannelListCommand()
   parameters.SetParameter("NumOfChannels", -1); // All channels
 
   Init("Myth/GetProgramGuide", parameters);
+}
+
+GetChannelListCommand::~GetChannelListCommand()
+{
 }
 
 const std::vector<SChannel>& GetChannelListCommand::GetChannels()

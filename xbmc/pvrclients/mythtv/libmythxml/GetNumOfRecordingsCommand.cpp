@@ -3,7 +3,7 @@
 #include "MythXmlResponse.h"
 
 // TODO: Tidy like all other files.
-#include "tinyxml/tinyxml.h"
+#include "tinyXML/tinyxml.h"
 #include "../client.h"
 
 GetNumOfRecordingsCommand::GetNumOfRecordingsCommand()

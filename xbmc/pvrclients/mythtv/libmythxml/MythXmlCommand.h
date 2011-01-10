@@ -6,7 +6,7 @@
  *      Author: tafypz
  */
 
-#include "StdString.h"
+#include "../StdString.h"
 
 #include "MythXmlParameters.h"
 

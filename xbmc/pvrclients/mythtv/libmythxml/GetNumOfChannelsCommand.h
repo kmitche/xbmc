@@ -12,6 +12,8 @@ class GetNumOfChannelsCommand: public MythXmlCommand
 {
   public:
     GetNumOfChannelsCommand();
+    ~GetNumOfChannelsCommand();
+
     int GetNumberOfChannels();
 
     bool ParseResponse(CStdString response);

@@ -6,6 +6,8 @@ class GetBackendTimeCommand: public MythXmlCommand
 {
   public:
     GetBackendTimeCommand();
+    ~GetBackendTimeCommand();
+
     time_t  GetDateTime();
     int     GetGmtOffset();
 

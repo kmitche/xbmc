@@ -6,6 +6,7 @@ class GetBackendVersionCommand: public MythXmlCommand
 {
   public:
     GetBackendVersionCommand();
+    ~GetBackendVersionCommand();
 
     CStdString GetVersion();
     bool ParseResponse(CStdString response);

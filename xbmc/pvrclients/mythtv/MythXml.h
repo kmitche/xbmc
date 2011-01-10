@@ -18,7 +18,8 @@
 class MythXml {
 public:
   MythXml(CStdString& hostname, int port, CStdString& user, CStdString& pass, int pin, long timeout);
-  virtual ~MythXml();
+  ~MythXml();
+
   void Init();
   void Cleanup();
   int getNumChannels();

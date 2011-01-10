@@ -3,13 +3,17 @@
 #include "MythXmlResponse.h"
 
 // TODO: As for all other files...
-#include "tinyxml/tinyxml.h"
+#include "tinyXML/tinyxml.h"
 #include "../client.h"
 
 GetBackendVersionCommand::GetBackendVersionCommand()
 {
   MythXmlParameters parameters;
   Init("GetStatus", parameters);
+}
+
+GetBackendVersionCommand::~GetBackendVersionCommand()
+{
 }
 
 bool GetBackendVersionCommand::ParseResponse(CStdString response)

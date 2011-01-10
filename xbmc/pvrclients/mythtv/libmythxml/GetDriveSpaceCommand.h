@@ -12,6 +12,7 @@ class GetDriveSpaceCommand: public MythXmlCommand
 {
   public:
     GetDriveSpaceCommand();
+    ~GetDriveSpaceCommand();
 
     // TODO: int64_t way safer if suppose to be 64 bit
     long long GetTotal();

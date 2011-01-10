@@ -10,6 +10,7 @@ class GetRecordedCommand: public MythXmlCommand
 {
   public:
     GetRecordedCommand();
+    ~GetRecordedCommand();
 
     const std::vector<SRecordingInfo>& GetRecordings();
 

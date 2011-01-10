@@ -10,7 +10,7 @@
 #include "MythXmlResponse.h"
 
 // TODO: Same as for all classes...
-#include "tinyxml/tinyxml.h"
+#include "tinyXML/tinyxml.h"
 #include "../client.h"
 
 GetNumOfChannelsCommand::GetNumOfChannelsCommand()
@@ -27,6 +27,10 @@ GetNumOfChannelsCommand::GetNumOfChannelsCommand()
   parameters.SetParameter("NumOfChannels", -1); // All channels
 
   Init("Myth/GetProgramGuide", parameters);
+}
+
+GetNumOfChannelsCommand::~GetNumOfChannelsCommand()
+{
 }
 
 bool GetNumOfChannelsCommand::ParseResponse(CStdString response)
