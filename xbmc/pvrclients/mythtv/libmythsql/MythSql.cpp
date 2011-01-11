@@ -31,7 +31,7 @@ bool MythSql::Init()
       return false;
   }
 
-  MYSQL* conn;
+  MYSQL* conn = NULL;
   if (!GetConnection(conn))
     return false;
 
@@ -56,8 +56,8 @@ bool MythSql::GetConnection(MYSQL* conn)
     return false;
 
   // TODO: Advanced configuration needed for the MySQL port?
-  return mysql_real_connect(conn, m_hostname.c_str(), m_username.c_str(), m_password.c_str(),
-         m_dbname.c_str(), DEFAULT_MYSQL_PORT, NULL, 0);
+  return !mysql_real_connect(conn, m_hostname.c_str(), m_username.c_str(), m_password.c_str(),
+         m_dbname.c_str(), DEFAULT_MYSQL_PORT, NULL, 0); // 0 is success.
 }
 
 void MythSql::CloseConnection(MYSQL* conn)
@@ -79,7 +79,7 @@ void MythSql::CloseConnection(MYSQL* conn)
 
 int MythSql::GetNumberOfSchedules()
 {
-  MYSQL* conn;
+  MYSQL* conn = NULL;
   if (!GetConnection(conn))
     return 0;
 
@@ -99,7 +99,7 @@ int MythSql::GetNumberOfSchedules()
 
 bool MythSql::GetAllSchedules(std::vector<SSchedule>& schedules)
 {
-  MYSQL* conn;
+  MYSQL* conn = NULL;
   if (!GetConnection(conn))
     return false;
 
@@ -119,7 +119,7 @@ bool MythSql::GetAllSchedules(std::vector<SSchedule>& schedules)
 
 bool MythSql::AddSchedule(const SSchedule& schedule)
 {
-  MYSQL* conn;
+  MYSQL* conn = NULL;
   if (!GetConnection(conn))
     return false;
 
@@ -139,7 +139,7 @@ bool MythSql::AddSchedule(const SSchedule& schedule)
 
 bool MythSql::DeleteSchedule(const SSchedule& schedule)
 {
-  MYSQL* conn;
+  MYSQL* conn = NULL;
   if (!GetConnection(conn))
     return false;
 
@@ -159,7 +159,7 @@ bool MythSql::DeleteSchedule(const SSchedule& schedule)
 
 bool MythSql::RenameSchedule(const SSchedule& schedule, const CStdString& newname)
 {
-  MYSQL* conn;
+  MYSQL* conn = NULL;
   if (!GetConnection(conn))
     return false;
 

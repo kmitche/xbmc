@@ -13,7 +13,7 @@ ScheduleCommands1254::~ScheduleCommands1254()
 
 int ScheduleCommands1254::GetNumberOfSchedules(MYSQL* conn)
 {
-  if (!mysql_query(conn, "SELECT count(*) FROM record"))
+  if (mysql_query(conn, "SELECT count(*) FROM record"))
   {
     // TODO log the error
     // fprintf(stderr, "%s\n", mysql_error(conn));
@@ -39,7 +39,7 @@ int ScheduleCommands1254::GetNumberOfSchedules(MYSQL* conn)
 
 bool ScheduleCommands1254::GetAllSchedules(std::vector<SSchedule>& schedules, MYSQL* conn)
 {
-  if (!mysql_query(conn, "SELECT recordid, type, inactive, title, storagegroup, chanid, startdate, starttime, enddate, endtime, recpriority, autoexpire FROM record"))
+  if (mysql_query(conn, "SELECT recordid, type, inactive, title, storagegroup, chanid, startdate, starttime, enddate, endtime, recpriority, autoexpire FROM record"))
   {
     // TODO log the error
     // fprintf(stderr, "%s\n", mysql_error(conn));
