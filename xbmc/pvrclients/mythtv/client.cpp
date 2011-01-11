@@ -22,6 +22,7 @@
 #include "client.h"
 #include "xbmc_pvr_dll.h"
 #include "MythXml.h"
+#include "libmythsql/MythSql.h"
 
 using namespace std;
 
@@ -51,6 +52,7 @@ int          g_iClientID              = -1;
 CStdString   g_szUserPath             = "";
 CStdString   g_szClientPath           = "";
 MythXml*     MythXmlApi               = NULL;
+MythSql*     p_mythsql                = NULL;
 cHelper_libXBMC_addon *XBMC           = NULL;
 cHelper_libXBMC_pvr   *PVR            = NULL;
 
@@ -83,20 +85,21 @@ ADDON_STATUS Create(void* hdl, void* props)
   g_szUserPath   = pvrprops->userpath;
   g_szClientPath = pvrprops->clientpath;
 
-  /* Read setting "host" from settings.xml */
-  char * buffer;
-  buffer = (char*) malloc (1024);
+  char * buffer; // Buffer for the CStdString properties;
+  buffer = (char*) malloc(1024);
   buffer[0] = 0; /* Set the end of string */
 
-  if (XBMC->GetSetting("host", buffer))
-    g_szHostname = buffer;
-  else
+  /* Read setting "host" from settings.xml */
+  if (!XBMC->GetSetting("host", buffer))
   {
     /* If setting is unknown fallback to defaults */
     XBMC->Log(LOG_ERROR, "Couldn't get 'host' setting, falling back to '%s' as default", DEFAULT_HOST);
     g_szHostname = DEFAULT_HOST;
   }
-  free (buffer);
+  else
+  {
+    g_szHostname = buffer;
+  }
 
   /* Read setting "port" from settings.xml */
   if (!XBMC->GetSetting("mythXMLPort", &g_iMythXmlPort))
@@ -124,25 +127,44 @@ ADDON_STATUS Create(void* hdl, void* props)
     XBMC->Log(LOG_ERROR, "Couldn't get 'pin' setting, falling back to '%i' as default", DEFAULT_PIN);
     g_iPin = DEFAULT_PIN;
   }
-  
+
   /* Read setting "username" from settings.xml */
-  if (!XBMC->GetSetting("username", &g_szUserName))
+  buffer[0] = 0; /* Reset the end of string */
+  if (!XBMC->GetSetting("username", buffer))
   {
     /* If setting is unknown fallback to defaults */
     XBMC->Log(LOG_ERROR, "Couldn't get 'username' setting, falling back to '%s' as default", DEFAULT_USER);
     g_szUserName = DEFAULT_USER;
   }
+  else
+  {
+    g_szUserName = buffer;
+  }
   
   /* Read setting "pin" from settings.xml */
-  if (!XBMC->GetSetting("password", &g_szPassword))
+  buffer[0] = 0; /* Reset the end of string */
+  if (!XBMC->GetSetting("password", buffer))
   {
     /* If setting is unknown fallback to defaults */
     XBMC->Log(LOG_ERROR, "Couldn't get 'password' setting, falling back to '%s' as default", DEFAULT_PASS);
     g_szPassword = DEFAULT_PASS;
   }
+  else
+  {
+    g_szPassword = buffer;
+  }
+  free(buffer);
 
   MythXmlApi = new MythXml(g_szHostname, g_iMythXmlPort, g_szUserName, g_szPassword, g_iPin, g_iMythXmlConnectTimeout);
   MythXmlApi->Init();
+
+  // TODO: Do we need to allow for configuration of the database name?
+  // TODO: How can we get the schema version for the database?
+  CStdString database = "mythconverg";
+  p_mythsql = new MythSql(g_szHostname, g_szUserName, g_szPassword, database, 1254);
+  if (!p_mythsql->Init())
+    m_CurStatus = STATUS_LOST_CONNECTION;
+
   m_CurStatus = STATUS_OK;
 
   g_bCreated = true;
@@ -156,6 +178,10 @@ void Destroy()
     MythXmlApi->Cleanup();
     delete MythXmlApi;
     MythXmlApi = NULL;
+
+    delete p_mythsql;
+    p_mythsql = NULL;
+
     g_bCreated = false;
   }
   m_CurStatus = STATUS_UNKNOWN;
@@ -258,7 +284,7 @@ PVR_ERROR GetProperties(PVR_SERVERPROPS* props)
   props->SupportTimeShift          = false;
   props->SupportEPG                = true;
   props->SupportRecordings         = true;
-  props->SupportTimers             = false;
+  props->SupportTimers             = true;
   props->SupportTV                 = true;
   props->SupportRadio              = false;
   props->SupportChannelSettings    = false;
@@ -461,12 +487,48 @@ PVR_ERROR StartCut()
 
 int GetNumTimers(void)
 {
-  return 0;
+  if (p_mythsql == NULL)
+     return PVR_ERROR_SERVER_ERROR;
+
+  return p_mythsql->GetNumberOfSchedules();
 }
 
 PVR_ERROR RequestTimerList(PVRHANDLE handle)
 {
-  return PVR_ERROR_NOT_IMPLEMENTED;
+  if (p_mythsql == NULL)
+    return PVR_ERROR_SERVER_ERROR;
+
+  vector<SSchedule> schedules;
+  if (!p_mythsql->GetAllSchedules(schedules))
+    return PVR_ERROR_SERVER_ERROR;
+
+  vector<SSchedule>::const_iterator it;
+
+  // TODO: Just use PVRTIMERINFO rather than SSchedule. Who else is really going to use the library?
+  // TODO: Remove m_ off the structure fields.
+  for (it = schedules.begin(); it != schedules.end(); ++it)
+  {
+    PVR_TIMERINFO timer;
+    memset(&timer, 0, sizeof(timer));
+
+    const SSchedule& schedule = *it;
+    timer.index         = schedule.m_id; // TODO: What is the index used for? Is it the ID?
+    timer.active        = schedule.m_active;
+    timer.title         = schedule.m_title.c_str();
+    timer.directory     = schedule.m_directory.c_str();
+    timer.channelNum    = schedule.m_channel;
+    timer.starttime     = schedule.m_starttime;
+    timer.endtime       = schedule.m_endtime;
+    timer.firstday      = schedule.m_firstday;
+    timer.recording     = schedule.m_recording;
+    timer.priority      = schedule.m_priority;
+    timer.lifetime      = schedule.m_lifetime;
+    timer.repeat        = schedule.m_repeat;
+    timer.repeatflags   = schedule.m_repeatflags;
+
+    PVR->TransferTimerEntry(handle, &timer);
+  }
+  return PVR_ERROR_NO_ERROR;
 }
 
 PVR_ERROR AddTimer(const PVR_TIMERINFO &timerinfo)

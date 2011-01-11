@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <strings>
-    <!-- settings labels -->
+    <!-- General -->
     <string id="30000">MythTV Backend Hostname or IP</string>
-    <string id="30002">MythTV Backend PIN</string>
-    <string id="30001">MythXML Port</string>
-    <string id="30003">MythXML Connection Timeout (seconds)</string>
+    
+    <!-- MythSQL -->
+    <string id="30001">MySQL Username</string>
+    <string id="30002">MySQL Password</string>
+    
+    <!-- MythXML -->
+    <string id="40000">MythTV PIN</string>
+    <string id="40001">MythXML Port</string>
+    <string id="40002">MythXML Connection Timeout</string>
 </strings>
 

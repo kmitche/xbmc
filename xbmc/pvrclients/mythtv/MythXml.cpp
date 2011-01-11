@@ -48,10 +48,10 @@ MythXml::MythXml(CStdString& hostname, int port, CStdString& user, CStdString& p
 {
   hostname_ = hostname;
   port_ = port;
-  pin_ = pin;
-  timeout_ = timeout;
   username_ = user;
   password_ = pass;
+  pin_ = pin;
+  timeout_ = timeout;
 }
 
 MythXml::~MythXml()

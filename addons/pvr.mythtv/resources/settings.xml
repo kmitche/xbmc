@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
     <setting id="host" type="text" label="30000" default="127.0.0.1" />
-    <setting id="mythXMLPort" type="integer" label="30001" default="6544" />
-    <setting id="pin" type="integer" label="30002" default="0000" />
-    <setting id="mythXMLTimeout" type="enum" label="30003" values="0|1|2|3|4|5|10|15|20|30" default="30"/>
+    <setting id="username" type="text" label="30001" default="mythtv" />
+    <setting id="password" type="text" label="30002" default="mythtv" />
+    <setting id="pin" type="integer" label="40000" default="0000" />
+    <setting id="mythXMLPort" type="integer" label="40001" default="6544" />
+    <setting id="mythXMLTimeout" type="enum" label="40002" values="0|1|2|3|4|5|10|15|20|30" default="30"/>
 </settings>
 
