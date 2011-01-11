@@ -218,6 +218,7 @@
     <ClCompile Include="..\..\guilib\GUIControlProfiler.cpp" />
     <ClCompile Include="..\..\guilib\GUIDialog.cpp" />
     <ClCompile Include="..\..\guilib\GUIEditControl.cpp" />
+    <ClCompile Include="..\..\guilib\GUIEPGGridContainer.cpp" />
     <ClCompile Include="..\..\guilib\GUIFadeLabelControl.cpp" />
     <ClCompile Include="..\..\guilib\GUIFixedListContainer.cpp" />
     <ClCompile Include="..\..\guilib\GUIFont.cpp" />
@@ -334,6 +335,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\guilib\D3DResource.h" />
+    <ClInclude Include="..\..\guilib\GUIEPGGridContainer.h" />
     <ClInclude Include="..\..\guilib\GUIRenderingControl.h" />
     <ClInclude Include="..\..\guilib\GUITextureGLES.h" />
     <ClInclude Include="..\..\guilib\TextureBundleXBT.h" />
@@ -409,10 +411,13 @@
     <ClInclude Include="..\..\guilib\LocalizeStrings.h" />
     <ClInclude Include="..\..\xbmc\win32\pch.h" />
     <CustomBuild Include="..\..\xbmc\win32\PlatformInclude.h">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release (DirectX)|Win32'">update_svn_rev.bat
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release (DirectX)|Win32'">update_git_rev.bat
 </Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release (DirectX)|Win32'">..\..\svn\entries;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release (DirectX)|Win32'">..\..\xbmc\win32\svn_rev.h;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release (DirectX)|Win32'">..\..\.git\HEAD;..\..\xbmc\win32\git_rev.tmpl</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release (DirectX)|Win32'">..\..\xbmc\win32\git_rev.h;%(Outputs)</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release (OpenGL)|Win32'">update_git_rev.bat</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release (OpenGL)|Win32'">..\..\xbmc\win32\git_rev.h;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release (OpenGL)|Win32'">..\..\.git\HEAD;..\..\xbmc\win32\git_rev.tmpl</AdditionalInputs>
     </CustomBuild>
     <ClInclude Include="..\..\guilib\Shader.h" />
     <ClInclude Include="..\..\guilib\StdString.h" />
