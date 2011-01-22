@@ -42,9 +42,7 @@
 #include "GUIDialogSelect.h"
 
 #include "PVRManager.h"
-#include "PVRChannelGroups.h"
-#include "PVRChannelGroup.h"
-#include "PVRChannelsContainer.h"
+#include "PVRChannelGroupsContainer.h"
 #include "PVREpgInfoTag.h"
 #include "PVRTimerInfoTag.h"
 
@@ -153,7 +151,7 @@ void CPVRManager::Start()
 void CPVRManager::Stop()
 {
   CLog::Log(LOGNOTICE, "PVR: PVRManager stopping");
-  PVREpgs.Stop();
+  g_PVREpgs.Stop();
   StopThread();
 
   for (CLIENTMAPITR itr = m_clients.begin(); itr != m_clients.end(); itr++)
@@ -399,11 +397,11 @@ bool CPVRManager::ContinueLastChannel()
 
   if (lastChannel > 0)
   {
-    CPVRChannel *tag = CPVRChannels::GetByChannelIDFromAll(lastChannel);
+    CPVRChannel *tag = CPVRChannelGroup::GetByChannelIDFromAll(lastChannel);
     if (!tag)
       return false;
 
-    const CPVRChannels *channels = g_PVRChannels.Get(tag->IsRadio());
+    const CPVRChannelGroup *channels = g_PVRChannelGroups.GetGroupAll(tag->IsRadio());
 
     if (g_guiSettings.GetInt("pvrplayback.startlast") == START_LAST_CHANNEL_MIN)
       g_settings.m_bStartVideoWindowed = true;
@@ -432,10 +430,7 @@ bool CPVRManager::ContinueLastChannel()
 
 void CPVRManager::Process()
 {
-  ((CPVRChannels *) g_PVRChannels.GetTV())->Load();    /* Load the TV channels */
-  ((CPVRChannels *) g_PVRChannels.GetRadio())->Load(); /* Load the radio channels */
-  PVRChannelGroupsTV.Load(false);                      /* Load the TV channel group lists */
-  PVRChannelGroupsRadio.Load(true);                    /* Load the radio Channel group lists */
+  g_PVRChannelGroups.Load(); /* Load all channels and groups */
 
   /* Continue last watched channel after first startup */
   if (m_bFirstStart && g_guiSettings.GetInt("pvrplayback.startlast") != START_LAST_CHANNEL_OFF)
@@ -443,7 +438,7 @@ void CPVRManager::Process()
 
   PVRTimers.Load();     /* Get timers from the backends */
   PVRRecordings.Load(); /* Get recordings from the backend */
-  PVREpgs.Start(); /* Start the EPG thread */
+  g_PVREpgs.Start(); /* Start the EPG thread */
 
   int Now = CTimeUtils::GetTimeMS()/1000;
   m_LastTVChannelCheck     = Now;
@@ -460,7 +455,7 @@ void CPVRManager::Process()
     if (Now - m_LastTVChannelCheck > CHANNELCHECKDELTA) // don't do this too often
     {
       CLog::Log(LOGDEBUG,"PVR: Updating TV Channel list");
-      ((CPVRChannels *) g_PVRChannels.GetTV())->Update();
+      ((CPVRChannelGroup *) g_PVRChannelGroups.GetGroupAllTV())->Update();
       m_LastTVChannelCheck = Now;
     }
 
@@ -468,7 +463,7 @@ void CPVRManager::Process()
     if (Now - m_LastRadioChannelCheck > CHANNELCHECKDELTA) // don't do this too often
     {
       CLog::Log(LOGDEBUG,"PVR: Updating Radio Channel list");
-      ((CPVRChannels *) g_PVRChannels.GetTV())->Update();
+      ((CPVRChannelGroup *) g_PVRChannelGroups.GetGroupAllRadio())->Update();
       m_LastRadioChannelCheck = Now;
     }
 
@@ -505,18 +500,16 @@ void CPVRManager::Process()
   }
 
   /* if a channel or recording is playing stop it first */
+  // this will result in seg fault because this is not the rendering thread
   if (m_currentPlayingChannel || m_currentPlayingRecording)
     g_application.StopPlaying();
 
-  PVREpgs.Stop(); /* Stop the EPG thread */
+  g_PVREpgs.Stop(); /* Stop the EPG thread */
 
   /* unload the rest */
   PVRRecordings.Unload();
   PVRTimers.Unload();
-  PVRChannelGroupsTV.Unload();
-  PVRChannelGroupsRadio.Unload();
-  ((CPVRChannels *) g_PVRChannels.GetRadio())->Unload();
-  ((CPVRChannels *) g_PVRChannels.GetTV())->Unload();
+  g_PVRChannelGroups.Unload();
 }
 
 
@@ -991,14 +984,14 @@ void CPVRManager::ResetDatabase()
   m_database.Close();
   CLog::Log(LOGNOTICE,"PVR: TV Database reset finished, starting PVR Subsystem again");
   Start();
-  PVREpgs.Start();
+  g_PVREpgs.Start();
   pDlgProgress->SetPercentage(100);
   pDlgProgress->Close();
 }
 
 void CPVRManager::ResetEPG()
 {
-  PVREpgs.Reset(true);
+  g_PVREpgs.Reset(true);
 }
 
 bool CPVRManager::IsPlayingTV()
@@ -1206,7 +1199,7 @@ bool CPVRManager::StartRecordingOnPlayingChannel(bool bOnOff)
   CPVRChannel* tag = m_currentPlayingChannel->GetPVRChannelInfoTag();
   if (m_clientsProps[tag->ClientID()].SupportTimers)
   {
-    const CPVRChannels *channels = g_PVRChannels.Get(m_currentPlayingChannel->GetPVRChannelInfoTag()->IsRadio());
+    const CPVRChannelGroup *channels = g_PVRChannelGroups.GetGroupAll(m_currentPlayingChannel->GetPVRChannelInfoTag()->IsRadio());
 
     if (bOnOff && tag->IsRecording() == false)
     {
@@ -1770,7 +1763,7 @@ bool CPVRManager::ChannelSwitch(unsigned int iChannel)
   if (!m_currentPlayingChannel)
     return false;
 
-  const CPVRChannels *channels = g_PVRChannels.Get(m_currentPlayingChannel->GetPVRChannelInfoTag()->IsRadio());
+  const CPVRChannelGroup *channels = g_PVRChannelGroups.GetGroupAll(m_currentPlayingChannel->GetPVRChannelInfoTag()->IsRadio());
 
   if (iChannel > channels->size()+1)
   {
@@ -1814,7 +1807,7 @@ bool CPVRManager::ChannelUp(unsigned int *newchannel, bool preview/* = false*/)
 {
    if (m_currentPlayingChannel)
    {
-     const CPVRChannels *channels = g_PVRChannels.Get(m_currentPlayingChannel->GetPVRChannelInfoTag()->IsRadio());
+     const CPVRChannelGroup *channels = g_PVRChannelGroups.GetGroupAll(m_currentPlayingChannel->GetPVRChannelInfoTag()->IsRadio());
 
     EnterCriticalSection(&m_critSection);
 
@@ -1877,7 +1870,7 @@ bool CPVRManager::ChannelDown(unsigned int *newchannel, bool preview/* = false*/
 {
   if (m_currentPlayingChannel)
   {
-    const CPVRChannels *channels = g_PVRChannels.Get(m_currentPlayingChannel->GetPVRChannelInfoTag()->IsRadio());
+    const CPVRChannelGroup *channels = g_PVRChannelGroups.GetGroupAll(m_currentPlayingChannel->GetPVRChannelInfoTag()->IsRadio());
 
     EnterCriticalSection(&m_critSection);
 
