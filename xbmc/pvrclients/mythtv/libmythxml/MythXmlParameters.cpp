@@ -31,14 +31,19 @@ void MythXmlParameters::SetParameter(const CStdString &name, const int &value) {
   SetParameter(name, str);
 }
 
-void MythXmlParameters::SetParameter(const CStdString &name, const time_t &value) {
-  struct tm* time;
-  time = localtime(&value);
+void MythXmlParameters::SetParameter(const CStdString &name, const time_t &gmt) {
+  struct tm* local;
+  local = localtime(&gmt);
+
   CStdString str;
-  str.Format("%i-%02.2i-%02.2iT%02.2i:%02.2i:%02.2i", time->tm_year + 1900, time->tm_mon + 1, time->tm_mday,
-             time->tm_hour, time->tm_min, time->tm_sec);
-  // TODO: Change to use strftime(str.GetBuffer(19), 19, "%Y-%m-%dT%H:%M:%S", time); // YYYY-MM-DDTHH:mm:ss
+  str.Format("%i-%02.2i-%02.2iT%02.2i:%02.2i:%02.2i", local->tm_year + 1900, local->tm_mon + 1, local->tm_mday,
+             local->tm_hour, local->tm_min, local->tm_sec);
   SetParameter(name, str);
+}
+
+bool MythXmlParameters::HasParameter()
+{
+  return m_parameters.size() > 0;
 }
 
 CStdString MythXmlParameters::GetParameterString() {

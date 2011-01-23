@@ -29,10 +29,8 @@ class MythXmlParameters
   public:
     void SetParameter(const CStdString &name, const CStdString &value);
     void SetParameter(const CStdString &name, const int &value);
-    void SetParameter(const CStdString &name, const time_t &value);
-    bool HasParameter() const {
-      return m_parameters.size() > 0;
-    }
+    void SetParameter(const CStdString &name, const time_t &gmt);
+    bool HasParameter();
     CStdString GetParameterString();
 
   private:

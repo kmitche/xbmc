@@ -286,7 +286,7 @@ PVR_ERROR GetProperties(PVR_SERVERPROPS* props)
   props->SupportRecordings         = true;
   props->SupportTimers             = true;
   props->SupportTV                 = true;
-  props->SupportRadio              = false;
+  props->SupportRadio              = false;  // TODO: Change to true when radio info pulled out of MythXML (assuming possible)
   props->SupportChannelSettings    = false;
   props->SupportDirector           = false;
   props->SupportBouquets           = false;
@@ -504,27 +504,33 @@ PVR_ERROR RequestTimerList(PVRHANDLE handle)
 
   vector<SSchedule>::const_iterator it;
 
-  // TODO: Just use PVRTIMERINFO rather than SSchedule. Who else is really going to use the library?
-  // TODO: Remove m_ off the structure fields.
+  // TODO: Just use PVRTIMERINFO rather than SSchedule? Who else is really going to use the library?
+  // TODO: Remove m_ off the structure fieldnames.
   for (it = schedules.begin(); it != schedules.end(); ++it)
   {
     PVR_TIMERINFO timer;
     memset(&timer, 0, sizeof(timer));
 
     const SSchedule& schedule = *it;
-    timer.index         = schedule.m_id; // TODO: What is the index used for? Is it the ID?
-    timer.active        = schedule.m_active;
+    /*
+     * TODO: Remove the elements out of the MythTV schedule that don't really make sense for MythTV
+     * and have the client here do the necessary mappings.
+     */
+    timer.index         = schedule.m_recordid;
+    timer.active        = schedule.m_inactive ? 0 : 1;
     timer.title         = schedule.m_title.c_str();
-    timer.directory     = schedule.m_directory.c_str();
-    timer.channelNum    = schedule.m_channel;
+    timer.directory     = schedule.m_storagegroup.c_str();
+    timer.channelNum    = schedule.m_channum;
     timer.starttime     = schedule.m_starttime;
     timer.endtime       = schedule.m_endtime;
-    timer.firstday      = schedule.m_firstday;
-    timer.recording     = schedule.m_recording;
+    timer.firstday      = schedule.m_firstday; // TODO: Not a direct mapping?
+    timer.recording     = schedule.m_recording; // TODO: Can't get via the MythSQL interface? Have to get via Myth Protocol?
     timer.priority      = schedule.m_priority;
-    timer.lifetime      = schedule.m_lifetime;
-    timer.repeat        = schedule.m_repeat;
-    timer.repeatflags   = schedule.m_repeatflags;
+    timer.lifetime      = schedule.m_lifetime; // TODO: Not a direct mapping
+    timer.repeat        = schedule.m_repeat; // TODO: Not a direct mapping
+    timer.repeatflags   = schedule.m_repeatflags; // TODO: Not a direct mapping
+
+    // TODO: How to convert schedule.m_type? MythTV concept of schedules doesn't fit this API very well.
 
     PVR->TransferTimerEntry(handle, &timer);
   }

@@ -11,18 +11,18 @@
 // TODO: understand if there is a better way to log from what should be "binary" libraries that don't know anything about XBMC.
 #include "../client.h"
 
-GetProgramGuideCommand::GetProgramGuideCommand(const int &channel, const time_t &start, const time_t &end)
+GetProgramGuideCommand::GetProgramGuideCommand(const int &chanid, const time_t &gmt_start, const time_t &gmt_end)
 {
   MythXmlParameters parameters;
-  if (channel < 0)
-    parameters.SetParameter("NumOfChannels", -1);
+  if (chanid < 0)
+    parameters.SetParameter("NumOfChannels", -1); // All
   else
   {
     parameters.SetParameter("NumOfChannels", 1);
-    parameters.SetParameter("StartChanId", channel);
+    parameters.SetParameter("StartChanId", chanid);
   }
-  parameters.SetParameter("StartTime", start);
-  parameters.SetParameter("EndTime", end);
+  parameters.SetParameter("StartTime", gmt_start);
+  parameters.SetParameter("EndTime", gmt_end);
 
   Init("Myth/GetProgramGuide", parameters);
 }
@@ -54,21 +54,26 @@ bool GetProgramGuideCommand::ParseResponse(CStdString response)
          channelNode = channelNode->NextSiblingElement("Channel"))
     {
       int chanId = MythXmlResponse::toInteger(channelNode->Attribute("chanId"));
+      int channum = MythXmlResponse::toInteger(channelNode->Attribute("chanNum"));
       TiXmlElement* programNode;
       for (programNode = channelNode->FirstChildElement("Program"); programNode;
            programNode = programNode->NextSiblingElement("Program"))
       {
-        CStdString category = programNode->Attribute("category");
-        GenrePair genres = m_genre_mapper.getGenreTypeId(category);
         SEpg epg;
-        epg.chan_num = chanId;
-        epg.description = programNode->GetText();
-        epg.title = programNode->Attribute("title");
-        epg.subtitle = programNode->Attribute("subTitle");
-        epg.start_time = MythXmlResponse::toDateTime(programNode->Attribute("startTime"));
-        epg.end_time = MythXmlResponse::toDateTime(programNode->Attribute("endTime"));
-        epg.genre_type = genres.genretype_;
-        epg.genre_subtype = genres.genresubtype_;
+        epg.chan_num          = channum;
+        epg.description       = programNode->GetText();
+        epg.title             = programNode->Attribute("title");
+        epg.subtitle          = programNode->Attribute("subTitle");
+        epg.start_time        = MythXmlResponse::toDateTime(programNode->Attribute("startTime"));
+        epg.end_time          = MythXmlResponse::toDateTime(programNode->Attribute("endTime"));
+
+        CStdString category   = programNode->Attribute("category");
+        GenrePair genre       = m_genre_mapper.getGenreTypeId(category);
+        epg.genre_type        = genre.type;
+        epg.genre_subtype     = genre.subtype;
+
+        // TODO: Parse out the "Recording" child element to determine if the program is scheduled
+        // to record.
         m_epg.push_back(epg);
       }
     }

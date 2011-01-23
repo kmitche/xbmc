@@ -1,6 +1,7 @@
 #include "MythXmlResponse.h"
 
 #include <stdlib.h>
+#include <time.h>
 
 /*
  * TODO: Move tinyxml underneath libmythxml since it's a dependent library? Or alter the include
@@ -62,22 +63,31 @@ time_t MythXmlResponse::toDateTime(const char* val)
   return fromMythDateTime(val);
 }
 
-time_t MythXmlResponse::fromMythDateTime(const CStdString& datetime)
+time_t MythXmlResponse::fromMythDateTime(const CStdString& iso)
 {
   /*
    * YYYY-MM-DDTHH:MM:SS
    */
-  if (datetime.size() != 19)
+  if (iso.size() != 19)
     return 0;
 
-  struct tm time;
-  time.tm_year = atoi(datetime.Mid(0, 4)) - 1900;
-  time.tm_mon = atoi(datetime.Mid(5, 2)) - 1;
-  time.tm_mday = atoi(datetime.Mid(8, 2));
-  time.tm_hour = atoi(datetime.Mid(11, 2));
-  time.tm_min = atoi(datetime.Mid(14, 2));
-  time.tm_sec = atoi(datetime.Mid(17, 2));
-  return mktime(&time);
+  struct tm isotm;
+  isotm.tm_year = atoi(iso.Mid(0,  4)) - 1900;
+  isotm.tm_mon  = atoi(iso.Mid(5,  2)) - 1;
+  isotm.tm_mday = atoi(iso.Mid(8,  2));
+  isotm.tm_hour = atoi(iso.Mid(11, 2));
+  isotm.tm_min  = atoi(iso.Mid(14, 2));
+  isotm.tm_sec  = atoi(iso.Mid(17, 2));
+
+  /*
+   * TODO: Convert time to GMT since all the PVR interfaces seem to need GMT times?
+   */
+  time_t now;
+  time(&now);
+  tm * local;
+  local = localtime(&now);
+
+  return mktime(&isotm); // TODO: Convert to GMT? - local->tm_gmtoff;
 }
 
 void MythXmlResponse::parseErrorNode(TiXmlNode* node, int &errorCode, CStdString &desc)

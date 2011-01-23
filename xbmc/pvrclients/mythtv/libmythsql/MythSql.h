@@ -27,8 +27,8 @@ private:
 	CStdString m_dbname;
 	int        m_schema_version;
 
-	bool GetConnection(MYSQL*);
-	void CloseConnection(MYSQL* conn);
+	MYSQL* GetConnection();
+	void   CloseConnection(MYSQL* conn);
 
 	IScheduleCommands* m_schedule_commands;
 };

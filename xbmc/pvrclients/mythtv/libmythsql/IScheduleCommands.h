@@ -13,5 +13,3 @@ public:
   virtual bool DeleteSchedule(const SSchedule& schedule, MYSQL* conn) = 0;
   virtual bool RenameSchedule(const SSchedule& schedule, const CStdString& newname, MYSQL* conn) = 0;
 };
-
-

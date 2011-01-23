@@ -35,9 +35,10 @@ struct SSchedule
 {
   SSchedule()
   {
-    m_id          = -1;
-    m_active      = 0;
-    m_channel     = 0;
+    m_recordid    = -1;
+    m_inactive    = false;
+    m_chanid      = 0;
+    m_channum     = 0;
     m_starttime   = 0;
     m_endtime     = 0;
     m_firstday    = 0;
@@ -46,14 +47,15 @@ struct SSchedule
     m_lifetime    = 0;
     m_repeat      = 0;
     m_repeatflags = kAll;
-    m_recType     = kNotRecording;
+    m_type        = kNotRecording;
   }
   
-  int             m_id;
-  int             m_active;
+  int             m_recordid;
+  bool            m_inactive;
   CStdString      m_title;
-  CStdString      m_directory;
-  int             m_channel;
+  CStdString      m_storagegroup;
+  int             m_chanid;
+  int             m_channum;
   time_t          m_starttime;
   time_t          m_endtime;
   time_t          m_firstday;
@@ -62,5 +64,5 @@ struct SSchedule
   int             m_lifetime;
   int             m_repeat;
   RepeatFlags     m_repeatflags;
-  RecordingTypes  m_recType;
+  RecordingTypes  m_type;
 };

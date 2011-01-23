@@ -32,16 +32,17 @@ using XFILE::CFileCurl;
 
 int GetGMTOffset()
 {
-  time_t rawtime;
-  tm * localTimeinfo;
-  time(&rawtime);
-  localTimeinfo = localtime(&rawtime);
-  return localTimeinfo->tm_gmtoff;
+  time_t now;
+  time(&now);
+
+  tm * local;
+  local = localtime(&now);
+  return local->tm_gmtoff;
 }
 
-time_t toLocalTime(time_t* gmtTime)
+time_t toLocalTime(time_t* gmt)
 {
-  return *gmtTime + GetGMTOffset();
+  return *gmt + GetGMTOffset();
 }
 
 MythXml::MythXml(CStdString& hostname, int port, CStdString& user, CStdString& pass, int pin, long timeout)
@@ -144,22 +145,27 @@ PVR_ERROR MythXml::requestChannelList(PVRHANDLE handle, int radio)
   if (!ExecuteCommand(cmd))
     return PVR_ERROR_UNKOWN;
 
-  const vector<SChannel>& channellist = cmd.GetChannels();
+  const vector<SChannel>& channels = cmd.GetChannels();
   vector<SChannel>::const_iterator it;
-  PVR_CHANNEL tag;
-  for (it = channellist.begin(); it != channellist.end(); ++it)
+  PVR_CHANNEL pvrchannel;
+  for (it = channels.begin(); it != channels.end(); ++it)
   {
-    const SChannel& channel = *it;
-    memset(&tag, 0, sizeof(tag));
-    tag.uid = channel.id;
-    tag.number = channel.id;
-    tag.name = channel.name.c_str();
-    tag.callsign = channel.callsign.c_str();
-    tag.radio = false;
-    tag.input_format = "";
-    tag.stream_url = "";
-    tag.bouquet = 0;
-    PVR->TransferChannelEntry(handle, &tag);
+    const SChannel& mythchannel = *it;
+    memset(&pvrchannel, 0, sizeof(pvrchannel));
+    pvrchannel.uid           = mythchannel.id;
+    pvrchannel.number        = mythchannel.number;
+    pvrchannel.name          = mythchannel.name.c_str();
+    pvrchannel.callsign      = mythchannel.callsign.c_str();
+    pvrchannel.radio         = false; // TODO: Don't hardcode this. Must be pulled out of Myth if possible.
+    pvrchannel.input_format  = "";
+    pvrchannel.stream_url    = ""; // TODO: Use the existing LiveTV URL in XBMC to start with before libcmyth is migrated to the PVR Addon.
+    /*
+     * TODO: Determine how to hide channels in XBMC based on MythTV configuration. Some users have hundreds of channels.
+     * Pretty sure the old myth:// code only showed channels with a number > 0.
+     */
+    pvrchannel.hide = false;
+    pvrchannel.recording = false; // TODO: pull out of XML somehow. Perhaps using the ProgramGuideResponse.
+    PVR->TransferChannelEntry(handle, &pvrchannel);
   }
   return PVR_ERROR_NO_ERROR;
 }
@@ -169,8 +175,7 @@ PVR_ERROR MythXml::requestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &cha
   if (!checkConnection())
     return PVR_ERROR_SERVER_ERROR;
 
-  int gmtoffset = GetGMTOffset();
-  GetProgramGuideCommand cmd(channel.uid, start + gmtoffset, end + gmtoffset);
+  GetProgramGuideCommand cmd(channel.uid, start, end);
   if (!ExecuteCommand(cmd))
     return PVR_ERROR_UNKOWN;
 
@@ -182,7 +187,6 @@ PVR_ERROR MythXml::requestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &cha
   {
     const SEpg& epg = *it;
     guideItem.channum = epg.chan_num;
-    guideItem.uid = epg.id;
     guideItem.title = epg.title;
     guideItem.subtitle = epg.subtitle;
     guideItem.description = epg.description;
@@ -225,19 +229,24 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
   for (it = recordings.begin(); it != recordings.end(); ++it)
   {
     const SRecordingInfo& recording = *it;
-    PVR_RECORDINGINFO tag;
+    PVR_RECORDINGINFO pvrinfo;
 
-    tag.index = recording.index;
-    tag.channel_name = recording.channel_name;
-    tag.description = recording.description;
-    tag.duration = recording.duration;
-    tag.priority = recording.priority;
-    tag.recording_time = recording.recording_time + gmtoffset;
-    tag.title = recording.title;
-    tag.subtitle = recording.subtitle;
-    tag.stream_url = urlPrefix + recording.stream_url;
+    pvrinfo.index = recording.index;
+    pvrinfo.channel_name = recording.channel_name;
+    pvrinfo.description = recording.description;
+    pvrinfo.duration = recording.duration;
+    pvrinfo.priority = recording.priority;
+    pvrinfo.recording_time = recording.recording_time;
+    pvrinfo.title = recording.title;
+    pvrinfo.subtitle = recording.subtitle;
 
-    PVR->TransferRecordingEntry(handle, &tag);
+    CStdString url = urlPrefix + recording.stream_url;
+    pvrinfo.stream_url = url;
+    pvrinfo.directory = "";
+    pvrinfo.lifetime = 0;
+    // tag.lifetime = 0; No lifetime for recordings.
+
+    PVR->TransferRecordingEntry(handle, &pvrinfo);
   }
   return PVR_ERROR_NO_ERROR;
 }

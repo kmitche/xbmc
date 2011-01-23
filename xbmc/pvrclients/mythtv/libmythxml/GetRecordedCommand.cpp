@@ -52,11 +52,12 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
 
       time_t starttime = MythXmlResponse::toDateTime(recordingNode->Attribute("recStartTs"));
       time_t endtime = MythXmlResponse::toDateTime(recordingNode->Attribute("recEndTs"));
-      int priority = MythXmlResponse::toInteger(recordingNode->Attribute("recPriority"));
+      int priority = MythXmlResponse::toInteger(recordingNode->Attribute("recPriority")); // TODO: , min, max API added to toInteger.
       priority = priority < 0 ? 0 : priority;
       priority = priority > 100 ? 100 : priority;
 
       SRecordingInfo recordingInfo;
+      // TODO: populate all the other common attributes from the XML information.
       recordingInfo.index = idx;
       recordingInfo.duration = endtime - starttime;
       recordingInfo.priority = priority;
@@ -72,8 +73,8 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
     }
     return true;
   }
-  //XBMC->Log(LOG_ERROR, "MythXML - GetRecordingListResult - xml data doesn't have the expected information - %s",
-  //    response.c_str());
+  XBMC->Log(LOG_ERROR, "MythXML - GetRecordingListResult - xml data doesn't have the expected information - %s",
+            response.c_str());
   return false;
 }
 
