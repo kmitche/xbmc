@@ -236,7 +236,7 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
     pvrinfo.description = recording.description;
     pvrinfo.duration = recording.duration;
     pvrinfo.priority = recording.priority;
-    pvrinfo.recording_time = recording.recording_time;
+    pvrinfo.recording_time = recording.recstart;
     pvrinfo.title = recording.title;
     pvrinfo.subtitle = recording.subtitle;
 

@@ -61,7 +61,7 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
       recordingInfo.index = idx;
       recordingInfo.duration = endtime - starttime;
       recordingInfo.priority = priority;
-      recordingInfo.recording_time = starttime;
+      recordingInfo.recstart = starttime;
       recordingInfo.title = programNode->Attribute("title");
       recordingInfo.subtitle = programNode->Attribute("subTitle");
       recordingInfo.description = programNode->GetText();

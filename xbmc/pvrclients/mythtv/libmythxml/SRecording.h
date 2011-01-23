@@ -12,7 +12,7 @@ struct SRecording
   CStdString   description;
   CStdString   callsign;
   CStdString   stream_url;
-  time_t       recording_time; // TODO: rename to recstart
+  time_t       recstart; // TODO: rename to recstart
   // TODO: Add chanid.
   // TODO: Add recend.
 
@@ -20,6 +20,6 @@ struct SRecording
     index           = -1;
     duration        = 0;
     priority      	= 0;
-    recording_time 	= 0; 
+    recstart 	= 0; 
   }
 };
