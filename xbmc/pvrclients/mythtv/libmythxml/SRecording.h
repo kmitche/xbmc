@@ -10,7 +10,7 @@ struct SRecording
   CStdString   title;
   CStdString   subtitle;
   CStdString   description;
-  CStdString   channel_name; // TODO: rename callsign if that's what it is.
+  CStdString   callsign;
   CStdString   stream_url;
   time_t       recording_time; // TODO: rename to recstart
   // TODO: Add chanid.

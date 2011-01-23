@@ -232,7 +232,7 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
     PVR_RECORDINGINFO pvrinfo;
 
     pvrinfo.index = recording.index;
-    pvrinfo.channel_name = recording.channel_name;
+    pvrinfo.channel_name = recording.callsign;
     pvrinfo.description = recording.description;
     pvrinfo.duration = recording.duration;
     pvrinfo.priority = recording.priority;

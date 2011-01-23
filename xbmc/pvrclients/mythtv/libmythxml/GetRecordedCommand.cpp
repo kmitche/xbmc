@@ -65,7 +65,7 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
       recordingInfo.title = programNode->Attribute("title");
       recordingInfo.subtitle = programNode->Attribute("subTitle");
       recordingInfo.description = programNode->GetText();
-      recordingInfo.channel_name = channelNode->Attribute("channelName");
+      recordingInfo.callsign = channelNode->Attribute("channelName");
       recordingInfo.stream_url.Format("/Myth/GetRecording?ChanId=%s&StartTime=%s",
                                       channelNode->Attribute("chanId"), recordingNode->Attribute("recStartTs"));
       m_recordings.push_back(recordingInfo);
