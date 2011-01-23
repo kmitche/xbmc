@@ -2,8 +2,7 @@
 
 #include "StdString.h"
 
-// TODO: Rename to just Recording. Move to the top level MythXML files when they are moved into this tree.
-struct SRecordingInfo
+struct SRecording
 {
   int          index; // TODO: Remove and have incremented in the client class instead.
   int          duration;
@@ -17,7 +16,7 @@ struct SRecordingInfo
   // TODO: Add chanid.
   // TODO: Add recend.
 
-  SRecordingInfo() {
+  SRecording() {
     index           = -1;
     duration        = 0;
     priority      	= 0;

@@ -56,7 +56,7 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
       priority = priority < 0 ? 0 : priority;
       priority = priority > 100 ? 100 : priority;
 
-      SRecordingInfo recordingInfo;
+      SRecording recordingInfo;
       // TODO: populate all the other common attributes from the XML information.
       recordingInfo.index = idx;
       recordingInfo.duration = endtime - starttime;
@@ -78,7 +78,7 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
   return false;
 }
 
-const std::vector<SRecordingInfo>& GetRecordedCommand::GetRecordings()
+const std::vector<SRecording>& GetRecordedCommand::GetRecordings()
 {
   return m_recordings;
 }

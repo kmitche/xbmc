@@ -220,15 +220,15 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
   if (!ExecuteCommand(cmd))
     return PVR_ERROR_UNKOWN;
 
-  const vector<SRecordingInfo> recordings = cmd.GetRecordings();
-  vector<SRecordingInfo>::const_iterator it;
+  const vector<SRecording> recordings = cmd.GetRecordings();
+  vector<SRecording>::const_iterator it;
   CStdString urlPrefix;
   urlPrefix.Format("http://%s:%i", hostname_, port_);
   int gmtoffset = GetGMTOffset();
 
   for (it = recordings.begin(); it != recordings.end(); ++it)
   {
-    const SRecordingInfo& recording = *it;
+    const SRecording& recording = *it;
     PVR_RECORDINGINFO pvrinfo;
 
     pvrinfo.index = recording.index;
