@@ -4,7 +4,7 @@
 
 #include <vector>
 
-#include "SRecordingInfo.h"
+#include "SRecording.h"
 
 class GetRecordedCommand: public MythXmlCommand
 {
