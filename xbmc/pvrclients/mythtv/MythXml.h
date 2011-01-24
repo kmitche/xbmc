@@ -10,6 +10,7 @@
 
 #include "libmythxml/MythXmlCommand.h"
 #include "libmythxml/MythXmlResponse.h"
+#include "libmythxml/SChannel.h"
 #include "client.h"
 
 /*! \class MythXml
@@ -36,6 +37,7 @@ public:
 private:
   bool ExecuteCommand(MythXmlCommand& command);
   bool checkConnection();
+  CStdString GetLiveTvPath(const SChannel &channel);
   CStdString hostname_;
   CStdString username_;
   CStdString password_;

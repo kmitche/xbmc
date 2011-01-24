@@ -158,7 +158,7 @@ PVR_ERROR MythXml::requestChannelList(PVRHANDLE handle, int radio)
     pvrchannel.callsign      = mythchannel.callsign.c_str();
     pvrchannel.radio         = false; // TODO: Don't hardcode this. Must be pulled out of Myth if possible.
     pvrchannel.input_format  = "";
-    pvrchannel.stream_url    = ""; // TODO: Use the existing LiveTV URL in XBMC to start with before libcmyth is migrated to the PVR Addon.
+    pvrchannel.stream_url    = GetLiveTvPath(mythchannel).c_str();
     /*
      * TODO: Determine how to hide channels in XBMC based on MythTV configuration. Some users have hundreds of channels.
      * Pretty sure the old myth:// code only showed channels with a number > 0.
@@ -279,4 +279,14 @@ bool MythXml::ExecuteCommand(MythXmlCommand& command)
 bool MythXml::checkConnection()
 {
   return true; // TODO: Can this ever do anything?
+}
+
+CStdString MythXml::GetLiveTvPath(const SChannel &channel)
+{
+  /*
+   * Use the existing LiveTV functionality within XBMC until libcmyth has been moved to the PVR addon.
+   */
+  CStdString path;
+  path.Format("myth://%s/channels/%i.ts", hostname_.c_str(), channel.number);
+  return path;
 }
