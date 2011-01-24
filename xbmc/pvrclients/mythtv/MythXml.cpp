@@ -183,6 +183,7 @@ PVR_ERROR MythXml::requestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &cha
   const vector<SEpg>& epgInfo = cmd.GetEpg();
   vector<SEpg>::const_iterator it;
 
+  int i = 0;
   for (it = epgInfo.begin(); it != epgInfo.end(); ++it)
   {
     const SEpg& epg = *it;
@@ -226,12 +227,12 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
   urlPrefix.Format("http://%s:%i", hostname_, port_);
   int gmtoffset = GetGMTOffset();
 
+  int i= 0;
   for (it = recordings.begin(); it != recordings.end(); ++it)
   {
     const SRecording& recording = *it;
     PVR_RECORDINGINFO pvrinfo;
-
-    pvrinfo.index = recording.index;
+    pvrinfo.index = i++; // TODO: Hopefully this can be removed from the API.
     pvrinfo.channel_name = recording.callsign;
     pvrinfo.description = recording.description;
     pvrinfo.duration = recording.duration;

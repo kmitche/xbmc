@@ -4,7 +4,6 @@
 
 struct SRecording
 {
-  int          index; // TODO: Remove and have incremented in the client class instead.
   int          duration;
   int          priority;
   CStdString   title;
@@ -17,7 +16,6 @@ struct SRecording
   // TODO: Add recend.
 
   SRecording() {
-    index           = -1;
     duration        = 0;
     priority      	= 0;
     recstart 	= 0; 

@@ -41,7 +41,6 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
     TiXmlElement* programNode = NULL;
     TiXmlElement* recordingNode = NULL;
 
-    int idx = 0;
     for (programNode = child->FirstChildElement("Program"); programNode; programNode = programNode->NextSiblingElement(
         "Program"))
     {
@@ -58,7 +57,6 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
 
       SRecording recordingInfo;
       // TODO: populate all the other common attributes from the XML information.
-      recordingInfo.index = idx;
       recordingInfo.duration = endtime - starttime;
       recordingInfo.priority = priority;
       recordingInfo.recstart = starttime;
@@ -69,7 +67,6 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
       recordingInfo.stream_url.Format("/Myth/GetRecording?ChanId=%s&StartTime=%s",
                                       channelNode->Attribute("chanId"), recordingNode->Attribute("recStartTs"));
       m_recordings.push_back(recordingInfo);
-      idx++;
     }
     return true;
   }
