@@ -4,20 +4,36 @@
 
 struct SRecording
 {
-  int          duration;
-  int          priority;
-  CStdString   title;
-  CStdString   subtitle;
-  CStdString   description;
-  CStdString   callsign;
-  CStdString   stream_url;
-  time_t       recstart;
-  // TODO: Add chanid.
-  // TODO: Add recend.
+  CStdString  title;
+  CStdString  subtitle;
+  CStdString  description;
+  CStdString  category;
+  time_t      start;
+  time_t      end;
+
+  int         chanid;
+  int         channum;
+  CStdString  callsign;
+
+  int         priority;
+
+  time_t      recstart;
+  time_t      recend;
+
+  CStdString  recgroup; // e.g. LiveTV
+
+  CStdString  url;
 
   SRecording() {
-    duration        = 0;
-    priority      	= 0;
-    recstart 	= 0; 
+    start     = 0;
+    end       = 0;
+
+    chanid    = 0;
+    channum   = 0;
+
+    priority  = 0;
+
+    recstart 	= 0;
+    recend    = 0;
   }
 };

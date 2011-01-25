@@ -235,13 +235,13 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
     pvrinfo.index = i++; // TODO: Hopefully this can be removed from the API.
     pvrinfo.channel_name = recording.callsign;
     pvrinfo.description = recording.description;
-    pvrinfo.duration = recording.duration;
+    pvrinfo.duration = recording.recend - recording.recstart;
     pvrinfo.priority = recording.priority;
     pvrinfo.recording_time = recording.recstart;
     pvrinfo.title = recording.title;
     pvrinfo.subtitle = recording.subtitle;
 
-    CStdString url = urlPrefix + recording.stream_url;
+    CStdString url = urlPrefix + recording.url;
     pvrinfo.stream_url = url;
     pvrinfo.directory = "";
     pvrinfo.lifetime = 0;

@@ -49,24 +49,32 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
       if (channelNode == NULL || recordingNode == NULL)
         continue;
 
-      time_t starttime = MythXmlResponse::toDateTime(recordingNode->Attribute("recStartTs"));
-      time_t endtime = MythXmlResponse::toDateTime(recordingNode->Attribute("recEndTs"));
-      int priority = MythXmlResponse::toInteger(recordingNode->Attribute("recPriority")); // TODO: , min, max API added to toInteger.
-      priority = priority < 0 ? 0 : priority;
-      priority = priority > 100 ? 100 : priority;
+      SRecording recording;
+      recording.title       = programNode->Attribute("title");
+      recording.subtitle    = programNode->Attribute("subTitle");
+      recording.description = programNode->GetText();
+      recording.category    = programNode->Attribute("category");
+      recording.start       = MythXmlResponse::toDateTime(programNode->Attribute("startTime"));
+      recording.end         = MythXmlResponse::toDateTime(programNode->Attribute("endTime"));
 
-      SRecording recordingInfo;
-      // TODO: populate all the other common attributes from the XML information.
-      recordingInfo.duration = endtime - starttime;
-      recordingInfo.priority = priority;
-      recordingInfo.recstart = starttime;
-      recordingInfo.title = programNode->Attribute("title");
-      recordingInfo.subtitle = programNode->Attribute("subTitle");
-      recordingInfo.description = programNode->GetText();
-      recordingInfo.callsign = channelNode->Attribute("channelName");
-      recordingInfo.stream_url.Format("/Myth/GetRecording?ChanId=%s&StartTime=%s",
-                                      channelNode->Attribute("chanId"), recordingNode->Attribute("recStartTs"));
-      m_recordings.push_back(recordingInfo);
+      recording.chanid      = atoi(channelNode->Attribute("chanId"));
+      recording.channum     = atoi(channelNode->Attribute("chanNum"));
+      recording.callsign    = channelNode->Attribute("callSign");
+
+      int priority          = atoi(recordingNode->Attribute("recPriority")); // TODO: move priority shuffle to client
+      priority              = priority < 0 ? 0 : priority;
+      priority              = priority > 100 ? 100 : priority;
+      recording.priority    = priority;
+
+      recording.recstart    = MythXmlResponse::toDateTime(recordingNode->Attribute("recStartTs"));
+      recording.recend      = MythXmlResponse::toDateTime(recordingNode->Attribute("recEndTs"));
+
+      recording.recgroup    = recordingNode->Attribute("recGroup");
+
+      recording.url.Format("/Myth/GetRecording?ChanId=%s&StartTime=%s", recording.chanid,
+                           recordingNode->Attribute("recStartTs")); // Needs to stay in ISO format
+
+      m_recordings.push_back(recording);
     }
     return true;
   }
