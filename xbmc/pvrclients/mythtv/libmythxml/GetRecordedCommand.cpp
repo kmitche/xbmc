@@ -37,15 +37,12 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
   child = docHandle.FirstChild("GetRecordedResponse").FirstChild("Recorded").FirstChildElement("Programs").ToElement();
   if (child != NULL)
   {
-    TiXmlElement* channelNode = NULL;
     TiXmlElement* programNode = NULL;
-    TiXmlElement* recordingNode = NULL;
-
-    for (programNode = child->FirstChildElement("Program"); programNode; programNode = programNode->NextSiblingElement(
-        "Program"))
+    for (programNode = child->FirstChildElement("Program"); programNode;
+         programNode = programNode->NextSiblingElement("Program"))
     {
-      channelNode = programNode->FirstChildElement("Channel");
-      recordingNode = programNode->FirstChildElement("Recording");
+      TiXmlElement* recordingNode = programNode->FirstChildElement("Recording");
+      TiXmlElement* channelNode   = programNode->FirstChildElement("Channel");
       if (channelNode == NULL || recordingNode == NULL)
         continue;
 
