@@ -21,4 +21,4 @@ include ../../../../Makefile.include
 INCLUDES = -I../../../addons/include
 
 # Additional include for tinyxml
-INCLUDES += -I../../../lib/tinyXML
+INCLUDES += -I../../../../lib/tinyXML
