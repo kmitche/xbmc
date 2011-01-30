@@ -8,8 +8,7 @@
 #include "MythXml.h"
 
 #include <time.h>
-
-#include "FileSystem/FileCurl.h"
+#include "filesystem/FileCurl.h"
 
 #include "libmythxml/GetBackendTimeCommand.h"
 #include "libmythxml/GetBackendVersionCommand.h"

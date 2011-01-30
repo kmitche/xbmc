@@ -19,10 +19,10 @@
  *
  */
 
-#include "GUISettings.h"
-#include "GUIDialogPVRUpdateProgressBar.h"
-#include "GUIDialogProgress.h"
-#include "GUIWindowManager.h"
+#include "settings/GUISettings.h"
+#include "pvr/dialogs/GUIDialogPVRUpdateProgressBar.h"
+#include "dialogs/GUIDialogProgress.h"
+#include "guilib/GUIWindowManager.h"
 #include "log.h"
 #include "TimeUtils.h"
 
@@ -40,7 +40,7 @@ CEpgContainer g_EpgContainer;
 CEpgContainer::CEpgContainer(void)
 {
   m_bStop = true;
-  Reset();
+  Clear(false);
 }
 
 CEpgContainer::~CEpgContainer(void)
@@ -50,6 +50,11 @@ CEpgContainer::~CEpgContainer(void)
 
 void CEpgContainer::Clear(bool bClearDb /* = false */)
 {
+  /* make sure the update thread is stopped */
+  bool bThreadRunning = !m_bStop;
+  if (bThreadRunning && !Stop())
+    return;
+
   /* clear all epg tables and remove pointers to epg tables on channels */
   for (unsigned int iEpgPtr = 0; iEpgPtr < size(); iEpgPtr++)
   {
@@ -67,21 +72,28 @@ void CEpgContainer::Clear(bool bClearDb /* = false */)
   /* clear the database entries */
   if (bClearDb)
   {
-    m_database.Open();
-    m_database.DeleteEpg();
-    m_database.Close();
+    if (m_database.Open())
+    {
+      m_database.DeleteEpg();
+      m_database.Close();
+    }
   }
 
   m_iLastEpgUpdate  = 0;
   m_bDatabaseLoaded = false;
+  m_First           = CDateTime::GetCurrentDateTime();
+  m_Last            = m_First;
+
+  if (bThreadRunning)
+    Start();
 }
 
 void CEpgContainer::Start(void)
 {
-  g_guiSettings.AddObserver(this);
-
   /* make sure the EPG is loaded before starting the thread */
   Load(true /* show progress */);
+
+  g_guiSettings.AddObserver(this);
 
   Create();
   SetName("XBMC EPG thread");
@@ -98,30 +110,6 @@ bool CEpgContainer::Stop(void)
   return true;
 }
 
-bool CEpgContainer::Reset(bool bClearDb /* = false */)
-{
-  bool bThreadRunning = !m_bStop;
-
-  if (bThreadRunning && !Stop())
-    return false;
-
-  Clear(bClearDb);
-
-  m_bDatabaseLoaded = false;
-  m_First           = CDateTime::GetCurrentDateTime();
-  m_Last            = m_First;
-
-  if (bThreadRunning)
-    Start();
-
-  return true;
-}
-
-bool CEpgContainer::Erase(void)
-{
-  return m_database.DeleteEpg();
-}
-
 void CEpgContainer::Notify(const Observable &obs, const CStdString& msg)
 {
   /* settings were updated */
@@ -131,6 +119,7 @@ void CEpgContainer::Notify(const Observable &obs, const CStdString& msg)
 
 void CEpgContainer::Process(void)
 {
+  bool bFirstUpdate    = true;
   time_t iNow          = 0;
   m_iLastEpgCleanup    = 0;
   m_iLastEpgUpdate     = 0;
@@ -154,7 +143,10 @@ void CEpgContainer::Process(void)
 
     /* update the EPG */
     if (!m_bStop && (iNow > m_iLastEpgUpdate + m_iUpdateTime || !m_bDatabaseLoaded))
-      UpdateEPG(!m_bDatabaseLoaded);
+    {
+      UpdateEPG(bFirstUpdate);
+      bFirstUpdate = false;
+    }
 
     /* clean up old entries */
     if (!m_bStop && iNow > m_iLastEpgCleanup + EPGCLEANUPINTERVAL)
@@ -185,6 +177,13 @@ CEpg *CEpgContainer::GetById(int iEpgId)
 
 bool CEpgContainer::UpdateEntry(const CEpg &entry, bool bUpdateDatabase /* = false */)
 {
+  bool bReturn = false;
+
+  /* make sure the update thread is stopped */
+  bool bThreadRunning = !m_bStop;
+  if (bThreadRunning && !Stop())
+    return bReturn;
+
   CEpg *epg = GetById(entry.EpgID());
 
   if (!epg)
@@ -193,7 +192,12 @@ bool CEpgContainer::UpdateEntry(const CEpg &entry, bool bUpdateDatabase /* = fal
     push_back(epg);
   }
 
-  return epg->Update(entry, bUpdateDatabase);
+  bReturn = epg->Update(entry, bUpdateDatabase);
+
+  if (bThreadRunning)
+    Start();
+
+  return bReturn;
 }
 
 bool CEpgContainer::LoadSettings(void)
@@ -242,6 +246,7 @@ bool CEpgContainer::Load(bool bShowProgress /* = false */)
     return m_bDatabaseLoaded;
 
   bool bReturn = false;
+  bool bUpdate = false;
 
   /* show the progress bar */
   CGUIDialogPVRUpdateProgressBar *scanner = NULL;
@@ -262,12 +267,18 @@ bool CEpgContainer::Load(bool bShowProgress /* = false */)
   /* load all EPG tables */
   m_database.Get(this);
 
+  /* create tables for channels that don't have a table yet */
+  AutoCreateTablesHook();
+
   /* load all entries in the EPG tables */
   unsigned int iSize = size();
   for (unsigned int iEpgPtr = 0; iEpgPtr < iSize; iEpgPtr++)
   {
     CEpg *epg = at(iEpgPtr);
-    bReturn = epg->Load() || bReturn;
+    if (epg->Load())
+      bReturn = true;
+    else
+      bUpdate = true;
 
     if (bShowProgress)
     {
@@ -284,7 +295,12 @@ bool CEpgContainer::Load(bool bShowProgress /* = false */)
   if (bShowProgress)
     scanner->Close();
 
-  m_bDatabaseLoaded = bReturn;
+  /* one or more tables couldn't be loaded. force an update */
+  if (bUpdate)
+    UpdateEPG(bShowProgress);
+
+  /* only try to load the database once */
+  m_bDatabaseLoaded = true;
 
   return bReturn;
 }
@@ -376,9 +392,7 @@ int CEpgContainer::GetEPGAll(CFileItemList* results)
   int iInitialSize = results->Size();
 
   for (unsigned int iEpgPtr = 0; iEpgPtr < size(); iEpgPtr++)
-  {
     at(iEpgPtr)->Get(results);
-  }
 
   return results->Size() - iInitialSize;
 }
@@ -394,9 +408,7 @@ void CEpgContainer::UpdateFirstAndLastEPGDates(const CEpgInfoTag &tag)
 int CEpgContainer::GetEPGSearch(CFileItemList* results, const EpgSearchFilter &filter)
 {
   for (unsigned int iEpgPtr = 0; iEpgPtr < size(); iEpgPtr++)
-  {
     at(iEpgPtr)->Get(results, filter);
-  }
 
   /* remove duplicate entries */
   if (filter.m_bPreventRepeats)

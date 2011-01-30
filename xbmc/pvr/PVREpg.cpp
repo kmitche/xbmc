@@ -19,7 +19,8 @@
  *
  */
 
-#include "GUISettings.h"
+#include "settings/GUISettings.h"
+#include "threads/SingleLock.h"
 #include "log.h"
 #include "TimeUtils.h"
 
@@ -38,28 +39,27 @@ CPVREpg::CPVREpg(CPVRChannel *channel) :
 
 bool CPVREpg::HasValidEntries(void) const
 {
-  bool bReturn = CEpg::HasValidEntries();
-
-  if (bReturn)
-    bReturn = (m_Channel->ChannelID() > 0); /* valid channel ID */
-
-  return bReturn;
+  return m_Channel->ChannelID() > 0 && CEpg::HasValidEntries();
 }
 
-void CPVREpg::Cleanup(const CDateTime Time)
+void CPVREpg::Cleanup(const CDateTime &Time)
 {
-  SetUpdateRunning(true);
+  CSingleLock lock(m_critSection);
+
+  m_bUpdateRunning = true;
   for (unsigned int i = 0; i < size(); i++)
   {
     CPVREpgInfoTag *tag = (CPVREpgInfoTag *) at(i);
     if ( tag && /* valid tag */
-        !tag->HasTimer() && /* no time set */
+        !tag->HasTimer() && /* no timer set */
         (tag->End() + CDateTimeSpan(0, g_PVREpgContainer.m_iLingerTime / 60 + 1, g_PVREpgContainer.m_iLingerTime % 60, 0) < Time)) /* adding one hour for safety */
     {
       DeleteInfoTag(tag);
     }
   }
-  SetUpdateRunning(false);
+  m_bUpdateRunning = false;
+
+  lock.Leave();
 }
 
 bool CPVREpg::UpdateEntry(const PVR_PROGINFO *data, bool bUpdateDatabase /* = false */)
@@ -67,37 +67,36 @@ bool CPVREpg::UpdateEntry(const PVR_PROGINFO *data, bool bUpdateDatabase /* = fa
   if (!data)
     return false;
 
-  CPVREpgInfoTag *InfoTag = (CPVREpgInfoTag *) this->InfoTag(data->uid, data->starttime);
-
-  if (InfoTag == NULL)
-  {
-    InfoTag = new CPVREpgInfoTag(*data);
-    InfoTag->m_Epg = this;
-    push_back(InfoTag);
-  }
-
-  return CEpg::UpdateEntry(*InfoTag, bUpdateDatabase);
+  CPVREpgInfoTag tag(*data);
+  return CEpg::UpdateEntry(tag, bUpdateDatabase);
 }
 
-bool CPVREpg::UpdateFromClient(time_t start, time_t end)
+bool CPVREpg::UpdateFromScraper(time_t start, time_t end)
 {
   bool bGrabSuccess = false;
 
-  if (g_PVRManager.GetClientProps(m_Channel->ClientID())->SupportEPG &&
-      g_PVRManager.Clients()->find(m_Channel->ClientID())->second->ReadyToUse())
+  if (ScraperName() == "client")
   {
-    bGrabSuccess = g_PVRManager.Clients()->find(m_Channel->ClientID())->second->GetEPGForChannel(*m_Channel, this, start, end) == PVR_ERROR_NO_ERROR;
+    if (g_PVRManager.GetClientProps(m_Channel->ClientID())->SupportEPG &&
+        g_PVRManager.Clients()->find(m_Channel->ClientID())->second->ReadyToUse())
+    {
+      bGrabSuccess = g_PVRManager.Clients()->find(m_Channel->ClientID())->second->GetEPGForChannel(*m_Channel, this, start, end) == PVR_ERROR_NO_ERROR;
+    }
+    else
+    {
+      CLog::Log(LOGINFO, "%s - client '%s' on client '%i' does not support EPGs",
+          __FUNCTION__, m_Channel->ChannelName().c_str(), m_Channel->ClientID());
+    }
   }
   else
   {
-    CLog::Log(LOGINFO, "%s - client '%s' on client '%i' does not support EPGs",
-        __FUNCTION__, m_Channel->ChannelName().c_str(), m_Channel->ClientID());
+    bGrabSuccess = CEpg::UpdateFromScraper(start, end);
   }
 
   return bGrabSuccess;
 }
 
-bool CPVREpg::LoadFromDb()
+bool CPVREpg::Load()
 {
   /* check if this channel is marked for grabbing */
   if (!m_Channel || !m_Channel->EPGEnabled())
@@ -111,38 +110,9 @@ bool CPVREpg::IsRadio(void) const
   return m_Channel->IsRadio();
 }
 
-bool CPVREpg::Update(time_t start, time_t end, bool bStoreInDb /* = true */) // XXX add locking
-{
-  /* check if this channel is marked for grabbing */
-  if (!m_Channel || !m_Channel->EPGEnabled())
-    return false;
-
-  bool bGrabSuccess = true;
-
-  /* mark the EPG as being updated */
-  SetUpdateRunning(true);
-
-  bGrabSuccess = (ScraperName() == "client") ?
-      UpdateFromClient(start, end) || bGrabSuccess:
-      UpdateFromScraper(start, end) || bGrabSuccess;
-
-  /* store the loaded EPG entries in the database */
-  if (bGrabSuccess)
-  {
-    FixOverlappingEvents(bStoreInDb);
-
-    if (bStoreInDb)
-      Persist(true);
-  }
-
-  SetUpdateRunning(false);
-
-  return bGrabSuccess;
-}
-
 bool CPVREpg::Update(const CEpg &epg, bool bUpdateDb /* = false */)
 {
-  bool bReturn = CEpg::Update(epg, false);
+  bool bReturn = CEpg::Update(epg, false); // don't update the db yet
 
   m_Channel = epg.m_Channel;
 
@@ -150,4 +120,16 @@ bool CPVREpg::Update(const CEpg &epg, bool bUpdateDb /* = false */)
     bReturn = Persist(false);
 
   return bReturn;
+}
+
+CEpgInfoTag *CPVREpg::CreateTag(void)
+{
+  CEpgInfoTag *newTag = new CPVREpgInfoTag();
+  if (!newTag)
+  {
+    CLog::Log(LOGERROR, "PVREPG - %s - couldn't create new infotag",
+        __FUNCTION__);
+  }
+
+  return newTag;
 }

@@ -2,8 +2,7 @@
 
 #include "MythXmlResponse.h"
 
-// TODO: Update includes so these don't need to reference up the folder hierarchy. Assume in path.
-#include "tinyXML/tinyxml.h"
+#include "tinyxml.h"
 #include "../client.h"
 
 GetRecordedCommand::GetRecordedCommand()

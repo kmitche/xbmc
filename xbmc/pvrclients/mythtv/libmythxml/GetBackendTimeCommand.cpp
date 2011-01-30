@@ -4,8 +4,7 @@
 
 #include "MythXmlResponse.h"
 
-// TODO: Assume tinyXML on path?
-#include "tinyXML/tinyxml.h"
+#include "tinyxml.h"
 
 // TODO: Logging without XBMC handle?
 #include "../client.h"

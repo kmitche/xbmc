@@ -25,8 +25,6 @@
 #include "PVREpg.h"
 #include "PVREpgSearchFilter.h"
 
-#define NOWPLAYINGUPDATEINTERVAL 30  /* update "now playing" tags every 30 seconds */
-
 class CPVREpgContainer : public CEpgContainer
 {
   friend class CPVREpg;
@@ -40,25 +38,23 @@ private:
   CDateTime m_TVLast;             /*!< the latest EPG TV date in our tables */
   //@}
 
-  time_t    m_iLastPointerUpdate; /*!< the time the EPG "now playing" pointers were updated */
-
-  /*!
-   * @brief Update the EPG "now playing" pointers for all channels.
-   * @return True if the pointers were updated successfully, false otherwise.
-   */
-  bool UpdateAllChannelEPGPointers();
-
-  /*!
-   * @brief Clear all EPG entries.
-   * @param bClearDb Clear the database too if true.
-   */
-  void Clear(bool bClearDb = false);
-
   /*!
    * @brief Create an EPG table for each channel.
    * @return True if all tables were created successfully, false otherwise.
    */
   bool CreateChannelEpgs(void);
+
+  /*!
+   * @brief Update the last and first EPG date cache after changing or inserting a tag.
+   * @param tag The tag that was changed or added.
+   */
+  void UpdateFirstAndLastEPGDates(const CPVREpgInfoTag &tag);
+
+  /*!
+   * @brief A hook that is called after the tables have been loaded from the database.
+   * @return True if the hook was executed successfully, false otherwise.
+   */
+  bool AutoCreateTablesHook(void);
 
 public:
   /*!
@@ -67,10 +63,10 @@ public:
   void Start();
 
   /*!
-   * @brief A hook that will be called by the update thread
-   * @param time The start timestamp
+   * @brief Clear all EPG entries.
+   * @param bClearDb Clear the database too if true.
    */
-  void ProcessHook(const CDateTime &time);
+  void Clear(bool bClearDb = false);
 
   /*!
    * @brief Get all EPG tables and apply a filter.
@@ -109,20 +105,14 @@ public:
    * @param bRadio Get radio items if true and TV items if false.
    * @return The start time.
    */
-  CDateTime GetFirstEPGDate(bool bRadio = false);
+  const CDateTime &GetFirstEPGDate(bool bRadio = false);
 
   /*!
     * @brief Get the end time of the last entry.
     * @param bRadio Get radio items if true and TV items if false.
     * @return The end time.
     */
-  CDateTime GetLastEPGDate(bool bRadio = false);
-
-  /*!
-   * @brief Update the last and first EPG date cache after changing or inserting a tag.
-   * @param tag The tag that was changed or added.
-   */
-  void UpdateFirstAndLastEPGDates(const CPVREpgInfoTag &tag);
+  const CDateTime &GetLastEPGDate(bool bRadio = false);
 };
 
 extern CPVREpgContainer g_PVREpgContainer; /*!< The container for all EPG tables */

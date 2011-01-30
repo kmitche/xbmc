@@ -25,7 +25,7 @@
 #include "addons/Addon.h"
 #include "addons/PVRClient.h"
 #include "addons/AddonManager.h"
-#include "utils/Thread.h"
+#include "threads/Thread.h"
 
 #include <vector>
 #include <deque>
@@ -351,6 +351,7 @@ private:
                                                  playing channel from the TV Database */
   void ResetQualityData();                      /*! \brief Reset the Signal Quality data structure to initial values */
   bool ContinueLastChannel();
+  void Reset(void);
 
   /*--- General PVRManager data ---*/
   CLIENTMAP           m_clients;                /* pointer to each enabled client's interface */
@@ -386,8 +387,7 @@ private:
   bool                m_hasTimers;
 
   /*--- Thread Update Timers ---*/
-  int                 m_LastTVChannelCheck;
-  int                 m_LastRadioChannelCheck;
+  int                 m_LastChannelCheck;
   int                 m_LastRecordingsCheck;
   int                 m_LastTimersCheck;
   int                 m_LastEPGUpdate;

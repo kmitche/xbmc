@@ -22,7 +22,7 @@ INCLUDES = -I../../addons/include -I../../../addons/library.xbmc.pvr -I../../../
 INCLUDES += -I../..
 
 # Additional include for StdString (referenced by FileCurls associated dependencies)
-INCLUDES += -I../../../guilib
+INCLUDES += -I../../utils
 
 # Additional include for PlatformDefs.h from IFile.h.
 INCLUDES += -I../../linux

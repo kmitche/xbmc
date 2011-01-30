@@ -2,7 +2,7 @@
 
 #include "MythXmlResponse.h"
 
-#include "tinyXML/tinyxml.h"
+#include "tinyxml.h"
 #include "../client.h"
 
 /*

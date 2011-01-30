@@ -20,11 +20,11 @@
  */
 
 #include "FileItem.h"
-#include "LocalizeStrings.h"
+#include "guilib/LocalizeStrings.h"
 #include "utils/log.h"
 #include "Util.h"
-#include "FileSystem/File.h"
-#include "MusicInfoTag.h"
+#include "filesystem/File.h"
+#include "music/tags/MusicInfoTag.h"
 
 #include "PVRChannelGroupsContainer.h"
 #include "PVREpgContainer.h"
@@ -79,7 +79,6 @@ CPVRChannel::CPVRChannel()
   m_bIsVirtual              = false;
 
   m_EPG                     = NULL;
-  m_EPGNow                  = NULL;
   m_bEPGEnabled             = true;
   m_strEPGScraper           = "client";
 
@@ -94,6 +93,27 @@ CPVRChannel::CPVRChannel()
 }
 
 /********** XBMC related channel methods **********/
+
+bool CPVRChannel::Delete(void)
+{
+  bool bReturn = false;
+  CPVRDatabase *database = g_PVRManager.GetTVDatabase();
+  if (!database || !database->Open())
+    return bReturn;
+
+  /* delete the EPG table */
+  if (m_EPG)
+  {
+    m_EPG->Delete();
+    delete m_EPG;
+  }
+
+  bReturn = database->Delete(*this);
+
+  database->Close();
+
+  return bReturn;
+}
 
 bool CPVRChannel::UpdateFromClient(const CPVRChannel &channel)
 {
@@ -115,7 +135,7 @@ bool CPVRChannel::Persist(bool bQueueWrite /* = false */)
   if (database)
   {
     database->Open();
-    database->UpdateChannel(*this, bQueueWrite);
+    database->Persist(*this, bQueueWrite);
     database->Close();
 
     return true;
@@ -173,16 +193,16 @@ bool CPVRChannel::SetGroupID(int iChannelGroupId, bool bSaveInDb /* = false */)
 
   if (m_iChannelGroupId != iChannelGroupId)
   {
-    CPVRChannelGroups *groups = g_PVRChannelGroups.Get(IsRadio());
+    const CPVRChannelGroups *groups = g_PVRChannelGroups.Get(IsRadio());
 
     if (bRemoveFromOldGroup)
     {
-      CPVRChannelGroup *oldGroup = groups->GetGroupById(m_iChannelGroupId);
+      CPVRChannelGroup *oldGroup = (CPVRChannelGroup *) groups->GetGroupById(m_iChannelGroupId);
       if (oldGroup)
         oldGroup->RemoveFromGroup(this);
     }
 
-    CPVRChannelGroup *newGroup = groups->GetGroupById(iChannelGroupId);
+    CPVRChannelGroup *newGroup = (CPVRChannelGroup *) groups->GetGroupById(iChannelGroupId);
     if (newGroup)
       newGroup->AddToGroup(this);
 
@@ -475,6 +495,7 @@ bool CPVRChannel::SetEncryptionSystem(int iClientEncryptionSystem, bool bSaveInD
   {
     /* update the client encryption system */
     m_iClientEncryptionSystem = iClientEncryptionSystem;
+    UpdateEncryptionName();
     SetChanged();
 
     /* persist the changes */
@@ -487,7 +508,7 @@ bool CPVRChannel::SetEncryptionSystem(int iClientEncryptionSystem, bool bSaveInD
   return bReturn;
 }
 
-CStdString CPVRChannel::EncryptionName() const
+void CPVRChannel::UpdateEncryptionName(void)
 {
   // http://www.dvb.org/index.php?id=174
   // http://en.wikipedia.org/wiki/Conditional_access_system
@@ -587,7 +608,7 @@ CStdString CPVRChannel::EncryptionName() const
   else
     strName.Format("%s (%X)", g_localizeStrings.Get(19499).c_str(), m_iClientEncryptionSystem); /* Unknown */
 
-  return strName;
+  m_strClientEncryptionName = strName;
 }
 
 /********** EPG methods **********/
@@ -620,32 +641,30 @@ int CPVRChannel::GetEPG(CFileItemList *results)
 
 bool CPVRChannel::ClearEPG()
 {
-  if (m_EPG != NULL)
-  {
+  if (m_EPG)
     GetEPG()->Clear();
-    m_EPGNow = NULL;
-  }
 
   return true;
 }
 
 const CPVREpgInfoTag* CPVRChannel::GetEPGNow(void) const
 {
-  if (m_bIsHidden || !m_bEPGEnabled || m_EPGNow == NULL)
-    return m_EmptyEpgInfoTag;
+  const CPVREpgInfoTag *tag = NULL;
 
-  return m_EPGNow;
+  if (!m_bIsHidden && m_bEPGEnabled && m_EPG)
+    tag = (CPVREpgInfoTag *) m_EPG->InfoTagNow();
+
+  return !tag ? m_EmptyEpgInfoTag : tag;
 }
 
 const CPVREpgInfoTag* CPVRChannel::GetEPGNext(void) const
 {
-  if (m_bIsHidden || !m_bEPGEnabled || m_EPGNow == NULL)
-    return m_EmptyEpgInfoTag;
+  const CPVREpgInfoTag *tag = NULL;
 
-  const CPVREpgInfoTag *nextTag = (CPVREpgInfoTag*) m_EPGNow->GetNextEvent();
-  return nextTag == NULL ?
-      m_EmptyEpgInfoTag :
-      nextTag;
+  if (!m_bIsHidden && m_bEPGEnabled && m_EPG)
+    tag = (CPVREpgInfoTag *) m_EPG->InfoTagNext();
+
+  return !tag ? m_EmptyEpgInfoTag : tag;
 }
 
 bool CPVRChannel::SetEPGEnabled(bool bEPGEnabled /* = true */, bool bSaveInDb /* = false */)
@@ -696,38 +715,4 @@ bool CPVRChannel::SetEPGScraper(const CStdString &strScraper, bool bSaveInDb /* 
   }
 
   return bReturn;
-}
-
-void CPVRChannel::UpdateEPGPointers(void)
-{
-  if (m_bIsHidden || !m_bEPGEnabled || m_iChannelId == 0 || m_iChannelNumber == 0)
-    return;
-
-  CPVREpg *epg = GetEPG();
-
-  if (epg == NULL)
-  {
-    CLog::Log(LOGDEBUG, "PVR - %s - could not get EPG reference", __FUNCTION__);
-    return;
-  }
-
-  if (!epg->IsUpdateRunning() &&
-      (m_EPGNow == NULL ||
-       m_EPGNow->End() <= CDateTime::GetCurrentDateTime()))
-  {
-    SetChanged();
-    m_EPGNow  = (CPVREpgInfoTag*) epg->InfoTagNow();
-    if (m_EPGNow)
-    {
-      CLog::Log(LOGDEBUG, "%s - EPG now pointer for channel '%s' updated to '%s'",
-          __FUNCTION__, m_strChannelName.c_str(), m_EPGNow->Title().c_str());
-    }
-    else
-    {
-      CLog::Log(LOGDEBUG, "%s - no EPG now pointer for channel '%s'",
-          __FUNCTION__, m_strChannelName.c_str());
-    }
-  }
-
-  NotifyObservers("epg");
 }

@@ -23,6 +23,8 @@
 
 #include "FileItem.h"
 
+#include "threads/CriticalSection.h"
+
 #include "EpgInfoTag.h"
 #include "EpgSearchFilter.h"
 
@@ -38,13 +40,15 @@ class CEpg : public std::vector<CEpgInfoTag*>
   friend class CPVREpg;
 
 private:
-  bool          m_bUpdateRunning; /*!< true if EPG is currently being updated */
-  bool          m_bIsSorted;      /*!< remember if we're sorted or not */
-  CStdString    m_strName;        /*!< the name of this table */
-  CStdString    m_strScraperName; /*!< the name of the scraper to use */
-  int           m_iEpgID;         /*!< the database ID of this table */
+  bool                       m_bUpdateRunning; /*!< true if EPG is currently being updated */
+  CStdString                 m_strName;        /*!< the name of this table */
+  CStdString                 m_strScraperName; /*!< the name of the scraper to use */
+  int                        m_iEpgID;         /*!< the database ID of this table */
+  mutable const CEpgInfoTag *m_nowActive;      /*!< the tag that is currently active */
 
-  CPVRChannel * m_Channel;  /*!< the channel this EPG belongs to */
+  mutable CCriticalSection   m_critSection;    /*!< critical section for changes in this table */
+
+  CPVRChannel *              m_Channel;        /*!< the channel this EPG belongs to */
 
   /*!
    * @brief Update the EPG from a scraper set in the channel tag.
@@ -53,13 +57,43 @@ private:
    * @param end Get entries with an end date before this time.
    * @return True if the update was successful, false otherwise.
    */
-  bool UpdateFromScraper(time_t start, time_t end);
+  virtual bool UpdateFromScraper(time_t start, time_t end);
 
   /*!
    * @brief Persist all tags in this container.
    * @return True if all tags were persisted, false otherwise.
    */
   bool PersistTags(void);
+
+  /*!
+   * @brief Fix overlapping events from the tables.
+   * @param bStore Store in the database if true.
+   * @return True if the events were fixed successfully, false otherwise.
+   */
+  virtual bool FixOverlappingEvents(bool bStore = true);
+
+  /*!
+   * @brief Create a new tag.
+   * @return The new tag.
+   */
+  virtual CEpgInfoTag *CreateTag(void);
+
+  /*!
+   * @brief Sort all entries in this EPG by date.
+   */
+  virtual void Sort(void);
+
+  /*!
+   * @brief Get the infotag with the given ID.
+   *
+   * Get the infotag with the given ID.
+   * If it wasn't found, try finding the event with the given start time
+   *
+   * @param uniqueID The unique ID of the event to find.
+   * @param StartTime The start time of the event to find if it wasn't found by it's unique ID.
+   * @return The found tag or NULL if it wasn't found.
+   */
+  virtual const CEpgInfoTag *InfoTag(long uniqueID, CDateTime StartTime) const;
 
 protected:
   /*!
@@ -85,22 +119,28 @@ public:
   virtual ~CEpg(void);
 
   /*!
+   * @brief Delete this EPG table from the database.
+   * @return True if it was deleted successfully, false otherwise.
+   */
+  bool Delete(void);
+
+  /*!
    * @brief The channel this EPG belongs to.
    * @return The channel this EPG belongs to
    */
-  CPVRChannel *Channel(void) const { return m_Channel; }
+  const CPVRChannel *Channel(void) const { return m_Channel; }
 
   /*!
    * @brief Get the name of the scraper to use for this table.
    * @return The name of the scraper to use for this table.
    */
-  CStdString ScraperName(void) const { return m_strScraperName; }
+  const CStdString &ScraperName(void) const { return m_strScraperName; }
 
   /*!
    * @brief Get the name of this table.
    * @return The name of this table.
    */
-  CStdString Name(void) const { return m_strName; }
+  const CStdString &Name(void) const { return m_strName; }
 
   /*!
    * @brief Get the database ID of this table.
@@ -126,7 +166,7 @@ public:
    *        and that have no timers set.
    * @param Time Delete entries with an end time before this time.
    */
-  virtual void Cleanup(const CDateTime Time);
+  virtual void Cleanup(const CDateTime &Time);
 
   /*!
    * @brief Remove all entries from this EPG that finished before the given time
@@ -140,11 +180,6 @@ public:
   virtual void Clear(void);
 
   /*!
-   * @brief Sort all entries in this EPG by date.
-   */
-  virtual void Sort(void);
-
-  /*!
    * @brief Get the event that is occurring now.
    * @return The current event.
    */
@@ -155,18 +190,6 @@ public:
    * @return The next event.
    */
   virtual const CEpgInfoTag *InfoTagNext(void) const;
-
-  /*!
-   * @brief Get the infotag with the given ID.
-   *
-   * Get the infotag with the given ID.
-   * If it wasn't found, try finding the event with the given start time
-   *
-   * @param uniqueID The unique ID of the event to find.
-   * @param StartTime The start time of the event to find if it wasn't found by it's unique ID.
-   * @return The found tag or NULL if it wasn't found.
-   */
-  virtual const CEpgInfoTag *InfoTag(long uniqueID, CDateTime StartTime) const;
 
   /*!
    * @brief Get the event that occurs at the given time.
@@ -190,25 +213,12 @@ public:
   virtual bool IsUpdateRunning(void) const { return m_bUpdateRunning; }
 
   /*!
-   * @brief Mark the EPG as being update or no longer being updated.
-   * @param bUpdateRunning The new value.
-   */
-  virtual void SetUpdateRunning(bool bUpdateRunning) { m_bUpdateRunning = bUpdateRunning; }
-
-  /*!
    * @brief Update an entry in this EPG.
    * @param tag The tag to update.
    * @param bUpdateDatabase If set to true, this event will be persisted in the database.
    * @return True if it was updated successfully, false otherwise.
    */
   virtual bool UpdateEntry(const CEpgInfoTag &tag, bool bUpdateDatabase = false);
-
-  /*!
-   * @brief Fix overlapping events from the tables.
-   * @param bStore Store in the database if true.
-   * @return True if the events were fixed successfully, false otherwise.
-   */
-  virtual bool FixOverlappingEvents(bool bStore = true);
 
   /*!
    * @brief Update the EPG from 'start' till 'end'.
@@ -230,7 +240,7 @@ public:
    * @param results The file list to store the results in.
    * @return The amount of entries that were added.
    */
-  virtual int Get(CFileItemList *results);
+  virtual int Get(CFileItemList *results) const;
 
   /*!
    * @brief Get all EPG entries that and apply a filter.
@@ -238,7 +248,7 @@ public:
    * @param filter The filter to apply.
    * @return The amount of entries that were added.
    */
-  virtual int Get(CFileItemList *results, const EpgSearchFilter &filter);
+  virtual int Get(CFileItemList *results, const EpgSearchFilter &filter) const;
 
   /*!
    * @brief Persist this table in the database.

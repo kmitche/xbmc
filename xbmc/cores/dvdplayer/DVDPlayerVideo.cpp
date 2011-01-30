@@ -20,11 +20,11 @@
  */
 
 #include "system.h"
-#include "AdvancedSettings.h"
-#include "GUISettings.h"
-#include "Settings.h"
-#include "VideoReferenceClock.h"
-#include "MathUtils.h"
+#include "settings/AdvancedSettings.h"
+#include "settings/GUISettings.h"
+#include "settings/Settings.h"
+#include "video/VideoReferenceClock.h"
+#include "utils/MathUtils.h"
 #include "DVDPlayer.h"
 #include "DVDPlayerVideo.h"
 #include "DVDCodecs/DVDFactoryCodec.h"
@@ -926,6 +926,10 @@ void CDVDPlayerVideo::ProcessOverlays(DVDVideoPicture* pSource, YV12Image* pDest
   else if(pSource->format == DVDVideoPicture::FMT_VDPAU)
     g_renderManager.AddProcessor(pSource->vdpau);
 #endif
+#ifdef HAVE_LIBOPENMAX
+  else if(pSource->format == DVDVideoPicture::FMT_OMXEGL)
+    g_renderManager.AddProcessor(pSource->openMax, pSource);
+#endif
 #ifdef HAVE_LIBVA
   else if(pSource->format == DVDVideoPicture::FMT_VAAPI)
     g_renderManager.AddProcessor(*pSource->vaapi);
@@ -1007,6 +1011,9 @@ int CDVDPlayerVideo::OutputPicture(DVDVideoPicture* pPicture, double pts)
       case DVDVideoPicture::FMT_VAAPI:
         flags |= CONF_FLAGS_FORMAT_VAAPI;
         formatstr = "VAAPI";
+        break;
+      case DVDVideoPicture::FMT_OMXEGL:
+        flags |= CONF_FLAGS_FORMAT_OMXEGL;
         break;
     }
 

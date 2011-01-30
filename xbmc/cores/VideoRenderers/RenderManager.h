@@ -31,8 +31,8 @@
   #include "LinuxRenderer.h"
 #endif
 
-#include "utils/SharedSection.h"
-#include "utils/Thread.h"
+#include "threads/SharedSection.h"
+#include "threads/Thread.h"
 #include "settings/VideoSettings.h"
 #include "OverlayRenderer.h"
 
@@ -105,6 +105,15 @@ public:
     CSharedLock lock(m_sharedSection);
     if (m_pRenderer)
       m_pRenderer->AddProcessor(vdpau);
+  }
+#endif
+
+#ifdef HAVE_LIBOPENMAX
+  void AddProcessor(COpenMax *openmax, DVDVideoPicture *picture)
+  {
+    CSharedLock lock(m_sharedSection);
+    if (m_pRenderer)
+      m_pRenderer->AddProcessor(openmax, picture);
   }
 #endif
 

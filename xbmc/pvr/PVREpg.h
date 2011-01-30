@@ -33,12 +33,18 @@ class CPVREpg : public CEpg
 {
 private:
   /*!
-   * @brief Update the EPG from a client.
+   * @brief Update the EPG from a scraper set in the channel tag.
    * @param start Get entries with a start date after this time.
    * @param end Get entries with an end date before this time.
    * @return True if the update was successful, false otherwise.
    */
-  bool UpdateFromClient(time_t start, time_t end);
+  bool UpdateFromScraper(time_t start, time_t end);
+
+  /*!
+   * @brief Create a new tag.
+   * @return The new tag.
+   */
+  CEpgInfoTag *CreateTag(void);
 
 protected:
   /*!
@@ -67,7 +73,7 @@ public:
    *        and that have no timers set.
    * @param Time Delete entries with an end time before this time.
    */
-  void Cleanup(const CDateTime Time);
+  void Cleanup(const CDateTime &Time);
 
   /*!
    * @brief Update an entry in this EPG.
@@ -78,19 +84,10 @@ public:
   bool UpdateEntry(const PVR_PROGINFO *data, bool bUpdateDatabase = false);
 
   /*!
-   * @brief Update the EPG from 'start' till 'end'.
-   * @param start The start time.
-   * @param end The end time.
-   * @param bStoreInDb Store in the database if true.
-   * @return True if the update was successful, false otherwise.
-   */
-  bool Update(time_t start, time_t end, bool bStoreInDb = true);
-
-  /*!
    * @brief Load all entries from the database.
    * @return True if the entries were loaded successfully, false otherwise.
    */
-  bool LoadFromDb();
+  bool Load();
 
   /*!
    * @brief True if this is a table for a radio channel, false if it's for TV.

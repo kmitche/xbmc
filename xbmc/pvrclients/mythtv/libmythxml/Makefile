@@ -20,5 +20,5 @@ include ../../../../Makefile.include
 # Includes for the addon handles.
 INCLUDES = -I../../../addons/include
 
-# Use the XBMC tinyXML classes for the moment.
-INCLUDES += -I../../../../guilib
+# Additional include for tinyxml
+INCLUDES += -I../../../lib/tinyXML

@@ -9,8 +9,7 @@
 
 #include "MythXmlResponse.h"
 
-// TODO: Same as for all classes...
-#include "tinyXML/tinyxml.h"
+#include "tinyxml.h"
 #include "../client.h"
 
 GetNumOfChannelsCommand::GetNumOfChannelsCommand()

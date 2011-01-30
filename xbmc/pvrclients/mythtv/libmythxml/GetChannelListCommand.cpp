@@ -2,9 +2,8 @@
 
 #include "MythXmlResponse.h"
 
-// TODO: Same as all files
 #include "../client.h"
-#include "tinyXML/tinyxml.h"
+#include "tinyxml.h"
 
 GetChannelListCommand::GetChannelListCommand()
 {

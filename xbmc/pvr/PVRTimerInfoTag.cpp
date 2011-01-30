@@ -19,9 +19,9 @@
  *
  */
 
-#include "GUISettings.h"
-#include "GUIDialogOK.h"
-#include "GUIDialogYesNo.h"
+#include "settings/GUISettings.h"
+#include "dialogs/GUIDialogOK.h"
+#include "dialogs/GUIDialogYesNo.h"
 
 #include "PVRTimerInfoTag.h"
 #include "PVRChannelGroupsContainer.h"
@@ -116,13 +116,13 @@ time_t CPVRTimerInfoTag::FirstDayTime(void) const
   return firstday;
 }
 
-void CPVRTimerInfoTag::SetStart(CDateTime Start)
+void CPVRTimerInfoTag::SetStart(const CDateTime &Start)
 {
   m_StartTime = Start;
   m_bValidSummary = false;
 }
 
-void CPVRTimerInfoTag::SetStop(CDateTime Start)
+void CPVRTimerInfoTag::SetStop(const CDateTime &Start)
 {
   m_StopTime = Start;
   m_bValidSummary = false;
@@ -186,7 +186,7 @@ void CPVRTimerInfoTag::UpdateSummary(void)
 /**
  * Get the status string of this Timer, is used by the GUIInfoManager
  */
-const CStdString CPVRTimerInfoTag::GetStatus() const
+const CStdString &CPVRTimerInfoTag::GetStatus() const
 {
   if (m_strFileNameAndPath == "pvr://timers/add.timer")
     return g_localizeStrings.Get(19026);
@@ -326,7 +326,7 @@ void CPVRTimerInfoTag::SetEpgInfoTag(const CPVREpgInfoTag *tag)
 
 int CPVRTimerInfoTag::ChannelNumber() const
 {
-  CPVRChannel *channeltag = CPVRChannelGroup::GetByClientFromAll(m_iClientNumber, m_iClientID);
+  const CPVRChannel *channeltag = CPVRChannelGroup::GetByClientFromAll(m_iClientNumber, m_iClientID);
   if (channeltag)
     return channeltag->ChannelNumber();
   else
@@ -335,7 +335,7 @@ int CPVRTimerInfoTag::ChannelNumber() const
 
 CStdString CPVRTimerInfoTag::ChannelName() const
 {
-  CPVRChannel *channeltag = CPVRChannelGroup::GetByClientFromAll(m_iClientNumber, m_iClientID);
+  const CPVRChannel *channeltag = CPVRChannelGroup::GetByClientFromAll(m_iClientNumber, m_iClientID);
   if (channeltag)
     return channeltag->ChannelName();
   else
@@ -364,7 +364,7 @@ CPVRTimerInfoTag *CPVRTimerInfoTag::InstantTimer()
   }
 
   CFileItem *curPlayingChannel = g_PVRManager.GetCurrentPlayingItem();
-  CPVRChannel *channel = (curPlayingChannel) ? curPlayingChannel->GetPVRChannelInfoTag(): NULL;
+  const CPVRChannel *channel = (curPlayingChannel) ? curPlayingChannel->GetPVRChannelInfoTag(): NULL;
   if (!channel)
   {
     CLog::Log(LOGDEBUG, "%s - couldn't find current playing channel", __FUNCTION__);

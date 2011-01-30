@@ -20,26 +20,26 @@
  */
 
 #include "Application.h"
-#include "GUISettings.h"
+#include "settings/GUISettings.h"
 #include "Util.h"
-#include "GUIWindowTV.h"
-#include "GUIWindowManager.h"
-#include "utils/GUIInfoManager.h"
+#include "guilib/GUIWindowTV.h"
+#include "guilib/GUIWindowManager.h"
+#include "GUIInfoManager.h"
 #ifdef HAS_VIDEO_PLAYBACK
 #include "cores/VideoRenderers/RenderManager.h"
 #endif
 #include "utils/log.h"
-#include "LocalizeStrings.h"
-#include "FileSystem/File.h"
+#include "guilib/LocalizeStrings.h"
+#include "filesystem/File.h"
 #include "StringUtils.h"
 #include "utils/TimeUtils.h"
-#include "MusicInfoTag.h"
-#include "Settings.h"
+#include "music/tags/MusicInfoTag.h"
+#include "settings/Settings.h"
 
 /* GUI Messages includes */
-#include "GUIDialogOK.h"
-#include "GUIDialogProgress.h"
-#include "GUIDialogSelect.h"
+#include "dialogs/GUIDialogOK.h"
+#include "dialogs/GUIDialogProgress.h"
+#include "dialogs/GUIDialogSelect.h"
 
 #include "PVRManager.h"
 #include "PVRChannelGroupsContainer.h"
@@ -110,22 +110,7 @@ void CPVRManager::Start()
 
   CLog::Log(LOGNOTICE, "PVR: PVRManager starting");
 
-  /* Reset Member variables and System Info swap counters */
-  m_hasRecordings           = false;
-  m_isRecording             = false;
-  m_hasTimers               = false;
-  m_CurrentGroupID          = -1;
-  m_currentPlayingChannel   = NULL;
-  m_currentPlayingRecording = NULL;
-  m_PreviousChannel[0]      = -1;
-  m_PreviousChannel[1]      = -1;
-  m_PreviousChannelIndex    = 0;
-  m_infoToggleStart         = NULL;
-  m_infoToggleCurrent       = 0;
-  m_recordingToggleStart    = NULL;
-  m_recordingToggleCurrent  = 0;
-  m_LastChannel             = 0;
-  m_bChannelScanRunning     = false;
+  Reset();
 
   /* Discover, load and create chosen Client add-on's. */
   CAddonMgr::Get().RegisterAddonMgrCallback(ADDON_PVRDLL, this);
@@ -385,6 +370,26 @@ bool CPVRManager::RequestRemoval(AddonPtr addon)
 /** INTERNAL FUNCTIONS                                      **/
 /*************************************************************/
 
+void CPVRManager::Reset(void)
+{
+  /* Reset Member variables and System Info swap counters */
+  m_hasRecordings           = false;
+  m_isRecording             = false;
+  m_hasTimers               = false;
+  m_CurrentGroupID          = -1;
+  m_currentPlayingChannel   = NULL;
+  m_currentPlayingRecording = NULL;
+  m_PreviousChannel[0]      = -1;
+  m_PreviousChannel[1]      = -1;
+  m_PreviousChannelIndex    = 0;
+  m_infoToggleStart         = NULL;
+  m_infoToggleCurrent       = 0;
+  m_recordingToggleStart    = NULL;
+  m_recordingToggleCurrent  = 0;
+  m_LastChannel             = 0;
+  m_bChannelScanRunning     = false;
+}
+
 bool CPVRManager::ContinueLastChannel()
 {
   CLog::Log(LOGNOTICE,"PVR: Try to continue last channel");
@@ -397,7 +402,7 @@ bool CPVRManager::ContinueLastChannel()
 
   if (lastChannel > 0)
   {
-    CPVRChannel *tag = CPVRChannelGroup::GetByChannelIDFromAll(lastChannel);
+    const CPVRChannel *tag = CPVRChannelGroup::GetByChannelIDFromAll(lastChannel);
     if (!tag)
       return false;
 
@@ -430,49 +435,39 @@ bool CPVRManager::ContinueLastChannel()
 
 void CPVRManager::Process()
 {
-  g_PVRChannelGroups.Load(); /* Load all channels and groups */
+  g_PVRChannelGroups.Load();    /* Load all channels and groups */
+  g_PVREpgContainer.Start();    /* Start the EPG thread */
+  PVRTimers.Load();             /* Get timers from the backends */
+  PVRRecordings.Load();         /* Get recordings from the backend */
 
   /* Continue last watched channel after first startup */
   if (m_bFirstStart && g_guiSettings.GetInt("pvrplayback.startlast") != START_LAST_CHANNEL_OFF)
     ContinueLastChannel();
 
-  PVRTimers.Load();          /* Get timers from the backends */
-  PVRRecordings.Load();      /* Get recordings from the backend */
-  g_PVREpgContainer.Start(); /* Start the EPG thread */
-
   int Now = CTimeUtils::GetTimeMS()/1000;
-  m_LastTVChannelCheck     = Now;
-  m_LastRadioChannelCheck  = Now+CHANNELCHECKDELTA/2;
-  m_LastRecordingsCheck    = Now;
-  m_LastTimersCheck        = Now;
+  m_LastChannelCheck    = Now;
+  m_LastRecordingsCheck = Now;
+  m_LastTimersCheck     = Now;
 
   /* main loop */
   while (!m_bStop)
   {
     Now = CTimeUtils::GetTimeMS()/1000;
 
-    /* Check for new or updated TV Channels */
-    if (Now - m_LastTVChannelCheck > CHANNELCHECKDELTA) // don't do this too often
+    /* Check for new or updated channels or groups */
+    if (Now - m_LastChannelCheck > CHANNELCHECKDELTA)
     {
-      CLog::Log(LOGDEBUG,"PVR: Updating TV Channel list");
-      ((CPVRChannelGroup *) g_PVRChannelGroups.GetGroupAllTV())->Update();
-      m_LastTVChannelCheck = Now;
-    }
-
-    /* Check for new or updated Radio Channels */
-    if (Now - m_LastRadioChannelCheck > CHANNELCHECKDELTA) // don't do this too often
-    {
-      CLog::Log(LOGDEBUG,"PVR: Updating Radio Channel list");
-      ((CPVRChannelGroup *) g_PVRChannelGroups.GetGroupAllRadio())->Update();
-      m_LastRadioChannelCheck = Now;
+      CLog::Log(LOGDEBUG,"PVR: Updating channel list");
+      if (g_PVRChannelGroups.Update())
+        m_LastChannelCheck = Now;
     }
 
     /* Check for new or updated Recordings */
-    if (Now - m_LastRecordingsCheck > RECORDINGCHECKDELTA) // don't do this too often
+    if (Now - m_LastRecordingsCheck > RECORDINGCHECKDELTA)
     {
       CLog::Log(LOGDEBUG,"PVR: Updating Recordings list");
-      PVRRecordings.Update(true);
-      m_LastRecordingsCheck = Now;
+      if (PVRRecordings.Update(true))
+        m_LastRecordingsCheck = Now;
     }
 
     /* Check for new or updated Timers */
@@ -963,22 +958,22 @@ void CPVRManager::ResetDatabase()
   pDlgProgress->SetPercentage(20);
 
   m_database.Open();
-  g_PVREpgContainer.Erase();
+  g_PVREpgContainer.Clear(true);
   pDlgProgress->SetPercentage(30);
 
-  m_database.EraseChannelGroups(false);
+  m_database.DeleteChannelGroups(false);
   pDlgProgress->SetPercentage(50);
 
-  m_database.EraseChannelGroups(true);
+  m_database.DeleteChannelGroups(true);
   pDlgProgress->SetPercentage(60);
 
-  m_database.EraseChannels();
+  m_database.DeleteChannels();
   pDlgProgress->SetPercentage(70);
 
-  m_database.EraseChannelSettings();
+  m_database.DeleteChannelSettings();
   pDlgProgress->SetPercentage(80);
 
-  m_database.EraseClients();
+  m_database.DeleteClients();
   pDlgProgress->SetPercentage(90);
 
   m_database.Close();
@@ -991,7 +986,7 @@ void CPVRManager::ResetDatabase()
 
 void CPVRManager::ResetEPG()
 {
-  g_PVREpgContainer.Reset(true);
+  g_PVREpgContainer.Clear(true);
 }
 
 bool CPVRManager::IsPlayingTV()
@@ -1247,7 +1242,7 @@ void CPVRManager::SaveCurrentChannelSettings()
     if (g_settings.m_currentVideoSettings != g_settings.m_defaultVideoSettings)
     {
       m_database.Open();
-      m_database.SetChannelSettings(*m_currentPlayingChannel->GetPVRChannelInfoTag(), g_settings.m_currentVideoSettings);
+      m_database.PersistChannelSettings(*m_currentPlayingChannel->GetPVRChannelInfoTag(), g_settings.m_currentVideoSettings);
       m_database.Close();
     }
   }
@@ -1548,7 +1543,7 @@ void CPVRManager::CloseStream()
 
     /* Save channel number in database */
     m_database.Open();
-    m_database.UpdateLastChannel(*m_currentPlayingChannel->GetPVRChannelInfoTag());
+    m_database.PersistLastChannel(*m_currentPlayingChannel->GetPVRChannelInfoTag());
     m_database.Close();
 
     /* Store current settings inside Database */

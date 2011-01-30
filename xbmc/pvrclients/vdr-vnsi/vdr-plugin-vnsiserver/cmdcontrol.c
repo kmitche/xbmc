@@ -265,7 +265,7 @@ bool cCmdControl::process_Login() /* OPCODE 1 */
   if (m_req->getDataLength() <= 4) return false;
 
   uint32_t protocolVersion  = m_req->extract_U32();
-  bool netLog               = m_req->extract_U8();
+                              m_req->extract_U8();
   const char *clientName    = m_req->extract_String();
 
   if (protocolVersion != VNSIProtocolVersion)
@@ -276,9 +276,6 @@ bool cCmdControl::process_Login() /* OPCODE 1 */
   }
 
   isyslog("VNSI: Welcome client '%s' with protocol version '%u'", clientName, protocolVersion);
-
-  if (netLog)
-    m_req->getClient()->EnableNetLog(true, clientName);
 
   // Send the login reply
   time_t timeNow        = time(NULL);
@@ -1347,7 +1344,6 @@ bool cCmdControl::processEPG_GetForChannel() /* OPCODE 120 */
     return true;
   }
 
-  const char* empty = "";
   bool atLeastOneEvent = false;
 
   uint32_t thisEventID;
@@ -1387,9 +1383,9 @@ bool cCmdControl::processEPG_GetForChannel() /* OPCODE 120 */
     //duration filter
     if (duration != 0 && thisEventTime >= (startTime + duration)) continue;
 
-    if (!thisEventTitle)        thisEventTitle        = empty;
-    if (!thisEventSubTitle)     thisEventSubTitle     = empty;
-    if (!thisEventDescription)  thisEventDescription  = empty;
+    if (!thisEventTitle)        thisEventTitle        = "";
+    if (!thisEventSubTitle)     thisEventSubTitle     = "";
+    if (!thisEventDescription)  thisEventDescription  = "";
 
     m_resp->add_U32(thisEventID);
     m_resp->add_U32(thisEventTime);

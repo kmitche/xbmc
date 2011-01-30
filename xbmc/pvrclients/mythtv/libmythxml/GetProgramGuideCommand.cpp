@@ -5,8 +5,7 @@
 #include <stdlib.h>
 #include <map>
 
-// TODO: path alteration for tinyxml.h?
-#include "tinyXML/tinyxml.h"
+#include "tinyxml.h"
 
 // TODO: understand if there is a better way to log from what should be "binary" libraries that don't know anything about XBMC.
 #include "../client.h"

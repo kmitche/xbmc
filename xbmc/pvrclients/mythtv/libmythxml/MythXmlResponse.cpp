@@ -3,11 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-/*
- * TODO: Move tinyxml underneath libmythxml since it's a dependent library? Or alter the include
- * path so the tinyxml directory is on the path and then just include tinyxml.h?
- */
-#include "tinyXML/tinyxml.h"
+#include "tinyxml.h"
 
 int MythXmlResponse::toInteger(TiXmlElement* element)
 {

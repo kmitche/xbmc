@@ -22,9 +22,9 @@
  */
 
 #include "DateTime.h"
-#include "CriticalSection.h"
-#include "Observer.h"
-#include "Thread.h"
+#include "threads/CriticalSection.h"
+#include "threads/Thread.h"
+#include "utils/Observer.h"
 
 #include "Epg.h"
 #include "EpgDatabase.h"
@@ -43,7 +43,7 @@ class CEpgContainer : public std::vector<CEpg *>,
   friend class CPVREpg;
   friend class CPVREpgContainer;
 
-protected:
+private:
   CEpgDatabase m_database;           /*!< the EPG database */
 
   /** @name Configuration */
@@ -93,25 +93,6 @@ protected:
   virtual bool UpdateEPG(bool bShowProgress = false);
 
   /*!
-   * @brief Load all EPG entries from the database.
-   * @param bShowProgress Show a progress bar if true.
-   * @return True if the update was successful, false otherwise.
-   */
-  virtual bool Load(bool bShowProgress = false);
-
-  /*!
-   * @brief Clear all EPG entries.
-   * @param bClearDb Clear the database too if true.
-   */
-  virtual void Clear(bool bClearDb = false);
-
-protected:
-  /*!
-   * @brief EPG update thread
-   */
-  virtual void Process(void);
-
-  /*!
    * @brief Get an EPG table given it's ID.
    * @param iEpgId The database ID of the table.
    * @return The table or NULL if it wasn't found.
@@ -119,25 +100,30 @@ protected:
   CEpg *GetById(int iEpgId);
 
   /*!
-   * @brief Update an entry in this container.
-   * @param tag The table to update.
-   * @param bUpdateDatabase If set to true, this table will be persisted in the database.
-   * @return True if it was updated successfully, false otherwise.
-   */
-  virtual bool UpdateEntry(const CEpg &entry, bool bUpdateDatabase = false);
-
-public:
-  /*!
    * @brief A hook that will be called on every update thread iteration.
    */
   virtual void ProcessHook(const CDateTime &time) {};
 
   /*!
-   * @brief Get a pointer to the database instance.
-   * @return A pointer to the database instance.
+   * @brief Load all EPG entries from the database.
+   * @param bShowProgress Show a progress bar if true.
+   * @return True if the update was successful, false otherwise.
    */
-  CEpgDatabase *GetDatabase() { return &m_database; }
+  virtual bool Load(bool bShowProgress = false);
 
+  /*!
+   * @brief A hook that is called after the tables have been loaded from the database.
+   * @return True if the hook was executed successfully, false otherwise.
+   */
+  virtual bool AutoCreateTablesHook(void) { return true; }
+
+protected:
+  /*!
+   * @brief EPG update thread
+   */
+  virtual void Process(void);
+
+public:
   /*!
    * @brief Create a new EPG table container.
    */
@@ -147,6 +133,12 @@ public:
    * @brief Destroy this instance.
    */
   virtual ~CEpgContainer(void);
+
+  /*!
+   * @brief Get a pointer to the database instance.
+   * @return A pointer to the database instance.
+   */
+  CEpgDatabase *GetDatabase() { return &m_database; }
 
   /*!
    * @brief Start the EPG update thread.
@@ -160,17 +152,10 @@ public:
   virtual bool Stop(void);
 
   /*!
-   * @brief Reset all EPG tables.
-   * @param bClearDb If true, clear the database too.
-   * @return True if all tables were reset, false otherwise.
+   * @brief Clear all EPG entries.
+   * @param bClearDb Clear the database too if true.
    */
-  virtual bool Reset(bool bClearDb = false);
-
-  /*!
-   * @brief Erase this EPG table.
-   * @return True if it was erased, false otherwise.
-   */
-  virtual bool Erase(void);
+  virtual void Clear(bool bClearDb = false);
 
   /*!
    * @brief Process a notification from an observable.
@@ -178,6 +163,15 @@ public:
    * @param msg The update message.
    */
   virtual void Notify(const Observable &obs, const CStdString& msg);
+
+
+  /*!
+   * @brief Update an entry in this container.
+   * @param tag The table to update.
+   * @param bUpdateDatabase If set to true, this table will be persisted in the database.
+   * @return True if it was updated successfully, false otherwise.
+   */
+  virtual bool UpdateEntry(const CEpg &entry, bool bUpdateDatabase = false);
 
   /*!
    * @brief Get all EPG tables and apply a filter.
@@ -198,13 +192,13 @@ public:
    * @brief Get the start time of the first entry.
    * @return The start time.
    */
-  virtual CDateTime GetFirstEPGDate(void) { return m_First; }
+  virtual const CDateTime &GetFirstEPGDate(void) { return m_First; }
 
   /*!
     * @brief Get the end time of the last entry.
     * @return The end time.
     */
-  virtual CDateTime GetLastEPGDate(void) { return m_Last; }
+  virtual const CDateTime &GetLastEPGDate(void) { return m_Last; }
 };
 
 extern CEpgContainer g_EpgContainer; /*!< The container for all EPG tables */

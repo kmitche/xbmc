@@ -19,7 +19,7 @@
  *
  */
 
-#include "LocalizeStrings.h"
+#include "guilib/LocalizeStrings.h"
 #include "../addons/include/xbmc_pvr_types.h"
 #include "EpgInfoTag.h"
 #include "EpgContainer.h"
@@ -44,7 +44,7 @@ CEpgInfoTag::~CEpgInfoTag()
 void CEpgInfoTag::Reset()
 {
   m_iBroadcastId        = -1;
-  m_strTitle            = g_localizeStrings.Get(19055);
+  m_strTitle            = "";
   m_strGenre            = "";
   m_strPlotOutline      = "";
   m_strPlot             = "";
@@ -73,15 +73,11 @@ int CEpgInfoTag::GetDuration() const
 
 const CEpgInfoTag *CEpgInfoTag::GetNextEvent() const
 {
-  m_Epg->Sort();
-
   return m_nextEvent;
 }
 
 const CEpgInfoTag *CEpgInfoTag::GetPreviousEvent() const
 {
-  m_Epg->Sort();
-
   return m_previousEvent;
 }
 
@@ -203,6 +199,14 @@ void CEpgInfoTag::SetEnd(const CDateTime &end)
     m_endTime = end;
     m_bChanged = true;
   }
+}
+
+const CStdString &CEpgInfoTag::Title(void) const
+{
+  if (m_strTitle.IsEmpty())
+    return g_localizeStrings.Get(19055);
+  else
+    return m_strTitle;
 }
 
 void CEpgInfoTag::SetTitle(const CStdString &strTitle)
@@ -351,6 +355,12 @@ void CEpgInfoTag::Update(const CEpgInfoTag &tag)
   SetEpisodeName(tag.EpisodeName());
 }
 
+bool CEpgInfoTag::IsActive(void) const
+{
+  CDateTime now = CDateTime::GetCurrentDateTime();
+  return (m_startTime <= now && m_endTime > now);
+}
+
 bool CEpgInfoTag::Persist(bool bSingleUpdate /* = true */, bool bLastUpdate /* = false */)
 {
   bool bReturn = false;
@@ -366,11 +376,15 @@ bool CEpgInfoTag::Persist(bool bSingleUpdate /* = true */, bool bLastUpdate /* =
   }
 
   int iId = database->Persist(*this, bSingleUpdate, bLastUpdate);
-  if (iId > 0)
+  if (iId >= 0)
   {
-    m_iBroadcastId = iId;
     bReturn = true;
-    m_bChanged = false;
+
+    if (iId > 0)
+    {
+      m_iBroadcastId = iId;
+      m_bChanged = false;
+    }
   }
 
   database->Close();

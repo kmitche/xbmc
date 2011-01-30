@@ -20,7 +20,7 @@
  *
  */
 
-#include "Database.h"
+#include "dbwrappers/Database.h"
 #include "DateTime.h"
 
 class CPVRChannelGroup;
@@ -66,14 +66,14 @@ public:
    * @brief Remove all channels from the database.
    * @return True if all channels were removed, false otherwise.
    */
-  bool EraseChannels();
+  bool DeleteChannels();
 
   /*!
    * @brief Remove all channels from a client from the database.
    * @param iClientId The ID of the client to delete the channels for.
    * @return True if the channels were deleted, false otherwise.
    */
-  bool EraseClientChannels(long iClientId);
+  bool DeleteClientChannels(long iClientId);
 
   /*!
    * @brief Add or update a channel entry in the database
@@ -81,14 +81,14 @@ public:
    * @param bQueueWrite If true, don't write immediately
    * @return The database ID of the channel.
    */
-  long UpdateChannel(const CPVRChannel &channel, bool bQueueWrite = false);
+  long Persist(const CPVRChannel &channel, bool bQueueWrite = false);
 
   /*!
    * @brief Remove a channel entry from the database
    * @param channel The channel to remove.
    * @return True if the channel was removed, false otherwise.
    */
-  bool RemoveChannel(const CPVRChannel &channel);
+  bool Delete(const CPVRChannel &channel);
 
   /*!
    * @brief Get the list of channels from the database
@@ -97,14 +97,6 @@ public:
    * @return The amount of channels that were added.
    */
   int GetChannels(CPVRChannelGroupInternal &results, bool bIsRadio);
-
-  /*!
-   * @brief The amount of channels in the database.
-   * @param bRadio Get the radio channels if true. Get the TV channels otherwise.
-   * @param bHidden Get the hidden channels if true. Get the visible channels otherwise.
-   * @return The amount of channels.
-   */
-  int GetChannelCount(bool bRadio, bool bHidden = false);
 
   /*!
    * @brief Get the ID of the channel that was played last
@@ -117,7 +109,7 @@ public:
    * @param channel The channel to store.
    * @return True if the value was stored, false otherwise.
    */
-  bool UpdateLastChannel(const CPVRChannel &channel);
+  bool PersistLastChannel(const CPVRChannel &channel);
 
   //@}
 
@@ -128,7 +120,7 @@ public:
    * @brief Remove all channel settings from the database.
    * @return True if all channels were removed successfully, false if not.
    */
-  bool EraseChannelSettings();
+  bool DeleteChannelSettings();
 
   /*!
    * @brief Get the channel settings from the database.
@@ -144,7 +136,7 @@ public:
    * @param settings The settings to store.
    * @return True if the settings were stored successfully, false if not.
    */
-  bool SetChannelSettings(const CPVRChannel &channel, const CVideoSettings &settings);
+  bool PersistChannelSettings(const CPVRChannel &channel, const CVideoSettings &settings);
 
   //@}
 
@@ -156,16 +148,7 @@ public:
    * @param bRadio Remove all radio channel groups if true. Remove TV channel groups otherwise.
    * @return True if all channel groups were removed.
    */
-  bool EraseChannelGroups(bool bRadio = false);
-
-  /*!
-   * @brief Add a channel group to the database
-   * @param strGroupName The name of the group.
-   * @param iSortOrder The sort order of the group.
-   * @param bRadio True if it's a radio channel group, false if it's a TV channel group.
-   * @return True if the group was stored successfully, false otherwise.
-   */
-  long AddChannelGroup(const CStdString &strGroupName, int iSortOrder, bool bRadio = false);
+  bool DeleteChannelGroups(bool bRadio = false);
 
   /*!
    * @brief Delete a channel group from the database.
@@ -198,30 +181,12 @@ public:
   int GetChannelsInGroup(CPVRChannelGroup *group);
 
   /*!
-   * @brief Change the name of a channel group.
-   * @param iGroupId The ID of the group to change.
-   * @param strNewName The new name of the group.
-   * @param bRadio True if it's a radio channel group, false otherwise.
-   * @return True if the name was changed successfully, false otherwise.
-   */
-  bool SetChannelGroupName(int iGroupId, const CStdString &strNewName, bool bRadio = false);
-
-  /*!
-   * @brief Change the sort order of a channel group.
-   * @param iGroupId The ID of the group to change.
-   * @param iSortOrder The new sort order.
-   * @param bRadio True if it's a radio channel group, false otherwise.
-   * @return True if the order was changed successfully, false otherwise.
-   */
-  bool SetChannelGroupSortOrder(int iGroupId, int iSortOrder, bool bRadio = false);
-
-  /*!
    * @brief Add or update a channel group entry in the database.
    * @param group The group to persist.
    * @param bQueueWrite If true, don't write directly.
    * @return The database ID of the group.
    */
-  long UpdateChannelGroup(const CPVRChannelGroup &group, bool bQueueWrite = false);
+  long Persist(const CPVRChannelGroup &group, bool bQueueWrite = false);
 
 protected:
   /*!
@@ -240,7 +205,7 @@ public:
    * @brief Remove all client information from the database.
    * @return True if all clients were removed successfully.
    */
-  bool EraseClients();
+  bool DeleteClients();
 
   /*!
    * @brief Add a client to the database if it's not already in there.
@@ -255,7 +220,7 @@ public:
    * @param strGuid The unique ID of the client.
    * @return True if the client was removed successfully, false otherwise.
    */
-  bool RemoveClient(const CStdString &strGuid);
+  bool DeleteClient(const CStdString &strGuid);
 
 protected:
   /*!

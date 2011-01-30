@@ -21,17 +21,21 @@
  *
  */
 
-#include "VideoInfoTag.h"
+#include "video/VideoInfoTag.h"
 #include "DateTime.h"
 #include "FileItem.h"
 
 #include "PVRChannelGroup.h"
 #include "../addons/include/xbmc_pvr_types.h"
 
+class CPVRChannelGroupsContainer;
+
 /** A container class for channel groups */
 
-class CPVRChannelGroups : public std::vector<CPVRChannelGroup>
+class CPVRChannelGroups : public std::vector<CPVRChannelGroup *>
 {
+  friend class CPVRChannelGroupsContainer;
+
 private:
   bool  m_bRadio; /*!< true if this is a container for radio channels, false if it is for tv channels */
 
@@ -40,7 +44,14 @@ private:
    * @param iGroupId The ID to find.
    * @return The index or -1 if it wasn't found.
    */
-  int GetIndexForGroupID(int iGroupId);
+  int GetIndexForGroupID(int iGroupId) const;
+
+protected:
+  /*!
+   * @brief Update the contents of the groups in this container.
+   * @return True if the update was successful, false otherwise.
+   */
+  bool Update(void);
 
 public:
   /*!
@@ -51,70 +62,84 @@ public:
   virtual ~CPVRChannelGroups(void);
 
   /*!
+   * @brief Remove all channels from this group.
+   */
+  void Clear(void);
+
+  /*!
    * @brief Load this container's contents from the database or PVR clients.
    * @return True if it was loaded successfully, false if not.
    */
   bool Load(void);
 
   /*!
-   * @brief Unload this container's contents.
+   * @brief Update a group or add it if it's not in here yet.
+   * @param group The group to update.
+   * @return True if the group was added or update successfully, false otherwise.
    */
-  void Unload(void);
+  bool Update(const CPVRChannelGroup &group);
+
+  /*!
+   * @brief Get a pointer to a channel group given it's ID.
+   * @param iGroupId The ID of the group.
+   * @return The group or NULL if it wasn't found.
+   */
+  const CPVRChannelGroup *GetById(int iGroupId) const;
 
   /*!
    * @brief Get the group that contains all channels.
    * @return The group that contains all channels.
    */
-  CPVRChannelGroup *GetGroupAll(void);
+  const CPVRChannelGroup *GetGroupAll(void) const;
 
   /*!
    * @brief Get the list of groups.
    * @param results The file list to store the results in.
    * @return The amount of items that were added.
    */
-  int GetGroupList(CFileItemList* results);
+  int GetGroupList(CFileItemList* results) const;
 
   /*!
    * @brief Get a group given it's database ID.
    * @param iGroupId The database ID.
    * @return The group or NULL if it wan't found.
    */
-  CPVRChannelGroup *GetGroupById(int iGroupId);
+  const CPVRChannelGroup *GetGroupById(int iGroupId) const;
+
+  /*!
+   * @brief Get a group given it's name.
+   * @param strName The name.
+   * @return The group or NULL if it wan't found.
+   */
+  const CPVRChannelGroup *GetGroupByName(const CStdString &strName) const;
 
   /*!
    * @brief Get the ID of the first channel in a group.
    * @param iGroupId The ID of the group.
    * @return The ID of the first channel or 1 if it wasn't found.
    */
-  int GetFirstChannelForGroupID(int iGroupId);
+  int GetFirstChannelForGroupID(int iGroupId) const;
 
   /*!
    * @brief Get the ID of the previous group in this container.
    * @param iGroupId The ID of the current group.
    * @return The ID of the previous group or the ID of the group containing all channels if it wasn't found.
    */
-  int GetPreviousGroupID(int iGroupId);
+  int GetPreviousGroupID(int iGroupId) const;
 
   /*!
    * @brief Get the ID of the next group in this container.
    * @param iGroupId The ID of the current group.
    * @return The ID of the next group or the ID of the group containing all channels if it wasn't found.
    */
-  int GetNextGroupID(int iGroupId);
+  int GetNextGroupID(int iGroupId) const;
 
   /*!
    * @brief Add a group to this container.
    * @param strName The name of the group.
+   * @return True if the group was added, false otherwise.
    */
-  void AddGroup(const CStdString &strName);
-
-  /*!
-   * @brief Rename a group in this container.
-   * @param iGroupId The ID of the group.
-   * @param strNewName The new name.
-   * @return True if the group was renamed successfully, false if not.
-   */
-  bool RenameGroup(int iGroupId, const CStdString &strNewName);
+  bool AddGroup(const CStdString &strName);
 
   /*!
    * @brief Delete a group in this container.
@@ -136,12 +161,12 @@ public:
    * @param iGroupId The ID of the group.
    * @return The name of the group or localized string 953 if it wasn't found.
    */
-  CStdString GetGroupName(int iGroupId);
+  const CStdString &GetGroupName(int iGroupId) const;
 
   /*!
    * @brief Get the ID of a group given it's name.
    * @param strGroupName The name of the group.
    * @return The ID or -1 if it wasn't found.
    */
-  int GetGroupId(CStdString strGroupName);
+  int GetGroupId(CStdString strGroupName) const;
 };
