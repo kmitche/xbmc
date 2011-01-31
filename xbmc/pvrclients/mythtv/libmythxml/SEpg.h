@@ -7,6 +7,8 @@ struct SEpg
 {
   int         chanid;
   int         channum;
+  CStdString  channame;
+  CStdString  callsign;
   CStdString  title;
   CStdString  subtitle;
   CStdString  description;
