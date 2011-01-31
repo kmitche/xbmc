@@ -57,14 +57,9 @@ bool GetProgramGuideCommand::ParseResponse(CStdString response)
            programNode = programNode->NextSiblingElement("Program"))
       {
         SEpg epg;
-        epg.chanid            = atoi(channelNode->Attribute("chanId"));
-        epg.channum           = atoi(channelNode->Attribute("chanNum"));
-        epg.channame          = channelNode->Attribute("channelName");
-        epg.callsign          = channelNode->Attribute("callSign");
-
-        epg.description       = programNode->GetText();
         epg.title             = programNode->Attribute("title");
         epg.subtitle          = programNode->Attribute("subTitle");
+        epg.description       = programNode->GetText();
         epg.start             = MythXmlResponse::toDateTime(programNode->Attribute("startTime"));
         epg.end               = MythXmlResponse::toDateTime(programNode->Attribute("endTime"));
 
@@ -72,6 +67,11 @@ bool GetProgramGuideCommand::ParseResponse(CStdString response)
         GenrePair genre       = m_genre_mapper.getGenreTypeId(category);
         epg.genre_type        = genre.type;
         epg.genre_subtype     = genre.subtype;
+
+        epg.chanid            = atoi(channelNode->Attribute("chanId"));
+        epg.channum           = atoi(channelNode->Attribute("chanNum"));
+        epg.channame          = channelNode->Attribute("channelName");
+        epg.callsign          = channelNode->Attribute("callSign");
 
         // TODO: Parse out the "Recording" child element to determine if the program is scheduled
         // to record.
