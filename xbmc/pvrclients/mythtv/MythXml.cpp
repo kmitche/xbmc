@@ -226,7 +226,6 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
   vector<SRecording>::const_iterator it;
   CStdString urlPrefix;
   urlPrefix.Format("http://%s:%i", hostname_, port_);
-  int gmtoffset = GetGMTOffset();
 
   int i= 0;
   for (it = recordings.begin(); it != recordings.end(); ++it)
