@@ -231,21 +231,22 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
   int i= 0;
   for (it = recordings.begin(); it != recordings.end(); ++it)
   {
-    const SRecording& recording = *it;
     PVR_RECORDINGINFO pvrinfo;
-    pvrinfo.index = i++; // TODO: Hopefully this can be removed from the API.
-    pvrinfo.channel_name = recording.callsign;
-    pvrinfo.description = recording.description;
-    pvrinfo.duration = recording.recend - recording.recstart;
-    pvrinfo.priority = recording.priority;
-    pvrinfo.recording_time = recording.recstart;
-    pvrinfo.title = recording.title;
-    pvrinfo.subtitle = recording.subtitle;
+    const SRecording& recording = *it;
 
-    CStdString url = urlPrefix + recording.url;
-    pvrinfo.stream_url = url;
-    pvrinfo.directory = "";
-    pvrinfo.lifetime = 0;
+    pvrinfo.index           = i++; // TODO: Hopefully this can be removed from the API.
+    pvrinfo.channel_name    = recording.channame;
+    pvrinfo.description     = recording.description;
+    pvrinfo.duration        = recording.recend - recording.recstart;
+    pvrinfo.priority        = recording.priority;
+    pvrinfo.recording_time  = recording.recstart;
+    pvrinfo.title           = recording.title;
+    pvrinfo.subtitle        = recording.subtitle;
+
+    CStdString url          = urlPrefix + recording.url;
+    pvrinfo.stream_url      = url;
+    pvrinfo.directory       = "";
+    pvrinfo.lifetime        = 0;
     // tag.lifetime = 0; No lifetime for recordings.
 
     PVR->TransferRecordingEntry(handle, &pvrinfo);

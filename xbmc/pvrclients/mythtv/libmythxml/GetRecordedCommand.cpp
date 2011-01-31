@@ -55,6 +55,7 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
 
       recording.chanid      = atoi(channelNode->Attribute("chanId"));
       recording.channum     = atoi(channelNode->Attribute("chanNum"));
+      recording.channame    = channelNode->Attribute("channelName");
       recording.callsign    = channelNode->Attribute("callSign");
 
       int priority          = atoi(recordingNode->Attribute("recPriority")); // TODO: move priority shuffle to client

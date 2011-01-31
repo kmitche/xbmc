@@ -13,6 +13,7 @@ struct SRecording
 
   int         chanid;
   int         channum;
+  CStdString  channame;
   CStdString  callsign;
 
   int         priority;
