@@ -60,13 +60,13 @@ bool GetProgramGuideCommand::ParseResponse(CStdString response)
         epg.chanid            = atoi(channelNode->Attribute("chanId"));
         epg.channum           = atoi(channelNode->Attribute("chanNum"));
         epg.channame          = channelNode->Attribute("channelName");
-        epg.callsign          = channelNode->Attribute("callsign");
+        epg.callsign          = channelNode->Attribute("callSign");
 
         epg.description       = programNode->GetText();
         epg.title             = programNode->Attribute("title");
         epg.subtitle          = programNode->Attribute("subTitle");
-        epg.start_time        = MythXmlResponse::toDateTime(programNode->Attribute("startTime"));
-        epg.end_time          = MythXmlResponse::toDateTime(programNode->Attribute("endTime"));
+        epg.start             = MythXmlResponse::toDateTime(programNode->Attribute("startTime"));
+        epg.end               = MythXmlResponse::toDateTime(programNode->Attribute("endTime"));
 
         CStdString category   = programNode->Attribute("category");
         GenrePair genre       = m_genre_mapper.getGenreTypeId(category);
