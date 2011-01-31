@@ -52,14 +52,15 @@ bool GetProgramGuideCommand::ParseResponse(CStdString response)
     for (channelNode = channels->FirstChildElement("Channel"); channelNode;
          channelNode = channelNode->NextSiblingElement("Channel"))
     {
-      int chanId = MythXmlResponse::toInteger(channelNode->Attribute("chanId"));
+      int chanid = MythXmlResponse::toInteger(channelNode->Attribute("chanId"));
       int channum = MythXmlResponse::toInteger(channelNode->Attribute("chanNum"));
       TiXmlElement* programNode;
       for (programNode = channelNode->FirstChildElement("Program"); programNode;
            programNode = programNode->NextSiblingElement("Program"))
       {
         SEpg epg;
-        epg.channum          = channum;
+        epg.chanid            = chanid;
+        epg.channum           = channum;
         epg.description       = programNode->GetText();
         epg.title             = programNode->Attribute("title");
         epg.subtitle          = programNode->Attribute("subTitle");
