@@ -56,7 +56,7 @@ bool GetChannelListCommand::ParseResponse(CStdString response)
          channelNode = channelNode->NextSiblingElement("Channel"))
     {
       SChannel channel;
-      channel.id        = MythXmlResponse::toInteger(channelNode->Attribute("chanId"));
+      channel.chanid    = MythXmlResponse::toInteger(channelNode->Attribute("chanId"));
       channel.number    = MythXmlResponse::toInteger(channelNode->Attribute("chanNum"));
       channel.name      = channelNode->Attribute("channelName");
       channel.callsign  = channelNode->Attribute("callSign");

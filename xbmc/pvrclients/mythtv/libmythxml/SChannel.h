@@ -5,13 +5,13 @@
 
 struct SChannel
 {
-  int         id;
+  int         chanid;
   int         number;
   CStdString  name;
   CStdString  callsign;
 
   SChannel() {
-    id      = 0;
+    chanid  = 0;
     number  = 0;
   }
 };
