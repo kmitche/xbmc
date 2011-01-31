@@ -22,3 +22,6 @@ INCLUDES = -I../../../addons/include
 
 # Additional include for tinyxml
 INCLUDES += -I../../../../lib/tinyXML
+
+# Additional include for StdString
+INCLUDES += -I..
