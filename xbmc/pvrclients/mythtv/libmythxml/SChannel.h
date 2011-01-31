@@ -6,13 +6,13 @@
 struct SChannel
 {
   int         chanid;
-  int         number;
+  int         channum;
   CStdString  name;
   CStdString  callsign;
 
   SChannel() {
     chanid  = 0;
-    number  = 0;
+    channum = 0;
   }
 };
 

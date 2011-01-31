@@ -57,14 +57,14 @@ bool GetChannelListCommand::ParseResponse(CStdString response)
     {
       SChannel channel;
       channel.chanid    = MythXmlResponse::toInteger(channelNode->Attribute("chanId"));
-      channel.number    = MythXmlResponse::toInteger(channelNode->Attribute("chanNum"));
+      channel.channum   = MythXmlResponse::toInteger(channelNode->Attribute("chanNum"));
       channel.name      = channelNode->Attribute("channelName");
       channel.callsign  = channelNode->Attribute("callSign");
       /*
        * If the channel number is 0 then it hasn't been set in the MythTV backend. These channels
        * are also ignored within XBMC.
        */
-      if (channel.number != 0)
+      if (channel.channum != 0)
         m_channels.push_back(channel);
     }
     return true;
