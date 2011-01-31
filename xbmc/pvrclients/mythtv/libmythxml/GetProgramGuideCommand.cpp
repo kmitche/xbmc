@@ -56,26 +56,26 @@ bool GetProgramGuideCommand::ParseResponse(CStdString response)
       for (programNode = channelNode->FirstChildElement("Program"); programNode;
            programNode = programNode->NextSiblingElement("Program"))
       {
-        SEpg epg;
-        epg.title             = programNode->Attribute("title");
-        epg.subtitle          = programNode->Attribute("subTitle");
-        epg.description       = programNode->GetText();
-        epg.start             = MythXmlResponse::toDateTime(programNode->Attribute("startTime"));
-        epg.end               = MythXmlResponse::toDateTime(programNode->Attribute("endTime"));
+        SProgram program;
+        program.title         = programNode->Attribute("title");
+        program.subtitle      = programNode->Attribute("subTitle");
+        program.description   = programNode->GetText();
+        program.start         = MythXmlResponse::toDateTime(programNode->Attribute("startTime"));
+        program.end           = MythXmlResponse::toDateTime(programNode->Attribute("endTime"));
 
         CStdString category   = programNode->Attribute("category");
         GenrePair genre       = m_genre_mapper.getGenreTypeId(category);
-        epg.genre_type        = genre.type;
-        epg.genre_subtype     = genre.subtype;
+        program.genre_type    = genre.type;
+        program.genre_subtype = genre.subtype;
 
-        epg.chanid            = atoi(channelNode->Attribute("chanId"));
-        epg.channum           = atoi(channelNode->Attribute("chanNum"));
-        epg.channame          = channelNode->Attribute("channelName");
-        epg.callsign          = channelNode->Attribute("callSign");
+        program.chanid        = atoi(channelNode->Attribute("chanId"));
+        program.channum       = atoi(channelNode->Attribute("chanNum"));
+        program.channame      = channelNode->Attribute("channelName");
+        program.callsign      = channelNode->Attribute("callSign");
 
         // TODO: Parse out the "Recording" child element to determine if the program is scheduled
         // to record.
-        m_epg.push_back(epg);
+        m_epg.push_back(program);
       }
     }
     return true;
@@ -86,7 +86,7 @@ bool GetProgramGuideCommand::ParseResponse(CStdString response)
   return false;
 }
 
-const std::vector<SEpg>& GetProgramGuideCommand::GetEpg()
+const std::vector<SProgram>& GetProgramGuideCommand::GetEpg()
 {
   return m_epg;
 }

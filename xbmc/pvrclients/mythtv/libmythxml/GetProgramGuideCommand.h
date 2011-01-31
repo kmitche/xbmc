@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "MythXmlCommand.h"
-#include "SEpg.h"
+#include "SProgram.h"
 
 
 struct GenrePair
@@ -165,12 +165,12 @@ class GetProgramGuideCommand: public MythXmlCommand
 
     bool ParseResponse(CStdString response);
 
-    const std::vector<SEpg>& GetEpg();
+    const std::vector<SProgram>& GetEpg();
 
   private:
     // TODO: have the genre mapper as a global variable, not referenced internally in this class.
     GenreIdMapper m_genre_mapper;
 
     // TODO: Rename the SEpg class since each instance isn't an EPG. Perhaps SProgram?
-    std::vector<SEpg> m_epg;
+    std::vector<SProgram> m_epg;
 };

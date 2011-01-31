@@ -178,23 +178,26 @@ PVR_ERROR MythXml::requestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &cha
   if (!ExecuteCommand(cmd))
     return PVR_ERROR_UNKOWN;
 
-  PVR_PROGINFO guideItem;
-  const vector<SProgram>& epgInfo = cmd.GetEpg();
+  const vector<SProgram>& epg = cmd.GetEpg();
   vector<SProgram>::const_iterator it;
 
-  int i = 0;
-  for (it = epgInfo.begin(); it != epgInfo.end(); ++it)
+  for (it = epg.begin(); it != epg.end(); ++it)
   {
-    const SProgram& epg = *it;
-    guideItem.channum = epg.channum;
-    guideItem.title = epg.title;
-    guideItem.subtitle = epg.subtitle;
-    guideItem.description = epg.description;
-    guideItem.genre_type = epg.genre_type;
-    guideItem.genre_sub_type = epg.genre_subtype;
-    guideItem.starttime = epg.start;
-    guideItem.endtime = epg.end;
-    PVR->TransferEpgEntry(handle, &guideItem);
+    PVR_PROGINFO proginfo;
+    const SProgram& program = *it;
+
+    proginfo.title          = program.title;
+    proginfo.subtitle       = program.subtitle;
+    proginfo.description    = program.description;
+    proginfo.genre_type     = program.genre_type;
+    proginfo.genre_sub_type = program.genre_subtype;
+
+    proginfo.starttime      = program.start;
+    proginfo.endtime        = program.end;
+
+    proginfo.channum        = program.channum;
+
+    PVR->TransferEpgEntry(handle, &proginfo);
   }
   return PVR_ERROR_NO_ERROR;
 }

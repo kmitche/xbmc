@@ -2,8 +2,7 @@
 
 #include "StdString.h"
 
-// TODO: Rename to Program.
-struct SEpg
+struct SProgram
 {
   CStdString  title;
   CStdString  subtitle;
@@ -19,7 +18,7 @@ struct SEpg
   CStdString  channame;
   CStdString  callsign;
 
-  SEpg() {
+  SProgram() {
     start         = 0;
     end           = 0;
     genre_type    = 0;
