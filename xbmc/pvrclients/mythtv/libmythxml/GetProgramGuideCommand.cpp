@@ -59,7 +59,7 @@ bool GetProgramGuideCommand::ParseResponse(CStdString response)
            programNode = programNode->NextSiblingElement("Program"))
       {
         SEpg epg;
-        epg.chan_num          = channum;
+        epg.channum          = channum;
         epg.description       = programNode->GetText();
         epg.title             = programNode->Attribute("title");
         epg.subtitle          = programNode->Attribute("subTitle");

@@ -186,7 +186,7 @@ PVR_ERROR MythXml::requestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &cha
   for (it = epgInfo.begin(); it != epgInfo.end(); ++it)
   {
     const SEpg& epg = *it;
-    guideItem.channum = epg.chan_num;
+    guideItem.channum = epg.channum;
     guideItem.title = epg.title;
     guideItem.subtitle = epg.subtitle;
     guideItem.description = epg.description;

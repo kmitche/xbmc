@@ -6,7 +6,7 @@
 struct SEpg
 {
   int         uid; // TODO: rename to chanid.
-  int         chan_num; // TODO: rename to channum.
+  int         channum;
   CStdString  title;
   CStdString  subtitle;
   CStdString  description;
@@ -17,7 +17,7 @@ struct SEpg
   int         parental_rating; // TODO: remove as not available through MythXML.
 
   SEpg() {
-    chan_num        = 0;
+    channum        = 0;
     genre_type      = 0;
     genre_subtype   = 0;
     parental_rating = 0;
