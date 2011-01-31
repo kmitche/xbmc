@@ -151,9 +151,9 @@ PVR_ERROR MythXml::requestChannelList(PVRHANDLE handle, int radio)
   {
     const SChannel& mythchannel = *it;
     memset(&pvrchannel, 0, sizeof(pvrchannel));
-    pvrchannel.uid           = mythchannel.id;
-    pvrchannel.number        = mythchannel.number;
-    pvrchannel.name          = mythchannel.name.c_str();
+    pvrchannel.uid           = mythchannel.chanid;
+    pvrchannel.number        = mythchannel.channum;
+    pvrchannel.name          = mythchannel.channame.c_str();
     pvrchannel.callsign      = mythchannel.callsign.c_str();
     pvrchannel.radio         = false; // TODO: Don't hardcode this. Must be pulled out of Myth if possible.
     pvrchannel.input_format  = "";
@@ -179,22 +179,21 @@ PVR_ERROR MythXml::requestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &cha
     return PVR_ERROR_UNKOWN;
 
   PVR_PROGINFO guideItem;
-  const vector<SEpg>& epgInfo = cmd.GetEpg();
-  vector<SEpg>::const_iterator it;
+  const vector<SProgram>& epgInfo = cmd.GetEpg();
+  vector<SProgram>::const_iterator it;
 
   int i = 0;
   for (it = epgInfo.begin(); it != epgInfo.end(); ++it)
   {
-    const SEpg& epg = *it;
+    const SProgram& epg = *it;
     guideItem.channum = epg.channum;
     guideItem.title = epg.title;
     guideItem.subtitle = epg.subtitle;
     guideItem.description = epg.description;
     guideItem.genre_type = epg.genre_type;
     guideItem.genre_sub_type = epg.genre_subtype;
-    guideItem.parental_rating = epg.parental_rating;
-    guideItem.starttime = epg.start_time;
-    guideItem.endtime = epg.end_time;
+    guideItem.starttime = epg.start;
+    guideItem.endtime = epg.end;
     PVR->TransferEpgEntry(handle, &guideItem);
   }
   return PVR_ERROR_NO_ERROR;
@@ -286,6 +285,6 @@ CStdString MythXml::GetLiveTvPath(const SChannel &channel)
    * Use the existing LiveTV functionality within XBMC until libcmyth has been moved to the PVR addon.
    */
   CStdString path;
-  path.Format("myth://%s/channels/%i.ts", hostname_.c_str(), channel.number);
+  path.Format("myth://%s/channels/%i.ts", hostname_.c_str(), channel.channum);
   return path;
 }
