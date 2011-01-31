@@ -224,33 +224,34 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
 
   const vector<SRecording> recordings = cmd.GetRecordings();
   vector<SRecording>::const_iterator it;
-  CStdString urlPrefix;
-  urlPrefix.Format("http://%s:%i", hostname_, port_);
+
+  CStdString prefix;
+  prefix.Format("http://%s:%i", hostname_, port_);
 
   int i= 0;
   for (it = recordings.begin(); it != recordings.end(); ++it)
   {
-    PVR_RECORDINGINFO pvrinfo;
+    PVR_RECORDINGINFO recordinginfo;
     const SRecording& recording = *it;
 
-    pvrinfo.index           = i++; // TODO: Hopefully this can be removed from the API.
+    recordinginfo.index           = i++; // TODO: Hopefully this can be removed from the API.
 
-    pvrinfo.title           = recording.title;
-    pvrinfo.subtitle        = recording.subtitle;
-    pvrinfo.description     = recording.description;
-    pvrinfo.recording_time  = recording.recstart;
-    pvrinfo.duration        = recording.recend - recording.recstart;
+    recordinginfo.title           = recording.title;
+    recordinginfo.subtitle        = recording.subtitle;
+    recordinginfo.description     = recording.description;
+    recordinginfo.recording_time  = recording.recstart;
+    recordinginfo.duration        = recording.recend - recording.recstart;
 
-    pvrinfo.channel_name    = recording.channame;
+    recordinginfo.channel_name    = recording.channame;
 
-    pvrinfo.directory       = ""; // TODO: put in directory structure to support TV Shows and Movies ala myth://
-    CStdString url          = urlPrefix + recording.url;
-    pvrinfo.stream_url      = url;
+    recordinginfo.directory       = ""; // TODO: put in directory structure to support TV Shows and Movies ala myth://
+    CStdString url                = prefix + recording.url;
+    recordinginfo.stream_url      = url;
 
-    pvrinfo.priority        = recording.priority;
-    pvrinfo.lifetime        = 0; // TODO: Map the lifetime in MythTV to the lifetime supported in XBMC.
+    recordinginfo.priority        = recording.priority;
+    recordinginfo.lifetime        = 0; // TODO: Map the lifetime in MythTV to the lifetime supported in XBMC.
 
-    PVR->TransferRecordingEntry(handle, &pvrinfo);
+    PVR->TransferRecordingEntry(handle, &recordinginfo);
   }
   return PVR_ERROR_NO_ERROR;
 }
