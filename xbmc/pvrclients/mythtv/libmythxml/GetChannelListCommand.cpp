@@ -58,7 +58,7 @@ bool GetChannelListCommand::ParseResponse(CStdString response)
       SChannel channel;
       channel.chanid    = MythXmlResponse::toInteger(channelNode->Attribute("chanId"));
       channel.channum   = MythXmlResponse::toInteger(channelNode->Attribute("chanNum"));
-      channel.name      = channelNode->Attribute("channelName");
+      channel.channame  = channelNode->Attribute("channelName");
       channel.callsign  = channelNode->Attribute("callSign");
       /*
        * If the channel number is 0 then it hasn't been set in the MythTV backend. These channels

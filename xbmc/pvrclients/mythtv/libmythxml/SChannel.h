@@ -7,7 +7,7 @@ struct SChannel
 {
   int         chanid;
   int         channum;
-  CStdString  name;
+  CStdString  channame;
   CStdString  callsign;
 
   SChannel() {
