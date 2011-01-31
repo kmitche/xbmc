@@ -67,7 +67,7 @@ bool GetRecordedCommand::ParseResponse(CStdString response)
 
       recording.recgroup    = recordingNode->Attribute("recGroup");
 
-      recording.url.Format("/Myth/GetRecording?ChanId=%s&StartTime=%s", recording.chanid,
+      recording.url.Format("/Myth/GetRecording?ChanId=%i&StartTime=%s", recording.chanid,
                            recordingNode->Attribute("recStartTs")); // Needs to stay in ISO format
 
       m_recordings.push_back(recording);
