@@ -14,7 +14,7 @@ class GetChannelListCommand: public MythXmlCommand
 
     const std::vector<SChannel>& GetChannels();
 
-    bool ParseResponse(CStdString reponse);
+    bool ParseResponse(const TiXmlHandle& handle);
 
   private:
     std::vector<SChannel> m_channels;

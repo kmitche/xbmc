@@ -9,7 +9,7 @@ class GetBackendVersionCommand: public MythXmlCommand
     ~GetBackendVersionCommand();
 
     CStdString GetVersion();
-    bool ParseResponse(CStdString response);
+    bool ParseResponse(const TiXmlHandle& handle);
 
   private:
     CStdString m_version;

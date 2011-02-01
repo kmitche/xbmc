@@ -8,6 +8,8 @@
 #include "MythXml.h"
 
 #include <time.h>
+
+#include "tinyxml.h"
 #include "filesystem/FileCurl.h"
 
 #include "libmythxml/GetBackendTimeCommand.h"
@@ -225,8 +227,8 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
   const vector<SRecording> recordings = cmd.GetRecordings();
   vector<SRecording>::const_iterator it;
 
-  CStdString prefix;
-  prefix.Format("http://%s:%i", hostname_, port_);
+  CStdString urlPrefix;
+  urlPrefix.Format("http://%s:%i", hostname_, port_);
 
   int i= 0;
   for (it = recordings.begin(); it != recordings.end(); ++it)
@@ -245,7 +247,7 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
     recordinginfo.channel_name    = recording.channame;
 
     recordinginfo.directory       = ""; // TODO: put in directory structure to support TV Shows and Movies ala myth://
-    CStdString url                = prefix + recording.url;
+    CStdString url                = urlPrefix + recording.url;
     recordinginfo.stream_url      = url;
 
     recordinginfo.priority        = recording.priority;
@@ -261,21 +263,36 @@ bool MythXml::ExecuteCommand(MythXmlCommand& command)
   CStdString url;
   url.Format("http://%s:%i/%s", hostname_.c_str(), port_, command.GetPath().c_str());
 
-  CStdString xml;
-
   CFileCurl http;
   http.SetTimeout(timeout_);
-  if (!http.Get(url, xml))
+
+  CStdString response;
+  if (!http.Get(url, response))
   {
     XBMC->Log(LOG_ERROR, "MythXml - Could not retrieve data for : %s", url.c_str());
     http.Cancel();
     return false;
   }
+  TiXmlDocument xml;
+  xml.Parse(response.c_str());
+
+  TiXmlHandle handle(&xml);
+
   /*
-   * TODO: Parse the response and check for any error state. Then pass the TiXmlHandle through
-   * to the ParseResponse method for the Command.
+   * Check for the existence of a <detail> node. If it exists it means there was an error. It will
+   * contain information about the error.
    */
-  bool ret = command.ParseResponse(xml);
+  TiXmlElement* detailnode = handle.FirstChildElement("detail").ToElement();
+  if (detailnode != NULL)
+  {
+    int code = atoi(detailnode->FirstChildElement("errorCode")->GetText());
+    CStdString description = detailnode->FirstChildElement("errorDescription")->GetText();
+    XBMC->Log(LOG_ERROR, "%s - Error response received from MythXML command: [%i] - %s",
+              __FUNCTION__, code, description.c_str());
+    return false;
+  }
+
+  bool ret = command.ParseResponse(handle);
   http.Cancel();
   return ret;
 }

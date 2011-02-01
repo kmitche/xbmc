@@ -14,7 +14,7 @@ class GetRecordedCommand: public MythXmlCommand
 
     const std::vector<SRecording>& GetRecordings();
 
-    bool ParseResponse(CStdString response);
+    bool ParseResponse(const TiXmlHandle& handle);
 
   private:
     std::vector<SRecording> m_recordings;

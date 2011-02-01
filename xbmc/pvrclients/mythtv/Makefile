@@ -24,6 +24,9 @@ INCLUDES += -I../..
 # Additional include for StdString (referenced by FileCurls associated dependencies)
 INCLUDES += -I../../utils
 
+# Additional include for tinyxml (until MythXml.cpp moves to the libcmyth directory)
+INCLUDES += -I../../../lib/tinyXML
+
 # Additional include for PlatformDefs.h from IFile.h.
 INCLUDES += -I../../linux
 

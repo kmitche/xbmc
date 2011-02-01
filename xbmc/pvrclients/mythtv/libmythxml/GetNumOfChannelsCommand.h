@@ -16,7 +16,8 @@ class GetNumOfChannelsCommand: public MythXmlCommand
 
     int GetNumberOfChannels();
 
-    bool ParseResponse(CStdString response);
+    bool ParseResponse(const TiXmlHandle& handle);
+
   private:
     int m_number_of_channels;
 };

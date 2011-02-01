@@ -9,7 +9,7 @@ class GetNumOfRecordingsCommand: public MythXmlCommand
 
     int GetNumberOfRecordings();
 
-    bool ParseResponse(CStdString response);
+    bool ParseResponse(const TiXmlHandle& handle);
 
   private:
     int m_number_of_recordings;

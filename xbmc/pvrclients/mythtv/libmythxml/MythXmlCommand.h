@@ -10,11 +10,13 @@
 
 #include "MythXmlParameters.h"
 
+#include "tinyxml.h"
+
 class MythXmlCommand
 {
   public:
     CStdString GetPath();
-    virtual bool ParseResponse(CStdString response) = 0;
+    virtual bool ParseResponse(const TiXmlHandle& handle) = 0;
 
   protected:
     // TODO: optional parameters argument.

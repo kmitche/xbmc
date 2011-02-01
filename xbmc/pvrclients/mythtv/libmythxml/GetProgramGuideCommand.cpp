@@ -5,11 +5,6 @@
 #include <stdlib.h>
 #include <map>
 
-#include "tinyxml.h"
-
-// TODO: understand if there is a better way to log from what should be "binary" libraries that don't know anything about XBMC.
-#include "../client.h"
-
 GetProgramGuideCommand::GetProgramGuideCommand(const int &chanid, const time_t &gmt_start, const time_t &gmt_end)
 {
   MythXmlParameters parameters;
@@ -26,64 +21,43 @@ GetProgramGuideCommand::GetProgramGuideCommand(const int &chanid, const time_t &
   Init("Myth/GetProgramGuide", parameters);
 }
 
-bool GetProgramGuideCommand::ParseResponse(CStdString response)
+bool GetProgramGuideCommand::ParseResponse(const TiXmlHandle& handle)
 {
-  TiXmlDocument document;
-  document.Parse(response.c_str(), 0, TIXML_ENCODING_LEGACY);
-
-  TiXmlHandle handle(&document);
-
-  // TODO: Put the error checking directly into MythXML for the response. Pass the TiXmlHandle into this method.
-  TiXmlElement* channels = handle.FirstChildElement("detail").ToElement();
-  if (channels != NULL)
-  {
-    // this is the error reponse, process it
-    int errorCode;
-    CStdString errorDesc;
-    MythXmlResponse::parseErrorNode(channels, errorCode, errorDesc);
-    //XBMC->Log(LOG_ERROR, "MythXML - GetProgramGuideResult - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
+  TiXmlElement* channelsNode = handle.FirstChild("GetProgramGuideResponse").FirstChild("ProgramGuide").FirstChildElement("Channels").ToElement();
+  if (channelsNode == NULL)
     return false;
-  }
 
-  channels = handle.FirstChild("GetProgramGuideResponse").FirstChild("ProgramGuide").FirstChildElement("Channels").ToElement();
-  if (channels != NULL)
+  TiXmlElement* channelNode;
+  for (channelNode = channelsNode->FirstChildElement("Channel"); channelNode;
+       channelNode = channelNode->NextSiblingElement("Channel"))
   {
-    TiXmlElement* channelNode;
-    for (channelNode = channels->FirstChildElement("Channel"); channelNode;
-         channelNode = channelNode->NextSiblingElement("Channel"))
+    TiXmlElement* programNode;
+    for (programNode = channelNode->FirstChildElement("Program"); programNode;
+         programNode = programNode->NextSiblingElement("Program"))
     {
-      TiXmlElement* programNode;
-      for (programNode = channelNode->FirstChildElement("Program"); programNode;
-           programNode = programNode->NextSiblingElement("Program"))
-      {
-        SProgram program;
-        program.title         = programNode->Attribute("title");
-        program.subtitle      = programNode->Attribute("subTitle");
-        program.description   = programNode->GetText();
-        program.start         = MythXmlResponse::toDateTime(programNode->Attribute("startTime"));
-        program.end           = MythXmlResponse::toDateTime(programNode->Attribute("endTime"));
+      SProgram program;
+      program.title         = programNode->Attribute("title");
+      program.subtitle      = programNode->Attribute("subTitle");
+      program.description   = programNode->GetText();
+      program.start         = MythXmlResponse::toDateTime(programNode->Attribute("startTime"));
+      program.end           = MythXmlResponse::toDateTime(programNode->Attribute("endTime"));
 
-        CStdString category   = programNode->Attribute("category");
-        GenrePair genre       = m_genre_mapper.getGenreTypeId(category);
-        program.genre_type    = genre.type;
-        program.genre_subtype = genre.subtype;
+      CStdString category   = programNode->Attribute("category");
+      GenrePair genre       = m_genre_mapper.getGenreTypeId(category);
+      program.genre_type    = genre.type;
+      program.genre_subtype = genre.subtype;
 
-        program.chanid        = atoi(channelNode->Attribute("chanId"));
-        program.channum       = atoi(channelNode->Attribute("chanNum"));
-        program.channame      = channelNode->Attribute("channelName");
-        program.callsign      = channelNode->Attribute("callSign");
+      program.chanid        = atoi(channelNode->Attribute("chanId"));
+      program.channum       = atoi(channelNode->Attribute("chanNum"));
+      program.channame      = channelNode->Attribute("channelName");
+      program.callsign      = channelNode->Attribute("callSign");
 
-        // TODO: Parse out the "Recording" child element to determine if the program is scheduled
-        // to record.
-        m_epg.push_back(program);
-      }
+      // TODO: Parse out the "Recording" child element to determine if the program is scheduled
+      // to record.
+      m_epg.push_back(program);
     }
-    return true;
   }
-
-  //XBMC->Log(LOG_ERROR, "MythXML - GetProgramGuideResult - xml data doesn't have the expected information - %s",
-  //    response.c_str());
-  return false;
+  return true;
 }
 
 const std::vector<SProgram>& GetProgramGuideCommand::GetEpg()

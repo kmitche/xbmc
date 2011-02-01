@@ -2,9 +2,6 @@
 
 #include "MythXmlResponse.h"
 
-#include "tinyxml.h"
-#include "../client.h"
-
 /*
  * ascii-to-longlong conversion
  *
@@ -42,45 +39,28 @@ GetDriveSpaceCommand::~GetDriveSpaceCommand()
 {
 }
 
-bool GetDriveSpaceCommand::ParseResponse(CStdString response)
+bool GetDriveSpaceCommand::ParseResponse(const TiXmlHandle& handle)
 {
-  TiXmlDocument xml;
-  xml.Parse(response.c_str(), 0, TIXML_ENCODING_LEGACY);
-
-  TiXmlHandle docHandle(&xml);
-
-  TiXmlElement* child = docHandle.FirstChildElement("detail").ToElement();
-  if (child != NULL)
-  {
-    // this is the error reponse, process it
-    int errorCode;
-    CStdString errorDesc;
-    MythXmlResponse::parseErrorNode(child, errorCode, errorDesc);
-    //XBMC->Log(LOG_ERROR, "MythXML - GetDriveSpaceCommand - ErrorCode [%i] - %s", errorCode, errorDesc.c_str());
+  TiXmlElement* storageNode = handle.FirstChild("Status").FirstChildElement("MachineInfo").FirstChildElement("Storage").ToElement();
+  if (storageNode == NULL)
     return false;
-  }
 
-  child = docHandle.FirstChild("Status").FirstChildElement("MachineInfo").FirstChildElement("Storage").ToElement();
-  if (child != NULL)
+  TiXmlElement* groupNode = NULL;
+  for (groupNode = storageNode->FirstChildElement("Group"); groupNode;
+       groupNode = groupNode->NextSiblingElement("Group"))
   {
-    TiXmlElement* groupNode = NULL;
-    for (groupNode = child->FirstChildElement("Group"); groupNode; groupNode = groupNode->NextSiblingElement("Group"))
-    {
-      CStdString idAttr = groupNode->Attribute("id");
-      if (idAttr.Find("total") != 0)
-        continue;
-      CStdString total = groupNode->Attribute("total");
-      CStdString used = groupNode->Attribute("used");
+    CStdString id = groupNode->Attribute("id");
+    if (id.Find("total") != 0)
+      continue;
 
-      // TODO: Are these suppose to be int64_t or int32_t?
-      m_total = my_atoll(total.c_str());
-      m_used = my_atoll(used.c_str());
-    }
-    return true;
+    CStdString total = groupNode->Attribute("total");
+    CStdString used = groupNode->Attribute("used");
+
+    // TODO: Are these suppose to be int64_t or int32_t?
+    m_total = my_atoll(total.c_str());
+    m_used = my_atoll(used.c_str());
   }
-  //XBMC->Log(LOG_ERROR, "MythXML - GetDriveSpaceCommand - xml data doesn't have the expected information - %s",
-  //    response.c_str());
-  return false;
+  return true;
 }
 
 long long GetDriveSpaceCommand::GetTotal()
