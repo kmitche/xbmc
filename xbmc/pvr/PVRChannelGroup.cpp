@@ -201,7 +201,7 @@ const CPVRChannel *CPVRChannelGroup::GetByClient(int iClientChannelNumber, int i
   return channel;
 }
 
-const CPVRChannel *CPVRChannelGroup::GetByChannelID(long iChannelID) const
+const CPVRChannel *CPVRChannelGroup::GetByChannelID(int iChannelID) const
 {
   CPVRChannel *channel = NULL;
 
@@ -246,18 +246,18 @@ const CPVRChannel *CPVRChannelGroup::GetByChannelNumber(int iChannelNumber) cons
   return channel;
 }
 
-const CPVRChannel *CPVRChannelGroup::GetByChannelNumberUp(int iChannelNumber) const
+const CPVRChannel *CPVRChannelGroup::GetByChannelUp(const CPVRChannel *channel) const
 {
-  int iGetChannel = iChannelNumber + 1;
+  int iGetChannel = channel->ChannelNumber() + 1; // XXX
   if (iGetChannel > (int) size())
     iGetChannel = 1;
 
   return GetByChannelNumber(iGetChannel - 1);
 }
 
-const CPVRChannel *CPVRChannelGroup::GetByChannelNumberDown(int iChannelNumber) const
+const CPVRChannel *CPVRChannelGroup::GetByChannelDown(const CPVRChannel *channel) const
 {
-  int iGetChannel = iChannelNumber - 1;
+  int iGetChannel = channel->ChannelNumber() - 1; // XXX
   if (iGetChannel <= 0)
     iGetChannel = size();
 
@@ -443,7 +443,7 @@ const CPVRChannel *CPVRChannelGroup::GetByClientFromAll(int iClientChannelNumber
   return channel;
 }
 
-const CPVRChannel *CPVRChannelGroup::GetByChannelIDFromAll(long iChannelID)
+const CPVRChannel *CPVRChannelGroup::GetByChannelIDFromAll(int iChannelID)
 {
   const CPVRChannel *channel = NULL;
 
@@ -486,7 +486,7 @@ int CPVRChannelGroup::GetFromClients(void)
   return -1;
 }
 
-bool CPVRChannelGroup::RemoveByUniqueID(long iUniqueID)
+bool CPVRChannelGroup::RemoveByUniqueID(int iUniqueID)
 {
   for (unsigned int ptr = 0; ptr < size(); ptr++)
   {
@@ -592,7 +592,7 @@ bool CPVRChannelGroup::GetGroupsDirectory(const CStdString &strBase, CFileItemLi
   /* add all groups */
   for (unsigned int ptr = 0; ptr < channelGroups->size(); ptr++)
   {
-    CPVRChannelGroup group = channelGroups->at(ptr);
+    const CPVRChannelGroup group = channelGroups->at(ptr);
     CStdString strGroup = strBase + "/" + group.GroupName() + "/";
     item.reset(new CFileItem(strGroup, true));
     item->SetLabel(group.GroupName());

@@ -117,6 +117,13 @@ private:
    */
   virtual bool AutoCreateTablesHook(void) { return true; }
 
+  /*!
+   * @brief Create a new EPG table.
+   * @param iEpgId The table ID or -1 to create a new one.
+   * @return The new table.
+   */
+  virtual CEpg *CreateEpg(int iEpgId);
+
 protected:
   /*!
    * @brief EPG update thread
@@ -156,6 +163,11 @@ public:
    * @param bClearDb Clear the database too if true.
    */
   virtual void Clear(bool bClearDb = false);
+
+  /*!
+   * @brief Clear the EPG and all it's database entries.
+   */
+  virtual void Reset(void) { Clear(true); }
 
   /*!
    * @brief Process a notification from an observable.

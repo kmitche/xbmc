@@ -72,10 +72,31 @@ const CPVRChannelGroups *CPVRChannelGroupsContainer::Get(bool bRadio) const
 const CPVRChannelGroup *CPVRChannelGroupsContainer::GetGroupAll(bool bRadio) const
 {
   const CPVRChannelGroup *group = NULL;
-
   const CPVRChannelGroups *groups = Get(bRadio);
   if (groups)
     group = groups->GetGroupAll();
 
   return group;
+}
+
+const CPVRChannelGroup *CPVRChannelGroupsContainer::GetById(bool bRadio, int iGroupId) const
+{
+  const CPVRChannelGroup *group = NULL;
+  const CPVRChannelGroups *groups = Get(bRadio);
+  if (groups)
+    group = (iGroupId == XBMC_INTERNAL_GROUPID) ?
+        groups->GetGroupAll() :
+        groups->GetById(iGroupId);
+
+  return group;
+}
+
+const CPVRChannel *CPVRChannelGroupsContainer::GetChannelById(int iChannelId) const
+{
+  const CPVRChannel *channel = m_groupsTV->GetGroupAll()->GetByChannelID(iChannelId);
+
+  if (!channel)
+    channel = m_groupsRadio->GetGroupAll()->GetByChannelID(iChannelId);
+
+  return channel;
 }

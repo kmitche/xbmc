@@ -29,13 +29,14 @@
 #include "EpgSearchFilter.h"
 
 class CEpgContainer;
-
+class CPVREpgContainer;
 class CPVREpg;
 
 /** EPG container for CEpgInfoTag instances */
 
 class CEpg : public std::vector<CEpgInfoTag*>
 {
+  friend class CPVREpgContainer;
   friend class CEpgContainer;
   friend class CPVREpg;
 
@@ -93,7 +94,7 @@ private:
    * @param StartTime The start time of the event to find if it wasn't found by it's unique ID.
    * @return The found tag or NULL if it wasn't found.
    */
-  virtual const CEpgInfoTag *InfoTag(long uniqueID, CDateTime StartTime) const;
+  virtual const CEpgInfoTag *InfoTag(int uniqueID, CDateTime StartTime) const;
 
 protected:
   /*!

@@ -90,6 +90,8 @@ void CEpgContainer::Clear(bool bClearDb /* = false */)
 
 void CEpgContainer::Start(void)
 {
+  LoadSettings();
+
   /* make sure the EPG is loaded before starting the thread */
   Load(true /* show progress */);
 
@@ -119,7 +121,6 @@ void CEpgContainer::Notify(const Observable &obs, const CStdString& msg)
 
 void CEpgContainer::Process(void)
 {
-  bool bFirstUpdate    = true;
   time_t iNow          = 0;
   m_iLastEpgCleanup    = 0;
   m_iLastEpgUpdate     = 0;
@@ -135,8 +136,6 @@ void CEpgContainer::Process(void)
   m_database.GetLastEpgScanTime().GetAsTime(m_iLastEpgUpdate);
   m_database.Close();
 
-  LoadSettings();
-
   while (!m_bStop)
   {
     CDateTime::GetCurrentDateTime().GetAsTime(iNow);
@@ -144,8 +143,7 @@ void CEpgContainer::Process(void)
     /* update the EPG */
     if (!m_bStop && (iNow > m_iLastEpgUpdate + m_iUpdateTime || !m_bDatabaseLoaded))
     {
-      UpdateEPG(bFirstUpdate);
-      bFirstUpdate = false;
+      UpdateEPG(false);
     }
 
     /* clean up old entries */
@@ -188,7 +186,7 @@ bool CEpgContainer::UpdateEntry(const CEpg &entry, bool bUpdateDatabase /* = fal
 
   if (!epg)
   {
-    epg = new CEpg(entry.EpgID());
+    epg = CreateEpg(entry.EpgID());
     push_back(epg);
   }
 
@@ -289,20 +287,28 @@ bool CEpgContainer::Load(bool bShowProgress /* = false */)
     }
   }
 
+  /* reset m_bStop (set to true before so Clear() doesn't restart the thread */
+  m_bStop = false;
+
   /* close the database */
   m_database.Close();
 
   if (bShowProgress)
     scanner->Close();
 
-  /* one or more tables couldn't be loaded. force an update */
-  if (bUpdate)
+  /* one or more tables couldn't be loaded or IgnoreDbForClient is set. force an update */
+  if (bUpdate || m_bIgnoreDbForClient)
     UpdateEPG(bShowProgress);
 
   /* only try to load the database once */
   m_bDatabaseLoaded = true;
 
   return bReturn;
+}
+
+CEpg *CEpgContainer::CreateEpg(int iEpgId)
+{
+  return new CEpg(iEpgId);
 }
 
 bool CEpgContainer::UpdateEPG(bool bShowProgress /* = false */)
@@ -372,8 +378,7 @@ bool CEpgContainer::UpdateEPG(bool bShowProgress /* = false */)
   }
 
   /* only try to load the database once */
-  if (!m_bDatabaseLoaded)
-    m_bDatabaseLoaded = true;
+  m_bDatabaseLoaded = true;
 
   m_database.Close();
 
