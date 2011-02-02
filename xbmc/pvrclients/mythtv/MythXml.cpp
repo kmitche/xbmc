@@ -160,6 +160,11 @@ PVR_ERROR MythXml::requestChannelList(PVRHANDLE handle, int radio)
     pvrchannel.radio         = false; // TODO: Don't hardcode this. Must be pulled out of Myth if possible.
     pvrchannel.input_format  = "";
     pvrchannel.stream_url    = GetLiveTvPath(mythchannel).c_str();
+
+    CStdString icon;
+    icon.Format("%s/Myth/GetChannelIcon?ChanId=%i", GetUrlPrefix().c_str(), mythchannel.chanid);
+    pvrchannel.iconpath = icon;
+
     /*
      * TODO: Determine how to hide channels in XBMC based on MythTV configuration. Some users have hundreds of channels.
      * Pretty sure the old myth:// code only showed channels with a number > 0.
@@ -227,9 +232,6 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
   const vector<SRecording> recordings = cmd.GetRecordings();
   vector<SRecording>::const_iterator it;
 
-  CStdString urlPrefix;
-  urlPrefix.Format("http://%s:%i", hostname_, port_);
-
   int i= 0;
   for (it = recordings.begin(); it != recordings.end(); ++it)
   {
@@ -247,7 +249,7 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
     recordinginfo.channel_name    = recording.channame;
 
     recordinginfo.directory       = ""; // TODO: put in directory structure to support TV Shows and Movies ala myth://
-    CStdString url                = urlPrefix + recording.url;
+    CStdString url                = GetUrlPrefix() + recording.url;
     recordinginfo.stream_url      = url;
 
     recordinginfo.priority        = recording.priority;
@@ -261,7 +263,7 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
 bool MythXml::ExecuteCommand(MythXmlCommand& command)
 {
   CStdString url;
-  url.Format("http://%s:%i/%s", hostname_.c_str(), port_, command.GetPath().c_str());
+  url.Format("%s/%s", GetUrlPrefix().c_str(), command.GetPath().c_str());
 
   CFileCurl http;
   http.SetTimeout(timeout_);
@@ -300,6 +302,13 @@ bool MythXml::ExecuteCommand(MythXmlCommand& command)
 bool MythXml::checkConnection()
 {
   return true; // TODO: Can this ever do anything?
+}
+
+CStdString MythXml::GetUrlPrefix()
+{
+    CStdString urlPrefix;
+    urlPrefix.Format("http://%s:%i", hostname_, port_);
+    return urlPrefix;
 }
 
 CStdString MythXml::GetLiveTvPath(const SChannel &channel)

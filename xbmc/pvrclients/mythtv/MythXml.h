@@ -38,7 +38,8 @@ private:
   bool ExecuteCommand(MythXmlCommand& command);
   bool checkConnection();
   CStdString GetLiveTvPath(const SChannel &channel);
-  CStdString hostname_;
+  CStdString GetUrlPrefix();
+    CStdString hostname_;
   CStdString username_;
   CStdString password_;
   int port_;
