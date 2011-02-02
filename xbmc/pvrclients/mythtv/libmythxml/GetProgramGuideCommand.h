@@ -161,7 +161,7 @@ class GenreIdMapper
 class GetProgramGuideCommand: public MythXmlCommand
 {
   public:
-    GetProgramGuideCommand(const int &channel, const time_t &gmt_start, const time_t &gmt_end);
+    GetProgramGuideCommand(const int &channel, const time_t &start, const time_t &end);
 
     bool ParseResponse(const TiXmlHandle& handle);
 

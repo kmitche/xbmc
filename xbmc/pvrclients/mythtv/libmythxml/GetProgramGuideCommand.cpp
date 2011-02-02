@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <map>
 
-GetProgramGuideCommand::GetProgramGuideCommand(const int &chanid, const time_t &gmt_start, const time_t &gmt_end)
+GetProgramGuideCommand::GetProgramGuideCommand(const int &chanid, const time_t &start, const time_t &end)
 {
   MythXmlParameters parameters;
   if (chanid < 0)
@@ -15,8 +15,8 @@ GetProgramGuideCommand::GetProgramGuideCommand(const int &chanid, const time_t &
     parameters.SetParameter("NumOfChannels", 1);
     parameters.SetParameter("StartChanId", chanid);
   }
-  parameters.SetParameter("StartTime", gmt_start);
-  parameters.SetParameter("EndTime", gmt_end);
+  parameters.SetParameter("StartTime", start);
+  parameters.SetParameter("EndTime", end);
 
   Init("Myth/GetProgramGuide", parameters);
 }
