@@ -249,7 +249,8 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
     recordinginfo.channel_name    = recording.channame;
 
     recordinginfo.directory       = ""; // TODO: put in directory structure to support TV Shows and Movies ala myth://
-    CStdString url                = GetUrlPrefix() + recording.url;
+    // CStdString url                = GetUrlPrefix() + recording.url;
+    CStdString url                = GetRecordingPath(recording);
     recordinginfo.stream_url      = url;
 
     recordinginfo.priority        = recording.priority;
@@ -314,9 +315,30 @@ CStdString MythXml::GetUrlPrefix()
 CStdString MythXml::GetLiveTvPath(const SChannel &channel)
 {
   /*
-   * Use the existing LiveTV functionality within XBMC until libcmyth has been moved to the PVR addon.
+   * HACK: Use the existing LiveTV functionality within XBMC until libcmyth has been moved to the PVR addon.
    */
   CStdString path;
   path.Format("myth://%s/channels/%i.ts", hostname_.c_str(), channel.channum);
+  return path;
+}
+
+CStdString MythXml::GetRecordingPath(const SRecording &recording)
+{
+  /*
+   * HACK: The MythXML GetRecorded interface doesn't support seeking so use the existing myth://
+   * functionality within XBMC until libcmyth has been moved to the PVR addon.
+   */
+  struct tm * recstart;
+  recstart = localtime(&recording.recstart);
+
+  /*
+   * The format for the pathinfo for a mythbackend recording is:
+   * <chanid>_<recstart - yyyymmddHHMMSS>.mpg
+   */
+  char pathinfo[16];
+  strftime(pathinfo, 16, "%Y%m%d%H%M%S", recstart);
+
+  CStdString path;
+  path.Format("myth://%s/recordings/%i_%s.mpg", hostname_.c_str(), recording.chanid, pathinfo);
   return path;
 }

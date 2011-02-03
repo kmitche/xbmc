@@ -10,6 +10,7 @@
 
 #include "libmythxml/MythXmlCommand.h"
 #include "libmythxml/MythXmlResponse.h"
+#include "libmythxml/SRecording.h"
 #include "libmythxml/SChannel.h"
 #include "client.h"
 
@@ -37,9 +38,11 @@ public:
 private:
   bool ExecuteCommand(MythXmlCommand& command);
   bool checkConnection();
+  CStdString GetRecordingPath(const SRecording &recording);
   CStdString GetLiveTvPath(const SChannel &channel);
   CStdString GetUrlPrefix();
-    CStdString hostname_;
+
+  CStdString hostname_;
   CStdString username_;
   CStdString password_;
   int port_;
