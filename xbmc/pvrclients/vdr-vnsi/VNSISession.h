@@ -20,7 +20,6 @@
  */
 
 #pragma once
-#include <deque>
 #include "pvrclient-vdrVNSI_os.h"
 #include "StdString.h"
 
@@ -57,7 +56,4 @@ private:
   int         m_protocol;
   CStdString  m_server;
   CStdString  m_version;
-
-  std::deque<cResponsePacket*> m_queue;
-  const unsigned int    m_queue_size;
 };

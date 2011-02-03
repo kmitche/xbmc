@@ -139,7 +139,7 @@ public:
   /*! \brief Set the TV Database to it's initial state and delete all
    the data inside.
    */
-  void ResetDatabase();
+  void ResetDatabase(bool bShowProgress = true);
 
   /*! \brief Set the EPG data inside TV Database to it's initial state
    and reload it from Clients.
@@ -149,17 +149,19 @@ public:
   /*! \brief Returns true if a tv channel is playing
    \return true during TV playback
    */
-  bool IsPlayingTV();
+  bool IsPlayingTV(void);
 
   /*! \brief Returns true if a radio channel is playing
    \return true during radio playback
    */
-  bool IsPlayingRadio();
+  bool IsPlayingRadio(void);
 
   /*! \brief Returns true if a recording is playing over the client
    \return true during recording playback
    */
-  bool IsPlayingRecording();
+  bool IsPlayingRecording(void);
+
+  bool IsPlaying(void);
 
   /*! \brief Returns the properties of the current playing client
    \return pointer to properties (NULL if no stream is playing)
@@ -192,25 +194,23 @@ public:
    */
   CStdString GetCurrentInputFormat();
 
-  /*! \brief Returns the current playing channel number
-   \param number Address to integer value to write playing channel number
-   \param radio Address to boolean value to set it true if it is a radio channel
-   \return true if channel is playing
+  /*!
+   * @brief Return the channel that is currently playing.
+   * @param channel The channel or NULL if none is playing.
+   * @return True if a channel is playing, false otherwise.
    */
-  bool GetCurrentChannel(int *number, bool *radio);
-
   bool GetCurrentChannel(const CPVRChannel *channel);
 
    /*! \brief Returns if a minimum one client is active
    \return true if minimum one client is started
    */
-  bool HaveActiveClients();
+  bool HasActiveClients(void);
 
    /*! \brief Returns the presence of PVR specific Menu entries
    \param clientID identifier of the client to ask or < 0 for playing channel
    \return true if menu hooks are present
    */
-  bool HaveMenuHooks(int clientID);
+  bool HasMenuHooks(int clientID);
 
    /*! \brief Open selection and progress pvr actions
    \param clientID identifier to process
@@ -403,6 +403,9 @@ public:
   const CPVREpgInfoTag *GetPlayingTag(void);
 
 protected:
+  /*!
+   * @brief PVR update and control thread.
+   */
   virtual void Process();
 
 private:
@@ -442,12 +445,41 @@ private:
    */
   bool ChannelUpDown(unsigned int *iNewChannelNumber, bool bPreview, bool bUp);
 
-  void SaveCurrentChannelSettings();            /*! \brief Write the current Video and Audio settings of
-                                                 playing channel to the TV Database */
-  void LoadCurrentChannelSettings();            /*! \brief Read and set the Video and Audio settings of
-                                                 playing channel from the TV Database */
-  void ResetQualityData();                      /*! \brief Reset the Signal Quality data structure to initial values */
-  bool ContinueLastChannel();
+  /*!
+   * @brief Stop the EPG and PVR threads but do not remove their data.
+   */
+  void StopThreads(void);
+
+  /*!
+   * @brief Restart the EPG and PVR threads after they've been stopped by StopThreads()
+   */
+  void StartThreads(void);
+
+  /*!
+   * @brief Persist the current channel settings in the database.
+   */
+  void SaveCurrentChannelSettings(void);
+
+  /*!
+   * @brief Load the settings for the current channel from the database.
+   */
+  void LoadCurrentChannelSettings(void);
+
+  /*!
+   * @brief Reset the signal quality data to the initial values.
+   */
+  void ResetQualityData(void);
+
+  /*!
+   * @brief Continue playback on the last channel if it was stored in the database.
+   * @return True if playback was continued, false otherwise.
+   */
+  bool ContinueLastChannel(void);
+
+  /*!
+   * @brief Clean up all data that was created by the PVRManager.
+   */
+  void Cleanup(void);
 
   /** @name General PVRManager data */
   //@{
@@ -457,6 +489,7 @@ private:
   CPVRDatabase        m_database;               /*!< the database for all PVR related data */
   CCriticalSection    m_critSection;            /*!< critical section for all changes to this class */
   bool                m_bFirstStart;            /*!< true when the PVR manager was started first, false otherwise */
+  bool                m_bLoaded;
   bool                m_bChannelScanRunning;    /*!< true if a channel scan is currently running, false otherwise */
   //@}
 

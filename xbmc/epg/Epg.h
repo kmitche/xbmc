@@ -231,12 +231,6 @@ public:
   virtual bool Update(time_t start, time_t end, bool bStoreInDb = true);
 
   /*!
-   * @brief Load all entries from the database.
-   * @return True if the entries were loaded successfully, false otherwise.
-   */
-  virtual bool Load();
-
-  /*!
    * @brief Get all EPG entries.
    * @param results The file list to store the results in.
    * @return The amount of entries that were added.

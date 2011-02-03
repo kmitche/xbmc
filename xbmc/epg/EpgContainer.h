@@ -32,6 +32,7 @@
 class CFileItemList;
 class CPVREpg;
 class CPVREpgContainer;
+class CPVRManager;
 
 class CEpgContainer : public std::vector<CEpg *>,
                  public Observer,
@@ -42,6 +43,7 @@ class CEpgContainer : public std::vector<CEpg *>,
 
   friend class CPVREpg;
   friend class CPVREpgContainer;
+  friend class CPVRManager;
 
 private:
   CEpgDatabase m_database;           /*!< the EPG database */
@@ -63,6 +65,7 @@ private:
   /** @name Class state properties */
   //@{
   bool         m_bDatabaseLoaded;    /*!< true if we already loaded the EPG from the database */
+  bool         m_bAllDbEntriesLoaded;/*!< true if all entries were loaded */
   time_t       m_iLastEpgCleanup;    /*!< the time the EPG was cleaned up */
   time_t       m_iLastEpgUpdate;     /*!< the time the EPG was updated */
   //@}

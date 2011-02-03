@@ -310,32 +310,6 @@ bool CEpg::UpdateEntry(const CEpgInfoTag &tag, bool bUpdateDatabase /* = false *
   return bReturn;
 }
 
-bool CEpg::Load()
-{
-  bool bReturn = false;
-
-  CEpgDatabase *database = g_EpgContainer.GetDatabase();
-  if (!database || !database->Open())
-  {
-    CLog::Log(LOGERROR, "EPG - %s - could not open the database", __FUNCTION__);
-    return bReturn;
-  }
-
-  CSingleLock lock(m_critSection);
-
-  /* delete any present entries */
-  for (unsigned int iTagPtr = 0; iTagPtr < size(); iTagPtr++)
-    delete at(iTagPtr);
-  erase(begin(), end());
-
-  /* request the entries for this table from the database */
-  bReturn = (database->Get(this) > 0);
-
-  Sort();
-
-  return bReturn;
-}
-
 bool CEpg::Update(time_t start, time_t end, bool bStoreInDb /* = true */)
 {
   bool bGrabSuccess = true;
@@ -412,6 +386,8 @@ bool CEpg::Persist(bool bPersistTags /* = false */)
     CLog::Log(LOGERROR, "%s - could not load the database", __FUNCTION__);
     return bReturn;
   }
+
+  CSingleLock lock(m_critSection);
 
   int iId = database->Persist(*this);
   if (iId > 0)

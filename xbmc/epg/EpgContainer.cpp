@@ -240,20 +240,10 @@ bool CEpgContainer::RemoveOldEntries(void)
 
 bool CEpgContainer::Load(bool bShowProgress /* = false */)
 {
-  if (m_bDatabaseLoaded)
-    return m_bDatabaseLoaded;
+  if (m_bDatabaseLoaded && m_bAllDbEntriesLoaded)
+    return true;
 
   bool bReturn = false;
-  bool bUpdate = false;
-
-  /* show the progress bar */
-  CGUIDialogPVRUpdateProgressBar *scanner = NULL;
-  if (bShowProgress)
-  {
-    scanner = (CGUIDialogPVRUpdateProgressBar *)g_windowManager.GetWindow(WINDOW_DIALOG_EPG_SCAN);
-    scanner->Show();
-    scanner->SetHeader(g_localizeStrings.Get(19004));
-  }
 
   /* open the database */
   if (!m_database.Open())
@@ -268,40 +258,20 @@ bool CEpgContainer::Load(bool bShowProgress /* = false */)
   /* create tables for channels that don't have a table yet */
   AutoCreateTablesHook();
 
-  /* load all entries in the EPG tables */
-  unsigned int iSize = size();
-  for (unsigned int iEpgPtr = 0; iEpgPtr < iSize; iEpgPtr++)
-  {
-    CEpg *epg = at(iEpgPtr);
-    if (epg->Load())
-      bReturn = true;
-    else
-      bUpdate = true;
-
-    if (bShowProgress)
-    {
-      /* update the progress bar */
-      scanner->SetProgress(iEpgPtr, iSize);
-      scanner->SetTitle(epg->Name());
-      scanner->UpdateState();
-    }
-  }
-
   /* reset m_bStop (set to true before so Clear() doesn't restart the thread */
   m_bStop = false;
 
   /* close the database */
   m_database.Close();
 
-  if (bShowProgress)
-    scanner->Close();
-
-  /* one or more tables couldn't be loaded or IgnoreDbForClient is set. force an update */
-  if (bUpdate || m_bIgnoreDbForClient)
-    UpdateEPG(bShowProgress);
+  /* IgnoreDbForClient is set. force an update */
+  UpdateEPG(bShowProgress);
 
   /* only try to load the database once */
-  m_bDatabaseLoaded = true;
+  if (m_bDatabaseLoaded || m_bIgnoreDbForClient)
+    m_bAllDbEntriesLoaded = true;
+  else
+    m_bDatabaseLoaded = true;
 
   return bReturn;
 }
