@@ -40,6 +40,7 @@ private:
   bool checkConnection();
   CStdString GetRecordingPath(const SRecording &recording);
   CStdString GetLiveTvPath(const SChannel &channel);
+  CStdString GetChannelIconPath(const SChannel &channel);
   CStdString GetUrlPrefix();
 
   CStdString hostname_;

@@ -142,35 +142,48 @@ PVR_ERROR MythXml::requestChannelList(PVRHANDLE handle, int radio)
 {
   if (!checkConnection())
     return PVR_ERROR_SERVER_ERROR;
+
   GetChannelListCommand cmd;
   if (!ExecuteCommand(cmd))
     return PVR_ERROR_UNKOWN;
 
   const vector<SChannel>& channels = cmd.GetChannels();
   vector<SChannel>::const_iterator it;
-  PVR_CHANNEL pvrchannel;
+
   for (it = channels.begin(); it != channels.end(); ++it)
   {
+    PVR_CHANNEL pvrchannel;
     const SChannel& mythchannel = *it;
-    memset(&pvrchannel, 0, sizeof(pvrchannel));
+
     pvrchannel.uid           = mythchannel.chanid;
     pvrchannel.number        = mythchannel.channum;
-    pvrchannel.name          = mythchannel.channame.c_str();
-    pvrchannel.callsign      = mythchannel.callsign.c_str();
+    pvrchannel.name          = mythchannel.channame;
+    pvrchannel.callsign      = mythchannel.callsign;
     pvrchannel.radio         = false; // TODO: Don't hardcode this. Must be pulled out of Myth if possible.
     pvrchannel.input_format  = "";
-    pvrchannel.stream_url    = GetLiveTvPath(mythchannel).c_str();
 
-    CStdString icon;
-    icon.Format("%s/Myth/GetChannelIcon?ChanId=%i", GetUrlPrefix().c_str(), mythchannel.chanid);
-    pvrchannel.iconpath = icon;
+    CStdString url           = GetLiveTvPath(mythchannel);
+    pvrchannel.stream_url    = url;
+
+    CStdString icon          = GetChannelIconPath(mythchannel);
+    pvrchannel.iconpath      = icon;
 
     /*
      * TODO: Determine how to hide channels in XBMC based on MythTV configuration. Some users have hundreds of channels.
      * Pretty sure the old myth:// code only showed channels with a number > 0.
      */
-    pvrchannel.hide = false;
-    pvrchannel.recording = false; // TODO: pull out of XML somehow. Perhaps using the ProgramGuideResponse.
+    pvrchannel.hide          = false;
+    pvrchannel.recording     = false; // TODO: pull out of XML somehow. Perhaps using the ProgramGuideResponse.
+
+    /*
+     * Set the remaining parts that are not used by MythTV.
+     */
+    pvrchannel.encryption       = 0;
+    pvrchannel.bouquet          = 0;
+    pvrchannel.multifeed        = false;
+    pvrchannel.multifeed_master = 0;
+    pvrchannel.multifeed_number = 0;
+
     PVR->TransferChannelEntry(handle, &pvrchannel);
   }
   return PVR_ERROR_NO_ERROR;
@@ -342,3 +355,11 @@ CStdString MythXml::GetRecordingPath(const SRecording &recording)
   path.Format("myth://%s/recordings/%i_%s.mpg", hostname_.c_str(), recording.chanid, pathinfo);
   return path;
 }
+
+CStdString MythXml::GetChannelIconPath(const SChannel &channel)
+{
+  CStdString icon;
+  icon.Format("%s/Myth/GetChannelIcon?ChanId=%i", GetUrlPrefix().c_str(), channel.chanid);
+  return icon;
+}
+
