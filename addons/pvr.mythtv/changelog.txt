@@ -1,3 +1,11 @@
+0.2.0
+- Playback of Live TV channels using existing myth:// protocol
+- Playback of Recordings using existing myth:// protocol
+- Load Channel icon using MythXML GetChannelIcon command
+- Load scheduled Timers using MySQL interface
+
 0.1.0
-- Displays list of Live TV channels
-- Loads EPG information
+- Load list of Recordings using MythXML GetRecorded command
+- Load list of Channels using MythXML GetChannelList command
+- Load EPG using MythXML GetProgramGuide command
+- Load Drive Space, Backend Version, and Backend Time information using MythXML GetStatus command
