@@ -262,8 +262,8 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
     recordinginfo.channel_name    = recording.channame;
 
     recordinginfo.directory       = ""; // TODO: put in directory structure to support TV Shows and Movies ala myth://
-    // CStdString url                = GetUrlPrefix() + recording.url;
-    CStdString url                = GetRecordingPath(recording);
+    CStdString url                = GetUrlPrefix() + recording.url;
+    // CStdString url                = GetRecordingPath(recording);
     recordinginfo.stream_url      = url;
 
     recordinginfo.priority        = recording.priority;
