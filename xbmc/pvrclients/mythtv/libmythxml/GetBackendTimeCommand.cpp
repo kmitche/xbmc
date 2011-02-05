@@ -31,24 +31,28 @@ bool GetBackendTimeCommand::ParseResponse(const TiXmlHandle& handle)
     return false;
 
   m_datetime = MythXmlResponse::toDateTime(statusNode->Attribute("ISODate"));
-  //the date comes without a gmt offset let's emulate that.
-  time_t raw;
-  time(&raw);
-  struct tm* timeinfo;
-  timeinfo = localtime(&raw);
-  int localoffset = timeinfo->tm_gmtoff;
-  timeinfo->tm_gmtoff = 0;
-  time_t serverTime = mktime(timeinfo);
-  int timediff = raw - serverTime;
-  if (abs(timediff) < 3600)
-  {
-    // same zone
+
+  /*
+   * Dates supplied by MythXML don't have any timezone information set. The MythXML interface
+   * doesn't supply information about the GMT offset being used in dates so assume that they all
+   * have the same timezone as the machine that XBMC is running on.
+   */
+  time_t now;
+  time(&now);
+  tm* local;
+  local = localtime(&now);
+
+  int localoffset = local->tm_gmtoff; // seconds
+  /*
+   * Take off the GMT offset and see what the difference in time is (seconds). This is the GMT offset.
+   */
+  local->tm_gmtoff = 0;
+
+  int difference = now - mktime(local); // seconds
+  if (abs(difference) < 3600) // Less than an hours difference. Same timezone.
     m_gmtoffset = localoffset;
-  }
-  else
-  {
-    int off = timediff / 3600;
-    m_gmtoffset = localoffset + off;
-  }
+  else // More than an hours difference. Different timezone.
+    m_gmtoffset = localoffset + difference;
+
   return true;
 }
