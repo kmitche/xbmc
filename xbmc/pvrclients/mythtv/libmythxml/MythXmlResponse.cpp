@@ -67,23 +67,15 @@ time_t MythXmlResponse::fromMythDateTime(const CStdString& iso)
   if (iso.size() != 19)
     return 0;
 
-  struct tm isotm;
-  isotm.tm_year = atoi(iso.Mid(0,  4)) - 1900;
-  isotm.tm_mon  = atoi(iso.Mid(5,  2)) - 1;
-  isotm.tm_mday = atoi(iso.Mid(8,  2));
-  isotm.tm_hour = atoi(iso.Mid(11, 2));
-  isotm.tm_min  = atoi(iso.Mid(14, 2));
-  isotm.tm_sec  = atoi(iso.Mid(17, 2));
+  tm local;
+  local.tm_year = atoi(iso.Mid(0,  4)) - 1900;
+  local.tm_mon  = atoi(iso.Mid(5,  2)) - 1;
+  local.tm_mday = atoi(iso.Mid(8,  2));
+  local.tm_hour = atoi(iso.Mid(11, 2));
+  local.tm_min  = atoi(iso.Mid(14, 2));
+  local.tm_sec  = atoi(iso.Mid(17, 2));
 
-  /*
-   * TODO: Convert time to GMT since all the PVR interfaces seem to need GMT times?
-   */
-  time_t now;
-  time(&now);
-  tm * local;
-  local = localtime(&now);
-
-  return mktime(&isotm); // TODO: Convert to GMT? - local->tm_gmtoff;
+  return mktime(&local);
 }
 
 void MythXmlResponse::parseErrorNode(TiXmlNode* node, int &errorCode, CStdString &desc)
