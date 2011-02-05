@@ -280,7 +280,7 @@ void FreeSettings()
 
 PVR_ERROR GetProperties(PVR_SERVERPROPS* props)
 {
-  props->SupportChannelLogo        = false;
+  props->SupportChannelLogo        = true;
   props->SupportTimeShift          = false;
   props->SupportEPG                = true;
   props->SupportRecordings         = true;
