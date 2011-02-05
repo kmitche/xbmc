@@ -1,3 +1,7 @@
+TODO:
+- Schedule recordings
+- Start recording from Live TV
+
 0.2.0
 - Playback of Live TV channels using existing myth:// protocol
 - Playback of Recordings using existing myth:// protocol
