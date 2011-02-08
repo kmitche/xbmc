@@ -178,8 +178,6 @@ void CEpg::Cleanup(const CDateTime &Time)
 
 const CEpgInfoTag *CEpg::InfoTagNow(void) const
 {
-  const CEpgInfoTag *returnTag = NULL;
-
   CSingleLock lock(m_critSection);
 
   if (!m_nowActive || !m_nowActive->IsActive())
@@ -197,7 +195,7 @@ const CEpgInfoTag *CEpg::InfoTagNow(void) const
     }
   }
 
-  return (returnTag = m_nowActive);
+  return m_nowActive;
 }
 
 const CEpgInfoTag *CEpg::InfoTagNext(void) const
@@ -207,9 +205,9 @@ const CEpgInfoTag *CEpg::InfoTagNext(void) const
   return nowTag ? nowTag->GetNextEvent() : NULL;
 }
 
-const CEpgInfoTag *CEpg::InfoTag(int uniqueID, CDateTime StartTime) const
+const CEpgInfoTag *CEpg::InfoTag(int uniqueID, const CDateTime &StartTime) const
 {
-  CEpgInfoTag *returnTag = NULL;
+  static CEpgInfoTag *returnTag = NULL;
 
   /* try to find the tag by UID */
   if (uniqueID > 0)
@@ -244,7 +242,7 @@ const CEpgInfoTag *CEpg::InfoTag(int uniqueID, CDateTime StartTime) const
 
 const CEpgInfoTag *CEpg::InfoTagBetween(CDateTime BeginTime, CDateTime EndTime) const
 {
-  CEpgInfoTag *returnTag = NULL;
+  static CEpgInfoTag *returnTag = NULL;
 
   CSingleLock lock(m_critSection);
 
@@ -263,7 +261,7 @@ const CEpgInfoTag *CEpg::InfoTagBetween(CDateTime BeginTime, CDateTime EndTime) 
 
 const CEpgInfoTag *CEpg::InfoTagAround(CDateTime Time) const
 {
-  CEpgInfoTag *returnTag = NULL;
+  static CEpgInfoTag *returnTag = NULL;
 
   CSingleLock lock(m_critSection);
 
@@ -306,6 +304,52 @@ bool CEpg::UpdateEntry(const CEpgInfoTag &tag, bool bUpdateDatabase /* = false *
     bReturn = InfoTag->Persist();
   else
     bReturn = true;
+
+  return bReturn;
+}
+
+bool CEpg::Load(void)
+{
+  bool bReturn = false;
+
+  /* mark the EPG as being updated */
+  m_bUpdateRunning = true;
+
+  CEpgDatabase *database = g_EpgContainer.GetDatabase();
+
+  if (!database || !database->Open())
+  {
+    CLog::Log(LOGERROR, "%s - could not load the database", __FUNCTION__);
+    return bReturn;
+  }
+
+  int iEntriesLoaded = database->Get(this);
+  if (iEntriesLoaded <= 0)
+  {
+    CLog::Log(LOGNOTICE, "Epg - %s - no entries found in the database for table %d. trying to load 3 hours from clients.",
+        __FUNCTION__, m_iEpgID);
+
+    time_t start;
+    time_t end;
+    CDateTime::GetCurrentDateTime().GetAsTime(start); // NOTE: XBMC stores the EPG times as local time
+    end = start;
+    start -= 60 * 60;
+    end += 60 * 60 * 3;
+
+    bReturn = Update(start, end, true);
+  }
+  else
+  {
+    CLog::Log(LOGNOTICE, "Epg - %s - %d entries found in the database for table %d.",
+        __FUNCTION__, iEntriesLoaded, m_iEpgID);
+    bReturn = true;
+  }
+
+  database->Close();
+
+  Sort();
+
+  m_bUpdateRunning = false;
 
   return bReturn;
 }
@@ -528,7 +572,7 @@ bool CEpg::UpdateFromScraper(time_t start, time_t end)
   return bGrabSuccess;
 }
 
-bool CEpg::PersistTags(void)
+bool CEpg::PersistTags(void) const
 {
   bool bReturn = false;
   CEpgDatabase *database = g_EpgContainer.GetDatabase();

@@ -38,6 +38,7 @@ config.log
 *.vcxproj.*.user
 *.vcxproj.user
 *.obj
+*.idb
 *ReSharper*
 
 # osx specifics
@@ -47,6 +48,10 @@ config.log
 
 .libs/
 .deps/
+
+# Eclipse project files. Not needed as they are generated in two clicks if needed.
+.project
+.cproject
 
 # /
 /.dummy
@@ -99,6 +104,7 @@ autom4te.cache
 /addons/script.module.pysqlite/
 /addons/pvr.*/*.pvr
 
+
 # /xbmc/guilib/
 /xbmc/guilib/Makefile
 /xbmc/guilib/*.obj
@@ -129,6 +135,12 @@ autom4te.cache
 /lib/addons/library.xbmc.addon/Makefile
 /lib/addons/library.xbmc.gui/Makefile
 /lib/addons/library.xbmc.pvr/Makefile
+/lib/addons/library.xbmc.addon/project/VS2010Express/Release
+/lib/addons/library.xbmc.addon/project/VS2010Express/Debug
+/lib/addons/library.xbmc.gui/project/VS2010Express/Release
+/lib/addons/library.xbmc.gui/project/VS2010Express/Debug
+/lib/addons/library.xbmc.pvr/project/VS2010Express/Release
+/lib/addons/library.xbmc.pvr/project/VS2010Express/Debug
 
 # /lib/cpluff/
 /lib/cpluff/ABOUT-NLS
@@ -351,12 +363,20 @@ autom4te.cache
 /system/cdrip/lame_enc.dll
 
 # /system/players/dvdplayer
+/system/players/dvdplayer/avcodec-52.dll
+/system/players/dvdplayer/avcore-0.dll
+/system/players/dvdplayer/avformat-52.dll
+/system/players/dvdplayer/avutil-50.dll
 /system/players/dvdplayer/freetype6.dll
 /system/players/dvdplayer/libass.dll
+/system/players/dvdplayer/libdvdcss-2.dll
+/system/players/dvdplayer/libdvdnav.dll
 /system/players/dvdplayer/libexpat-1.dll
 /system/players/dvdplayer/libfaad.dll
 /system/players/dvdplayer/libfontconfig-1.dll
 /system/players/dvdplayer/librtmp.dll
+/system/players/dvdplayer/postproc-51.dll
+/system/players/dvdplayer/swscale-0.6.1.dll
 
 # /system/players/paplayer
 /system/players/paplayer/wavpack.dll
@@ -549,6 +569,7 @@ autom4te.cache
 # /lib/liba52/vc++/
 /lib/liba52/vc++/Makefile
 /lib/liba52/vc++/Debug
+/lib/liba52/vc++/Release
 
 # /lib/libdvd/
 /lib/libdvd/Makefile
@@ -1188,6 +1209,9 @@ autom4te.cache
 
 # /xbmc/osx/
 /xbmc/osx/Makefile
+
+# /portable_data
+/portable_data
 
 # /xbmc/pvrclients
 /xbmc/pvrclients/Makefile.include

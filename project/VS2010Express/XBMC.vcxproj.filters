@@ -432,9 +432,6 @@
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDInputStreams\DVDInputStreamMemory.cpp">
       <Filter>cores\dvdplayer\DVDInputStreams</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDInputStreams\DVDInputStreamMMS.cpp">
-      <Filter>cores\dvdplayer\DVDInputStreams</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDInputStreams\DVDInputStreamNavigator.cpp">
       <Filter>cores\dvdplayer\DVDInputStreams</Filter>
     </ClCompile>
@@ -2468,9 +2465,6 @@
     <ClCompile Include="..\..\xbmc\addons\AddonInstaller.cpp">
       <Filter>addons</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\pvr\GUIViewStateTV.cpp">
-      <Filter>pvr</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\pvr\PVRChannel.cpp">
       <Filter>pvr</Filter>
     </ClCompile>
@@ -2599,6 +2593,9 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\guilib\GUIEPGGridContainer.cpp">
       <Filter>guilib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\pvr\GUIViewStatePVR.cpp">
+      <Filter>pvr</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2845,9 +2842,6 @@
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDInputStreams\DVDInputStreamMemory.h">
       <Filter>cores\dvdplayer\DVDInputStreams</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDInputStreams\DVDInputStreamMMS.h">
-      <Filter>cores\dvdplayer\DVDInputStreams</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDInputStreams\DVDInputStreamNavigator.h">
       <Filter>cores\dvdplayer\DVDInputStreams</Filter>
     </ClInclude>
@@ -2857,28 +2851,25 @@
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDInputStreams\DVDStateSerializer.h">
       <Filter>cores\dvdplayer\DVDInputStreams</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\Codecs\DllAvCodec.h">
+    <ClInclude Include="..\..\lib\DllAvCodec.h">
       <Filter>cores\dvdplayer\DVDHeaders</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\Codecs\DllAvFormat.h">
+    <ClInclude Include="..\..\lib\DllAvFormat.h">
       <Filter>cores\dvdplayer\DVDHeaders</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\Codecs\DllPostProc.h">
+    <ClInclude Include="..\..\lib\DllPostProc.h">
       <Filter>cores\dvdplayer\DVDHeaders</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\Codecs\DllSwScale.h">
+    <ClInclude Include="..\..\lib\DllSwScale.h">
       <Filter>cores\dvdplayer\DVDHeaders</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\Codecs\ffmpeg\include\libavutil\avconfig.h">
+    <ClInclude Include="..\..\lib\ffmpeg\libavformat\avformat.h">
       <Filter>cores\dvdplayer\DVDHeaders</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\Codecs\ffmpeg\libavformat\avformat.h">
+    <ClInclude Include="..\..\lib\ffmpeg\libavutil\common.h">
       <Filter>cores\dvdplayer\DVDHeaders</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\Codecs\ffmpeg\libavutil\common.h">
-      <Filter>cores\dvdplayer\DVDHeaders</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\Codecs\ffmpeg\libavformat\avio.h">
+    <ClInclude Include="..\..\lib\ffmpeg\libavformat\avio.h">
       <Filter>cores\dvdplayer\DVDHeaders</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDInputStreams\dvdnav\dvd_types.h">
@@ -2968,40 +2959,37 @@
     <ClInclude Include="..\..\xbmc\cores\paplayer\CodecFactory.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllAc3codec.h">
+    <ClInclude Include="..\..\lib\DllAc3codec.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllAdpcm.h">
+    <ClInclude Include="..\..\lib\DllAdpcm.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllASAP.h">
+    <ClInclude Include="..\..\lib\DllASAP.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllDCACodec.h">
+    <ClInclude Include="..\..\lib\DllDCACodec.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllLibFlac.h">
+    <ClInclude Include="..\..\lib\DllLibFlac.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllNosefart.h">
+    <ClInclude Include="..\..\lib\DllNosefart.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllSidplay2.h">
+    <ClInclude Include="..\..\lib\DllSidplay2.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllStSound.h">
+    <ClInclude Include="..\..\lib\DllStSound.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllTimidity.h">
+    <ClInclude Include="..\..\lib\DllTimidity.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllVorbisfile.h">
+    <ClInclude Include="..\..\lib\DllVorbisfile.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllWAVPack.h">
-      <Filter>cores\paplayer</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DllWMA.h">
+    <ClInclude Include="..\..\lib\DllWAVPack.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\paplayer\DTSCDDACodec.h">
@@ -5076,10 +5064,8 @@
     <ClInclude Include="..\..\xbmc\addons\AddonInstaller.h">
       <Filter>addons</Filter>
     </ClInclude>
+<<<<<<< HEAD
     <ClInclude Include="..\..\xbmc\pvr\PVRTimers.h">
-      <Filter>pvr</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\pvr\GUIViewStateTV.h">
       <Filter>pvr</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\pvr\PVRChannel.h">
@@ -5210,6 +5196,9 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\guilib\GUIEPGGridContainer.h">
       <Filter>guilib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\pvr\GUIViewStatePVR.h">
+      <Filter>pvr</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

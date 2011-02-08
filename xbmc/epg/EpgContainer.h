@@ -65,7 +65,6 @@ private:
   /** @name Class state properties */
   //@{
   bool         m_bDatabaseLoaded;    /*!< true if we already loaded the EPG from the database */
-  bool         m_bAllDbEntriesLoaded;/*!< true if all entries were loaded */
   time_t       m_iLastEpgCleanup;    /*!< the time the EPG was cleaned up */
   time_t       m_iLastEpgUpdate;     /*!< the time the EPG was updated */
   //@}
@@ -100,19 +99,12 @@ private:
    * @param iEpgId The database ID of the table.
    * @return The table or NULL if it wasn't found.
    */
-  CEpg *GetById(int iEpgId);
+  virtual CEpg *GetById(int iEpgId) const;
 
   /*!
    * @brief A hook that will be called on every update thread iteration.
    */
   virtual void ProcessHook(const CDateTime &time) {};
-
-  /*!
-   * @brief Load all EPG entries from the database.
-   * @param bShowProgress Show a progress bar if true.
-   * @return True if the update was successful, false otherwise.
-   */
-  virtual bool Load(bool bShowProgress = false);
 
   /*!
    * @brief A hook that is called after the tables have been loaded from the database.
@@ -148,7 +140,7 @@ public:
    * @brief Get a pointer to the database instance.
    * @return A pointer to the database instance.
    */
-  CEpgDatabase *GetDatabase() { return &m_database; }
+  CEpgDatabase *GetDatabase(void) { return &m_database; }
 
   /*!
    * @brief Start the EPG update thread.
@@ -178,7 +170,6 @@ public:
    * @param msg The update message.
    */
   virtual void Notify(const Observable &obs, const CStdString& msg);
-
 
   /*!
    * @brief Update an entry in this container.

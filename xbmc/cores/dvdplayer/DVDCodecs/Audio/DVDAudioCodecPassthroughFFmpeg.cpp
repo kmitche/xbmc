@@ -115,17 +115,33 @@ bool CDVDAudioCodecPassthroughFFmpeg::SetupMuxer(CDVDStreamInfo &hints, CStdStri
   muxer.m_pFormat->bit_rate          = hints.bitrate;
 
   /* setup the muxer */
-  AVFormatParameters params;
-  memset(&params, 0, sizeof(params));
-  params.channels       = hints.channels;
-  params.sample_rate    = hints.samplerate;
-  params.audio_codec_id = hints.codec;
-  params.channel        = 0;
-  if (m_dllAvFormat.av_set_parameters(muxer.m_pFormat, &params) != 0)
+  if (m_dllAvFormat.av_set_parameters(muxer.m_pFormat, NULL) != 0)
   {
     CLog::Log(LOGERROR, "CDVDAudioCodecPassthroughFFmpeg::SetupMuxer - Failed to set the %s muxer parameters", muxerName.c_str());
     Dispose();
     return false;
+  }
+
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52,92,0)
+  // API added on: 2011-01-02
+
+  /* While this is strictly only needed on big-endian systems, we do it on
+   * both to avoid as much dead code as possible. */
+#ifdef WORDS_BIGENDIAN
+  const char *spdifFlags = "+be";
+#else
+  const char *spdifFlags = "-be";
+#endif
+
+  /* request big-endian output */
+  if (!fOut->priv_class || m_dllAvUtil.av_set_string3(muxer.m_pFormat->priv_data, "spdif_flags", spdifFlags, 0, NULL) != 0)
+#endif
+  {
+#ifdef WORDS_BIGENDIAN
+    CLog::Log(LOGERROR, "CDVDAudioCodecPassthroughFFmpeg::SetupMuxer - Unable to set big-endian stream mode (FFmpeg too old?), disabling passthrough");
+    Dispose();
+    return false;
+#endif
   }
 
   /* add a stream to it */
@@ -146,10 +162,10 @@ bool CDVDAudioCodecPassthroughFFmpeg::SetupMuxer(CDVDStreamInfo &hints, CStdStri
     m_SampleRate = 48000;
 
   AVCodecContext *codec = muxer.m_pStream->codec;
-  codec->codec_type     = CODEC_TYPE_AUDIO;
+  codec->codec_type     = AVMEDIA_TYPE_AUDIO;
   codec->codec_id       = hints.codec;
   codec->sample_rate    = m_SampleRate;
-  codec->sample_fmt     = SAMPLE_FMT_S16;
+  codec->sample_fmt     = AV_SAMPLE_FMT_S16;
   codec->channels       = hints.channels;
   codec->bit_rate       = hints.bitrate;
   codec->extradata      = new uint8_t[hints.extrasize];
@@ -267,7 +283,8 @@ void CDVDAudioCodecPassthroughFFmpeg::DisposeMuxer(Muxer &muxer)
     if (muxer.m_WroteHeader)
       m_dllAvFormat.av_write_trailer(muxer.m_pFormat);
     muxer.m_WroteHeader = false;
-    delete[] muxer.m_pStream->codec->extradata;
+    if (muxer.m_pStream)
+      delete[] muxer.m_pStream->codec->extradata;
     m_dllAvUtil.av_freep(&muxer.m_pFormat->pb);
     m_dllAvUtil.av_freep(&muxer.m_pFormat);
     m_dllAvUtil.av_freep(&muxer.m_pStream);

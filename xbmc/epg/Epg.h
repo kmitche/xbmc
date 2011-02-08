@@ -64,7 +64,7 @@ private:
    * @brief Persist all tags in this container.
    * @return True if all tags were persisted, false otherwise.
    */
-  bool PersistTags(void);
+  virtual bool PersistTags(void) const;
 
   /*!
    * @brief Fix overlapping events from the tables.
@@ -94,7 +94,7 @@ private:
    * @param StartTime The start time of the event to find if it wasn't found by it's unique ID.
    * @return The found tag or NULL if it wasn't found.
    */
-  virtual const CEpgInfoTag *InfoTag(int uniqueID, CDateTime StartTime) const;
+  virtual const CEpgInfoTag *InfoTag(int uniqueID, const CDateTime &StartTime) const;
 
 protected:
   /*!
@@ -104,6 +104,12 @@ protected:
    * @return True if the update was successful, false otherwise.
    */
   virtual bool Update(const CEpg &epg, bool bUpdateDb = false);
+
+  /*!
+   * @brief Load all entries for this table from the database.
+   * @return True if any entries were loaded, false otherwise.
+   */
+  bool Load(void);
 
 public:
   /*!
@@ -123,7 +129,7 @@ public:
    * @brief Delete this EPG table from the database.
    * @return True if it was deleted successfully, false otherwise.
    */
-  bool Delete(void);
+  virtual bool Delete(void);
 
   /*!
    * @brief The channel this EPG belongs to.
@@ -250,5 +256,5 @@ public:
    * @param bPersistTags Set to true to persist all changed tags in this container.
    * @return True if the table was persisted, false otherwise.
    */
-  bool Persist(bool bPersistTags = false);
+  virtual bool Persist(bool bPersistTags = false);
 };

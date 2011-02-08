@@ -38,12 +38,12 @@ CEpgDatabase::~CEpgDatabase(void)
 {
 }
 
-bool CEpgDatabase::Open()
+bool CEpgDatabase::Open(void)
 {
   return CDatabase::Open(g_advancedSettings.m_databaseEpg);
 }
 
-bool CEpgDatabase::CreateTables()
+bool CEpgDatabase::CreateTables(void)
 {
   bool bReturn = false;
 
@@ -116,7 +116,7 @@ bool CEpgDatabase::UpdateOldVersion(int iVersion)
   return true;
 }
 
-bool CEpgDatabase::DeleteEpg()
+bool CEpgDatabase::DeleteEpg(void)
 {
   bool bReturn = false;
   CLog::Log(LOGDEBUG, "EpgDB - %s - deleting all EPG data from the database", __FUNCTION__);
@@ -162,7 +162,7 @@ bool CEpgDatabase::Delete(const CEpg &table, const CDateTime &start /* = NULL */
   return DeleteValues("epgtags", strWhereClause);
 }
 
-bool CEpgDatabase::DeleteOldEpgEntries()
+bool CEpgDatabase::DeleteOldEpgEntries(void)
 {
   time_t iYesterday;
   CDateTime yesterday = CDateTime::GetCurrentDateTime() - CDateTimeSpan(1, 0, 0, 0);
@@ -184,34 +184,12 @@ bool CEpgDatabase::Delete(const CEpgInfoTag &tag)
   return DeleteValues("epgtags", strWhereClause);
 }
 
-int CEpgDatabase::Get(CEpgContainer *container, const CDateTime &start /* = NULL */, const CDateTime &end /* = NULL */)
+int CEpgDatabase::Get(CEpgContainer *container)
 {
   int iReturn = -1;
 
-  CStdString strWhereClause;
-
-  if (start != NULL)
-  {
-    time_t iStartTime;
-    start.GetAsTime(iStartTime);
-    strWhereClause.append(FormatSQL(" AND iStartTime < %u", iStartTime).c_str());
-  }
-
-  if (end != NULL)
-  {
-    time_t iEndTime;
-    end.GetAsTime(iEndTime);
-    strWhereClause.append(FormatSQL(" AND iEndTime > %u", iEndTime).c_str());
-  }
-
-  CStdString strQuery;
-  if (!strWhereClause.IsEmpty())
-    strQuery.Format("SELECT * FROM epg WHERE %s ORDER BY idEpg ASC;", strWhereClause.c_str());
-  else
-    strQuery.Format("SELECT * FROM epg ORDER BY idEpg ASC;");
-
+  CStdString strQuery = FormatSQL("SELECT idEpg, sName, sScraperName FROM epg;");
   int iNumRows = ResultQuery(strQuery);
-
   if (iNumRows > 0)
   {
     iReturn = 0;
@@ -317,7 +295,7 @@ int CEpgDatabase::Get(CEpg *epg, const CDateTime &start /* = NULL */, const CDat
   return iReturn;
 }
 
-CDateTime CEpgDatabase::GetLastEpgScanTime()
+const CDateTime &CEpgDatabase::GetLastEpgScanTime(void)
 {
   if (lastScanTime.IsValid())
     return lastScanTime;
@@ -325,13 +303,17 @@ CDateTime CEpgDatabase::GetLastEpgScanTime()
   CStdString strValue = GetSingleValue("lastepgscan", "iLastScan", "idEpg = 0");
 
   if (strValue.IsEmpty())
-    return -1;
+  {
+    lastScanTime = -1;
+  }
+  else
+  {
+    time_t iLastScan = atoi(strValue.c_str());
+    CDateTime lastScan(iLastScan);
+    lastScanTime = lastScan;
+  }
 
-  time_t iLastScan = atoi(strValue.c_str());
-  CDateTime lastScan(iLastScan);
-  lastScanTime = lastScan;
-
-  return lastScan;
+  return lastScanTime;
 }
 
 bool CEpgDatabase::PersistLastEpgScanTime(void)
