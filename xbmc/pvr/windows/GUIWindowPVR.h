@@ -1,7 +1,7 @@
 #pragma once
 
 /*
- *      Copyright (C) 2005-2008 Team XBMC
+ *      Copyright (C) 2005-2010 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -21,21 +21,21 @@
  *
  */
 
-#include "GUIMediaWindow.h"
-#include "pvr/PVREpgSearchFilter.h"
-#include "pvr/PVREpgContainer.h"
+#include "windows/GUIMediaWindow.h"
+#include "pvr/epg/PVREpgSearchFilter.h"
+#include "pvr/epg/PVREpgContainer.h"
 
 class CGUIEPGGridContainer;
 
-enum TVWindow
+enum PVRWindow
 {
-  TV_WINDOW_UNKNOWN         = 0,
-  TV_WINDOW_TV_PROGRAM      = 1,
-  TV_WINDOW_CHANNELS_TV     = 2,
-  TV_WINDOW_CHANNELS_RADIO  = 3,
-  TV_WINDOW_RECORDINGS      = 4,
-  TV_WINDOW_TIMERS          = 5,
-  TV_WINDOW_SEARCH          = 6
+  PVR_WINDOW_UNKNOWN         = 0,
+  PVR_WINDOW_EPG             = 1,
+  PVR_WINDOW_CHANNELS_TV     = 2,
+  PVR_WINDOW_CHANNELS_RADIO  = 3,
+  PVR_WINDOW_RECORDINGS      = 4,
+  PVR_WINDOW_TIMERS          = 5,
+  PVR_WINDOW_SEARCH          = 6
 };
 
 class CGUIWindowPVR : public CGUIMediaWindow
@@ -49,7 +49,7 @@ public:
   virtual void OnWindowUnload();
   virtual void OnInitWindow();
 
-  void UpdateData(TVWindow update);
+  void UpdateData(PVRWindow update);
 
 protected:
   virtual void GetContextButtons(int itemNumber, CContextButtons &buttons);
@@ -57,8 +57,30 @@ protected:
   virtual void UpdateButtons();
 
 private:
-  TVWindow m_iCurrSubTVWindow;    /* Active subwindow */
-  TVWindow m_iSavedSubTVWindow;   /* Last subwindow, required if main window is shown again */
+  bool OnMessageFocus(CGUIMessage &message);
+  bool OnMessageClick(CGUIMessage &message);
+
+  bool OnClickButton(CGUIMessage &message);
+  bool OnClickListEpg(CGUIMessage &message);
+  bool OnClickListChannels(CGUIMessage &message);
+  bool OnClickListRecordings(CGUIMessage &message);
+  bool OnClickListTimers(CGUIMessage &message);
+  bool OnClickListSearch(CGUIMessage &message);
+
+  bool ActionDeleteChannel(CFileItem *item);
+  bool ActionDeleteRecording(CFileItem *item);
+  bool ActionDeleteTimer(CFileItem *timer);
+
+  bool ActionPlayChannel(unsigned int iControl, CFileItem *item);
+  bool ActionPlayEpg(CFileItem *item);
+
+  bool ActionRecord(CFileItem *item);
+
+  bool ActionShowSearch(CFileItem *item);
+  bool ActionShowTimer(CFileItem *item);
+
+  PVRWindow m_iCurrSubTVWindow;    /* Active subwindow */
+  PVRWindow m_iSavedSubTVWindow;   /* Last subwindow, required if main window is shown again */
   bool m_bShowHiddenChannels;
   bool m_bSearchStarted;
   bool m_bSearchConfirmed;

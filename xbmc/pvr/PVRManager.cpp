@@ -31,7 +31,7 @@
 #include "threads/SingleLock.h"
 #include "guilib/LocalizeStrings.h"
 #include "filesystem/File.h"
-#include "StringUtils.h"
+#include "utils/StringUtils.h"
 #include "utils/TimeUtils.h"
 #include "music/tags/MusicInfoTag.h"
 #include "settings/Settings.h"
@@ -42,9 +42,10 @@
 #include "dialogs/GUIDialogSelect.h"
 
 #include "PVRManager.h"
-#include "PVRChannelGroupsContainer.h"
-#include "PVREpgInfoTag.h"
-#include "PVRTimerInfoTag.h"
+#include "channels/PVRChannelGroupsContainer.h"
+#include "epg/PVREpgInfoTag.h"
+#include "recordings/PVRRecording.h"
+#include "timers/PVRTimerInfoTag.h"
 
 using namespace std;
 using namespace XFILE;
@@ -227,7 +228,7 @@ void CPVRManager::StopThreads()
   StopThread();
 }
 
-void CPVRManager::UpdateWindow(TVWindow window)
+void CPVRManager::UpdateWindow(PVRWindow window)
 {
   CGUIWindowPVR *pTVWin = (CGUIWindowPVR *) g_windowManager.GetWindow(WINDOW_PVR);
   if (pTVWin)
@@ -299,7 +300,7 @@ void CPVRManager::UpdateTimers(void)
 
   g_PVRTimers.Update();
   UpdateRecordingsCache();
-  UpdateWindow(TV_WINDOW_TIMERS);
+  UpdateWindow(PVR_WINDOW_TIMERS);
 
   m_bTriggerTimersUpdate = false;
 }
@@ -308,9 +309,9 @@ void CPVRManager::UpdateRecordings(void)
 {
   CLog::Log(LOGDEBUG, "PVRManager - %s - updating recordings list", __FUNCTION__);
 
-  PVRRecordings.Update(true);
+  g_PVRRecordings.Update(true);
   UpdateRecordingsCache();
-  UpdateWindow(TV_WINDOW_RECORDINGS);
+  UpdateWindow(PVR_WINDOW_RECORDINGS);
 
   m_bTriggerRecordingsUpdate = false;
 }
@@ -321,8 +322,8 @@ void CPVRManager::UpdateChannels(void)
 
   g_PVRChannelGroups.Update();
   UpdateRecordingsCache();
-  UpdateWindow(TV_WINDOW_CHANNELS_TV);
-  UpdateWindow(TV_WINDOW_CHANNELS_RADIO);
+  UpdateWindow(PVR_WINDOW_CHANNELS_TV);
+  UpdateWindow(PVR_WINDOW_CHANNELS_RADIO);
 
   m_bTriggerChannelsUpdate = false;
 }
@@ -372,11 +373,11 @@ void CPVRManager::Process()
     g_PVRTimers.Load();
 
     /* get recordings from the backend */
-    PVRRecordings.Load();
+    g_PVRRecordings.Load();
 
     /* notify window that all channels and epg are loaded */
-    UpdateWindow(TV_WINDOW_CHANNELS_TV);
-    UpdateWindow(TV_WINDOW_CHANNELS_RADIO);
+    UpdateWindow(PVR_WINDOW_CHANNELS_TV);
+    UpdateWindow(PVR_WINDOW_CHANNELS_RADIO);
 
     m_bLoaded = true;
   }
@@ -413,7 +414,7 @@ void CPVRManager::Cleanup(void)
   g_PVREpgContainer.Stop();
 
   /* unload the rest */
-  PVRRecordings.Unload();
+  g_PVRRecordings.Unload();
   g_PVRTimers.Unload();
   g_PVRChannelGroups.Unload();
   m_bLoaded = false;
@@ -436,7 +437,7 @@ void CPVRManager::UpdateRecordingsCache(void)
 {
   CSingleLock lock(m_critSection);
 
-  m_hasRecordings = PVRRecordings.GetNumRecordings() > 0;
+  m_hasRecordings = g_PVRRecordings.GetNumRecordings() > 0;
   m_hasTimers = g_PVRTimers.GetNumTimers() > 0;
   m_isRecording = false;
   m_NowRecording.clear();

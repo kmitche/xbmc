@@ -24,9 +24,9 @@
 #include "dialogs/GUIDialogYesNo.h"
 
 #include "PVRTimerInfoTag.h"
-#include "PVRChannelGroupsContainer.h"
-#include "PVRManager.h"
-#include "PVREpgInfoTag.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "pvr/PVRManager.h"
+#include "pvr/epg/PVREpgInfoTag.h"
 
 CPVRTimerInfoTag::CPVRTimerInfoTag()
 {

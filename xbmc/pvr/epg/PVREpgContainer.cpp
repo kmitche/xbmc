@@ -20,9 +20,10 @@
  */
 
 #include "PVREpgContainer.h"
-#include "PVRManager.h"
-#include "PVRChannelGroupsContainer.h"
-#include "PVRTimerInfoTag.h"
+#include "pvr/PVRManager.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "pvr/timers/PVRTimerInfoTag.h"
+#include "pvr/recordings/PVRRecording.h"
 
 using namespace std;
 
@@ -134,14 +135,14 @@ int CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFil
   CEpgContainer::GetEPGSearch(results, filter);
 
   /* filter recordings */
-  if (filter.m_bIgnorePresentRecordings && PVRRecordings.size() > 0)
+  if (filter.m_bIgnorePresentRecordings && g_PVRRecordings.size() > 0)
   {
-    for (unsigned int iRecordingPtr = 0; iRecordingPtr < PVRRecordings.size(); iRecordingPtr++)
+    for (unsigned int iRecordingPtr = 0; iRecordingPtr < g_PVRRecordings.size(); iRecordingPtr++)
     {
       for (int iResultPtr = 0; iResultPtr < results->Size(); iResultPtr++)
       {
         const CPVREpgInfoTag *epgentry  = (CPVREpgInfoTag *) results->Get(iResultPtr)->GetEPGInfoTag();
-        CPVRRecordingInfoTag *recording = &PVRRecordings[iRecordingPtr];
+        CPVRRecordingInfoTag *recording = &g_PVRRecordings[iRecordingPtr];
         if (epgentry)
         {
           if (epgentry->Title()       != recording->Title() ||

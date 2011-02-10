@@ -66,6 +66,13 @@ BIN_DIRS=	\
 	xbmc/visualizations \
 	xbmc/screensavers \
 	xbmc/pvr \
+	xbmc/pvr/addons \
+	xbmc/pvr/channels \
+	xbmc/pvr/dialogs \
+	xbmc/pvr/epg \
+	xbmc/pvr/recordings \
+	xbmc/pvr/timers \
+	xbmc/pvr/windows \
 	xbmc/pvrclients \
 	xbmc/utils \
 	xbmc/settings \
@@ -400,8 +407,20 @@ xbmc/epg/epg.a: force
 	$(MAKE) -C xbmc/epg
 xbmc/pvr/pvr.a: force
 	$(MAKE) -C xbmc/pvr
+xbmc/pvr/addons/pvraddons.a: force
+	$(MAKE) -C xbmc/pvr/addons
+xbmc/pvr/channels/pvrchannels.a: force
+	$(MAKE) -C xbmc/pvr/channels
 xbmc/pvr/dialogs/pvrdialogs.a: force
 	$(MAKE) -C xbmc/pvr/dialogs
+xbmc/pvr/epg/pvrepg.a: force
+	$(MAKE) -C xbmc/pvr/epg
+xbmc/pvr/recordings/pvrrecordings.a: force
+	$(MAKE) -C xbmc/pvr/recordings
+xbmc/pvr/timers/pvrtimers.a: force
+	$(MAKE) -C xbmc/pvr/timers
+xbmc/pvr/windows/pvrwindows.a: force
+	$(MAKE) -C xbmc/pvr/windows
 xbmc/pvrclients/pvrclient.a: force
 	$(MAKE) -C xbmc/pvrclients
 xbmc/osx/osx.a: force
@@ -572,7 +591,11 @@ OBJSXBMC=	\
 	xbmc/music/tags/musictags.a \
 	xbmc/music/windows/musicwindows.a \
 	xbmc/pvr/pvr.a \
+	xbmc/pvr/channels/pvrchannels.a \
 	xbmc/pvr/dialogs/pvrdialogs.a \
+	xbmc/pvr/epg/pvrepg.a \
+	xbmc/pvr/recordings/pvrrecordings.a \
+	xbmc/pvr/timers/pvrtimers.a \
 	xbmc/video/dialogs/videodialogs.a \
 	xbmc/pictures/pictures.a \
 	xbmc/playlists/playlists.a \
@@ -580,6 +603,7 @@ OBJSXBMC=	\
 	xbmc/powermanagement/powermanagement.a \
 	xbmc/storage/storage.a \
 	xbmc/threads/threads.a \
+	xbmc/windows/windows.a \
 	xbmc/interfaces/python/xbmcmodule/xbmcmodule.a \
 	xbmc/network/libscrobbler/scrobbler.a \
 	lib/libRTV/librtv-@ARCH@.a \
@@ -657,7 +681,8 @@ DYNOBJSXBMC= \
 	xbmc/cores/DllLoader/exports/exports.a \
 	xbmc/settings/settings.a \
 	xbmc/video/video.a \
-	xbmc/windows/windows.a \
+	xbmc/pvr/addons/pvraddons.a \
+	xbmc/pvr/windows/pvrwindows.a \
 	xbmc/guilib/guilib.a # must be dynamic to avoid linker errors
 
 ifeq (arm, $(ARCH))
