@@ -32,8 +32,6 @@
 #include "pvr/PVRManager.h"
 #include "PVRRecordings.h"
 
-CPVRRecordings g_PVRRecordings;
-
 CPVRRecordings::CPVRRecordings(void)
 {
 
@@ -42,7 +40,7 @@ CPVRRecordings::CPVRRecordings(void)
 void CPVRRecordings::Process()
 {
   CSingleLock lock(m_critSection);
-  CLIENTMAP *clients = g_PVRManager.Clients();
+  CLIENTMAP *clients = CPVRManager::Get()->Clients();
 
   Clear();
 

@@ -52,14 +52,12 @@ void CPVREpg::Cleanup(const CDateTime &Time)
     CPVREpgInfoTag *tag = (CPVREpgInfoTag *) at(i);
     if ( tag && /* valid tag */
         !tag->HasTimer() && /* no timer set */
-        (tag->End() + CDateTimeSpan(0, g_PVREpgContainer.m_iLingerTime / 60 + 1, g_PVREpgContainer.m_iLingerTime % 60, 0) < Time)) /* adding one hour for safety */
+        (tag->End() + CDateTimeSpan(0, CPVRManager::GetEpg()->m_iLingerTime / 60 + 1, CPVRManager::GetEpg()->m_iLingerTime % 60, 0) < Time)) /* adding one hour for safety */
     {
       DeleteInfoTag(tag);
     }
   }
   m_bUpdateRunning = false;
-
-  lock.Leave();
 }
 
 bool CPVREpg::UpdateEntry(const PVR_PROGINFO *data, bool bUpdateDatabase /* = false */)
@@ -77,14 +75,16 @@ bool CPVREpg::UpdateFromScraper(time_t start, time_t end)
 
   if (m_Channel && m_Channel->EPGEnabled() && ScraperName() == "client")
   {
-    if (g_PVRManager.GetClientProperties(m_Channel->ClientID())->SupportEPG &&
-        g_PVRManager.Clients()->find(m_Channel->ClientID())->second->ReadyToUse())
+    if (CPVRManager::Get()->GetClientProperties(m_Channel->ClientID())->SupportEPG &&
+        CPVRManager::Get()->Clients()->find(m_Channel->ClientID())->second->ReadyToUse())
     {
-      bGrabSuccess = g_PVRManager.Clients()->find(m_Channel->ClientID())->second->GetEPGForChannel(*m_Channel, this, start, end) == PVR_ERROR_NO_ERROR;
+      CLog::Log(LOGINFO, "%s - updating EPG for channel '%s' from client '%i'",
+          __FUNCTION__, m_Channel->ChannelName().c_str(), m_Channel->ClientID());
+      bGrabSuccess = CPVRManager::Get()->Clients()->find(m_Channel->ClientID())->second->GetEPGForChannel(*m_Channel, this, start, end) == PVR_ERROR_NO_ERROR;
     }
     else
     {
-      CLog::Log(LOGINFO, "%s - client '%s' on client '%i' does not support EPGs",
+      CLog::Log(LOGINFO, "%s - channel '%s' on client '%i' does not support EPGs",
           __FUNCTION__, m_Channel->ChannelName().c_str(), m_Channel->ClientID());
     }
   }

@@ -27,14 +27,13 @@
 
 using namespace std;
 
-CPVREpgContainer g_PVREpgContainer;
-
 void CPVREpgContainer::Clear(bool bClearDb /* = false */)
 {
   // XXX stop the timers from being updated while clearing tags
   /* remove all pointers to epg tables on timers */
-  for (unsigned int iTimerPtr = 0; iTimerPtr < g_PVRTimers.size(); iTimerPtr++)
-    g_PVRTimers.at(iTimerPtr)->SetEpgInfoTag(NULL);
+  CPVRTimers *timers = CPVRManager::GetTimers();
+  for (unsigned int iTimerPtr = 0; iTimerPtr < timers->size(); iTimerPtr++)
+    timers->at(iTimerPtr)->SetEpgInfoTag(NULL);
 
   CEpgContainer::Clear(bClearDb);
 }
@@ -43,7 +42,7 @@ bool CPVREpgContainer::CreateChannelEpgs(void)
 {
   for (int radio = 0; radio <= 1; radio++)
   {
-    const CPVRChannelGroup *channels = g_PVRChannelGroups.GetGroupAll(radio == 1);
+    const CPVRChannelGroup *channels = CPVRManager::GetChannelGroups()->GetGroupAll(radio == 1);
     for (unsigned int iChannelPtr = 0; iChannelPtr < channels->size(); iChannelPtr++)
     {
       CEpg *epg = GetById(channels->at(iChannelPtr)->ChannelID());
@@ -107,7 +106,7 @@ bool CPVREpgContainer::AutoCreateTablesHook(void)
 
 CEpg* CPVREpgContainer::CreateEpg(int iEpgId)
 {
-  CPVRChannel *channel = (CPVRChannel *) g_PVRChannelGroups.GetChannelById(iEpgId);
+  CPVRChannel *channel = (CPVRChannel *) CPVRManager::GetChannelGroups()->GetChannelById(iEpgId);
   if (channel)
   {
     return new CPVREpg(channel);
@@ -135,14 +134,14 @@ int CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFil
   CEpgContainer::GetEPGSearch(results, filter);
 
   /* filter recordings */
-  if (filter.m_bIgnorePresentRecordings && g_PVRRecordings.size() > 0)
+  if (filter.m_bIgnorePresentRecordings && CPVRManager::GetRecordings()->size() > 0)
   {
-    for (unsigned int iRecordingPtr = 0; iRecordingPtr < g_PVRRecordings.size(); iRecordingPtr++)
+    for (unsigned int iRecordingPtr = 0; iRecordingPtr < CPVRManager::GetRecordings()->size(); iRecordingPtr++)
     {
       for (int iResultPtr = 0; iResultPtr < results->Size(); iResultPtr++)
       {
         const CPVREpgInfoTag *epgentry  = (CPVREpgInfoTag *) results->Get(iResultPtr)->GetEPGInfoTag();
-        CPVRRecordingInfoTag *recording = &g_PVRRecordings[iRecordingPtr];
+        CPVRRecordingInfoTag *recording = &CPVRManager::GetRecordings()->at(iRecordingPtr);
         if (epgentry)
         {
           if (epgentry->Title()       != recording->Title() ||
@@ -158,14 +157,15 @@ int CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFil
   }
 
   /* filter timers */
-  if (filter.m_bIgnorePresentTimers && g_PVRTimers.size() > 0)
+  if (filter.m_bIgnorePresentTimers)
   {
-    for (unsigned int iTimerPtr = 0; iTimerPtr < g_PVRTimers.size(); iTimerPtr++)
+    CPVRTimers *timers = CPVRManager::GetTimers();
+    for (unsigned int iTimerPtr = 0; iTimerPtr < timers->size(); iTimerPtr++)
     {
       for (int iResultPtr = 0; iResultPtr < results->Size(); iResultPtr++)
       {
         const CPVREpgInfoTag *epgentry = (CPVREpgInfoTag *) results->Get(iResultPtr)->GetEPGInfoTag();
-        CPVRTimerInfoTag *timer        = g_PVRTimers.at(iTimerPtr);
+        CPVRTimerInfoTag *timer        = timers->at(iTimerPtr);
         if (epgentry)
         {
           if (epgentry->ChannelTag()->ChannelNumber() != timer->ChannelNumber() ||
@@ -185,7 +185,7 @@ int CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFil
 
 int CPVREpgContainer::GetEPGNow(CFileItemList* results, bool bRadio)
 {
-  CPVRChannelGroup *channels = (CPVRChannelGroup *) g_PVRChannelGroups.GetGroupAll(bRadio);
+  CPVRChannelGroup *channels = (CPVRChannelGroup *) CPVRManager::GetChannelGroups()->GetGroupAll(bRadio);
   int iInitialSize           = results->Size();
 
   for (unsigned int iChannelPtr = 0; iChannelPtr < channels->size(); iChannelPtr++)
@@ -213,7 +213,7 @@ int CPVREpgContainer::GetEPGNow(CFileItemList* results, bool bRadio)
 
 int CPVREpgContainer::GetEPGNext(CFileItemList* results, bool bRadio)
 {
-  CPVRChannelGroup *channels = (CPVRChannelGroup *) g_PVRChannelGroups.GetGroupAll(bRadio);
+  CPVRChannelGroup *channels = (CPVRChannelGroup *) CPVRManager::GetChannelGroups()->GetGroupAll(bRadio);
   int iInitialSize           = results->Size();
 
   for (unsigned int iChannelPtr = 0; iChannelPtr < channels->size(); iChannelPtr++)

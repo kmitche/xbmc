@@ -25,6 +25,7 @@
 
 #include "pvr/epg/PVREpg.h"
 #include "pvr/PVRManager.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/addons/PVRClient.h"
 
 namespace ADDON
@@ -147,7 +148,7 @@ void CAddonHelpers_PVR::PVRTransferTimerEntry(void *addonData, const PVRHANDLE h
 
   CPVRTimers *xbmcTimers     = (CPVRTimers*) handle->DATA_ADDRESS;
   CPVRClient* client         = (CPVRClient*) handle->CALLER_ADDRESS;
-  const CPVRChannel *channel = CPVRChannelGroup::GetByClientFromAll(timer->channelNum, client->GetClientID());
+  const CPVRChannel *channel = CPVRManager::GetChannelGroups()->GetByClientFromAll(timer->channelNum, client->GetClientID());
 
   if (channel == NULL)
   {
@@ -239,7 +240,7 @@ void CAddonHelpers_PVR::PVRTriggerTimerUpdate(void *addonData)
 
   CAddonHelpers_PVR* addonHelper = addon->GetHelperPVR();
 
-  g_PVRManager.TriggerTimersUpdate();
+  CPVRManager::Get()->TriggerTimersUpdate();
   CLog::Log(LOGDEBUG, "%s: %s-%s - Triggered Timer Update", __FUNCTION__, TranslateType(addonHelper->m_addon->Type()).c_str(), addonHelper->m_addon->Name().c_str());
 }
 
@@ -254,7 +255,7 @@ void CAddonHelpers_PVR::PVRTriggerRecordingUpdate(void *addonData)
 
   CAddonHelpers_PVR* addonHelper = addon->GetHelperPVR();
 
-  g_PVRManager.TriggerRecordingsUpdate();
+  CPVRManager::Get()->TriggerRecordingsUpdate();
   CLog::Log(LOGDEBUG, "%s: %s-%s - Triggered Recording Update", __FUNCTION__, TranslateType(addonHelper->m_addon->Type()).c_str(), addonHelper->m_addon->Name().c_str());
 }
 

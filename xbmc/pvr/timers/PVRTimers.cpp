@@ -26,11 +26,10 @@
 
 #include "PVRTimers.h"
 #include "PVRTimerInfoTag.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/PVRManager.h"
 #include "pvr/epg/PVREpgInfoTag.h"
-
-CPVRTimers g_PVRTimers;
 
 CPVRTimers::CPVRTimers(void)
 {
@@ -77,11 +76,11 @@ int CPVRTimers::Update()
   clear();
 
   /* get all timers from the clients */
-  CLIENTMAP *clients = g_PVRManager.Clients();
+  CLIENTMAP *clients = CPVRManager::Get()->Clients();
   CLIENTMAPITR itr = clients->begin();
   while (itr != clients->end())
   {
-    if (g_PVRManager.GetClientProperties((*itr).second->GetID())->SupportTimers)
+    if (CPVRManager::Get()->GetClientProperties((*itr).second->GetID())->SupportTimers)
     {
       if ((*itr).second->GetNumTimers() > 0)
       {
@@ -92,7 +91,7 @@ int CPVRTimers::Update()
   }
 
   //XXX
-  g_PVRManager.UpdateRecordingsCache();
+  CPVRManager::Get()->UpdateRecordingsCache();
 
   /* set channel timers */
   for (unsigned int ptr = 0; ptr < size(); ptr++)
@@ -103,7 +102,7 @@ int CPVRTimers::Update()
       continue;
 
     /* try to get the channel */
-    CPVRChannel *channel = (CPVRChannel *) CPVRChannelGroup::GetByClientFromAll(timerTag->Number(), timerTag->ClientID());
+    CPVRChannel *channel = (CPVRChannel *) CPVRManager::GetChannelGroups()->GetByClientFromAll(timerTag->Number(), timerTag->ClientID());
     if (!channel)
       continue;
 
@@ -262,7 +261,7 @@ CPVRTimerInfoTag *CPVRTimers::InstantTimer(CPVRChannel *channel, bool bStartTime
 {
   if (!channel)
   {
-    if (!g_PVRManager.GetCurrentChannel(channel))
+    if (!CPVRManager::Get()->GetCurrentChannel(channel))
       return NULL;
   }
 
@@ -341,7 +340,7 @@ bool CPVRTimers::AddTimer(const CFileItem &item)
 
 bool CPVRTimers::AddTimer(const CPVRTimerInfoTag &item)
 {
-  if (!g_PVRManager.GetClientProperties(item.ClientID())->SupportTimers)
+  if (!CPVRManager::Get()->GetClientProperties(item.ClientID())->SupportTimers)
   {
     CGUIDialogOK::ShowAndGetInput(19033,0,19215,0);
     return false;

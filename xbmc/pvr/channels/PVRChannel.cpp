@@ -97,7 +97,7 @@ CPVRChannel::CPVRChannel()
 bool CPVRChannel::Delete(void)
 {
   bool bReturn = false;
-  CPVRDatabase *database = g_PVRManager.GetTVDatabase();
+  CPVRDatabase *database = CPVRManager::Get()->GetTVDatabase();
   if (!database || !database->Open())
     return bReturn;
 
@@ -131,7 +131,7 @@ bool CPVRChannel::UpdateFromClient(const CPVRChannel &channel)
 
 bool CPVRChannel::Persist(bool bQueueWrite /* = false */)
 {
-  CPVRDatabase *database = g_PVRManager.GetTVDatabase();
+  CPVRDatabase *database = CPVRManager::Get()->GetTVDatabase();
   if (database)
   {
     database->Open();
@@ -193,7 +193,7 @@ bool CPVRChannel::SetGroupID(int iChannelGroupId, bool bSaveInDb /* = false */)
 
   if (m_iChannelGroupId != iChannelGroupId)
   {
-    const CPVRChannelGroups *groups = g_PVRChannelGroups.Get(IsRadio());
+    const CPVRChannelGroups *groups = CPVRManager::GetChannelGroups()->Get(IsRadio());
 
     if (bRemoveFromOldGroup)
     {
@@ -620,7 +620,7 @@ CPVREpg *CPVRChannel::GetEPG(void)
     /* will be cleaned up by CPVREpgContainer on exit */
     m_EPG = new CPVREpg(this);
     m_EPG->Persist();
-    g_PVREpgContainer.push_back(m_EPG);
+    CPVRManager::GetEpg()->push_back(m_EPG);
   }
 
   return m_EPG;

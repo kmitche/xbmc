@@ -1,6 +1,5 @@
-#pragma once
 /*
- *      Copyright (C) 2010 Alwin Esch (Team XBMC)
+ *      Copyright (C) 2005-2011 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -20,30 +19,10 @@
  *
  */
 
-#include "client.h"
-#include "VNSISession.h"
-#include "thread.h"
+#ifndef STAT_UTF8_H__
+#define STAT_UTF8_H__
 
-class cResponsePacket;
+#define stat64_utf8 stat64
 
-class cVNSIRecording
-{
-public:
-  cVNSIRecording();
-  ~cVNSIRecording();
+#endif //STAT_UTF8_H__
 
-  bool Open(const CStdString& path);
-  void Close();
-
-  int Read(unsigned char* buf, uint32_t buf_size);
-  long long Seek(long long pos, uint32_t whence);
-  long long Position(void);
-  long long Length(void);
-
-private:
-  cVNSISession    m_session;
-  uint64_t        m_currentPlayingRecordBytes;
-  uint32_t        m_currentPlayingRecordFrames;
-  uint64_t        m_currentPlayingRecordPosition;
-
-};

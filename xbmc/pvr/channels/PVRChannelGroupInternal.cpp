@@ -75,7 +75,7 @@ void CPVRChannelGroupInternal::Unload()
 bool CPVRChannelGroupInternal::Update()
 {
   bool          bReturn  = false;
-  CPVRDatabase *database = g_PVRManager.GetTVDatabase();
+  CPVRDatabase *database = CPVRManager::Get()->GetTVDatabase();
 
   if (database && database->Open())
   {
@@ -93,9 +93,10 @@ bool CPVRChannelGroupInternal::Update()
 bool CPVRChannelGroupInternal::UpdateTimers(void)
 {
   /* update the timers with the new channel numbers */
-  for (unsigned int ptr = 0; ptr < g_PVRTimers.size(); ptr++)
+  CPVRTimers *timers = CPVRManager::GetTimers();
+  for (unsigned int ptr = 0; ptr < timers->size(); ptr++)
   {
-    CPVRTimerInfoTag *timer = g_PVRTimers.at(ptr);
+    CPVRTimerInfoTag *timer = timers->at(ptr);
     const CPVRChannel *tag = GetByClient(timer->Number(), timer->ClientID());
     if (tag)
       timer->SetNumber(tag->ChannelNumber());
@@ -157,7 +158,7 @@ bool CPVRChannelGroupInternal::HideChannel(CPVRChannel *channel, bool bShowDialo
     return bReturn;
 
   /* check if there are active timers on this channel if we are hiding it */
-  if (!channel->IsHidden() && g_PVRTimers.ChannelHasTimers(*channel))
+  if (!channel->IsHidden() && CPVRManager::GetTimers()->ChannelHasTimers(*channel))
   {
     if (bShowDialog)
     {
@@ -176,13 +177,13 @@ bool CPVRChannelGroupInternal::HideChannel(CPVRChannel *channel, bool bShowDialo
     }
 
     /* delete the timers */
-    g_PVRTimers.DeleteTimersOnChannel(*channel);
+    CPVRManager::GetTimers()->DeleteTimersOnChannel(*channel);
   }
 
   /* check if this channel is currently playing if we are hiding it */
   if (!channel->IsHidden() &&
-      (g_PVRManager.IsPlayingTV() || g_PVRManager.IsPlayingRadio()) &&
-      (g_PVRManager.GetCurrentPlayingItem()->GetPVRChannelInfoTag() == channel))
+      (CPVRManager::Get()->IsPlayingTV() || CPVRManager::Get()->IsPlayingRadio()) &&
+      (CPVRManager::Get()->GetCurrentPlayingItem()->GetPVRChannelInfoTag() == channel))
   {
     CGUIDialogOK::ShowAndGetInput(19098,19101,0,19102);
     return bReturn;
@@ -210,7 +211,7 @@ bool CPVRChannelGroupInternal::HideChannel(CPVRChannel *channel, bool bShowDialo
 
 int CPVRChannelGroupInternal::LoadFromDb(bool bCompress /* = false */)
 {
-  CPVRDatabase *database = g_PVRManager.GetTVDatabase();
+  CPVRDatabase *database = CPVRManager::Get()->GetTVDatabase();
   if (!database || !database->Open())
     return -1;
 
@@ -276,7 +277,7 @@ void CPVRChannelGroupInternal::ReNumberAndCheck(void)
 
 int CPVRChannelGroupInternal::GetFromClients(void)
 {
-  CLIENTMAP *clients = g_PVRManager.Clients();
+  CLIENTMAP *clients = CPVRManager::Get()->Clients();
   if (!clients)
     return 0;
 
@@ -298,7 +299,7 @@ int CPVRChannelGroupInternal::GetFromClients(void)
 bool CPVRChannelGroupInternal::UpdateGroupEntries(CPVRChannelGroup *channels)
 {
   /* the database has already been opened */
-  CPVRDatabase *database = g_PVRManager.GetTVDatabase();
+  CPVRDatabase *database = CPVRManager::Get()->GetTVDatabase();
 
   int iSize = size();
   for (int ptr = 0; ptr < iSize; ptr++)
