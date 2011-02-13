@@ -286,10 +286,24 @@ const CEpgInfoTag *CEpg::InfoTagAround(CDateTime Time) const
   return returnTag;
 }
 
+void CEpg::AddEntry(const CEpgInfoTag &tag)
+{
+  CEpgInfoTag *newTag = CreateTag();
+  if (newTag)
+  {
+    push_back(newTag);
+
+    newTag->m_Epg = this;
+    newTag->Update(tag);
+    g_EpgContainer.UpdateFirstAndLastEPGDates(*newTag);
+  }
+}
+
 bool CEpg::UpdateEntry(const CEpgInfoTag &tag, bool bUpdateDatabase /* = false */)
 {
   bool bReturn = false;
 
+  /* XXX tags aren't always fetched correctly here */
   CEpgInfoTag *InfoTag = (CEpgInfoTag *) this->InfoTag(tag.UniqueBroadcastID(), tag.Start());
   /* create a new tag if no tag with this ID exists */
   if (!InfoTag)
@@ -372,7 +386,7 @@ bool CEpg::Update(time_t start, time_t end, int iUpdateTime, bool bStoreInDb /* 
     return bGrabSuccess;
 
   /* get the last update time from the database */
-  if (!m_lastScanTime.IsValid())
+  if (!m_lastScanTime.IsValid() && bStoreInDb)
   {
     CEpgDatabase *database = g_EpgContainer.GetDatabase();
     if (database && database->Open())
@@ -383,9 +397,9 @@ bool CEpg::Update(time_t start, time_t end, int iUpdateTime, bool bStoreInDb /* 
   }
 
   /* check if we have to update */
-  time_t iNow;
+  time_t iNow = 0;
+  time_t iLastUpdate = 0;
   CDateTime::GetCurrentDateTime().GetAsTime(iNow);
-  time_t iLastUpdate;
   m_lastScanTime.GetAsTime(iLastUpdate);
   if (iNow > iLastUpdate + iUpdateTime) //FIXME iLastUpdate is always -1 here
   {

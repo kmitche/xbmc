@@ -93,7 +93,7 @@ bool CEpgDatabase::CreateTables(void)
     CLog::Log(LOGDEBUG, "EpgDB - %s - creating table 'lastepgscan'", __FUNCTION__);
     m_pDS->exec("CREATE TABLE lastepgscan ("
           "idEpg integer primary key, "
-          "iLastScan integer"
+          "sLastScan text"
         ")"
     );
 
@@ -111,6 +111,27 @@ bool CEpgDatabase::CreateTables(void)
 
 bool CEpgDatabase::UpdateOldVersion(int iVersion)
 {
+  if (iVersion == 1)
+  {
+    BeginTransaction();
+
+    try
+    {
+      m_pDS->exec("DROP TABLE lastepgscan;");
+      m_pDS->exec("CREATE TABLE lastepgscan ("
+          "idEpg integer primary key, "
+          "sLastScan text"
+          ")"
+      );
+    }
+    catch(...)
+    {
+      RollbackTransaction();
+      return false;
+    }
+
+    CommitTransaction();
+  }
   return true;
 }
 
@@ -186,8 +207,7 @@ int CEpgDatabase::Get(CEpgContainer *container)
   int iReturn = -1;
 
   CStdString strQuery = FormatSQL("SELECT idEpg, sName, sScraperName FROM epg;");
-  int iNumRows = ResultQuery(strQuery);
-  if (iNumRows > 0)
+  if (ResultQuery(strQuery))
   {
     iReturn = 0;
 
@@ -214,6 +234,7 @@ int CEpgDatabase::Get(CEpgContainer *container)
 
         m_pDS->next();
       }
+      m_pDS->close();
     }
     catch (...)
     {
@@ -248,9 +269,7 @@ int CEpgDatabase::Get(CEpg *epg, const CDateTime &start /* = NULL */, const CDat
   CStdString strQuery;
   strQuery.Format("SELECT * FROM epgtags WHERE %s ORDER BY iStartTime ASC;", strWhereClause.c_str());
 
-  int iNumRows = ResultQuery(strQuery);
-
-  if (iNumRows > 0)
+  if (ResultQuery(strQuery))
   {
     iReturn = 0;
     try
@@ -287,11 +306,12 @@ int CEpgDatabase::Get(CEpg *epg, const CDateTime &start /* = NULL */, const CDat
         newTag.m_strEpisodeName     = m_pDS->fv("sEpisodeName").get_asString().c_str();
         newTag.m_strSeriesNum       = m_pDS->fv("sSeriesId").get_asString().c_str();
 
-        if (epg->UpdateEntry(newTag, false))
-          ++iReturn;
+        epg->AddEntry(newTag);
+        ++iReturn;
 
         m_pDS->next();
       }
+      m_pDS->close();
     }
     catch (...)
     {
@@ -305,7 +325,7 @@ bool CEpgDatabase::GetLastEpgScanTime(int iEpgId, CDateTime *lastScan)
 {
   bool bReturn = false;
   CStdString strWhereClause = FormatSQL("idEpg = %u", iEpgId);
-  CStdString strValue = GetSingleValue("lastepgscan", "iLastScan", strWhereClause);
+  CStdString strValue = GetSingleValue("lastepgscan", "sLastScan", strWhereClause);
 
   if (!strValue.IsEmpty())
   {
@@ -322,15 +342,12 @@ bool CEpgDatabase::GetLastEpgScanTime(int iEpgId, CDateTime *lastScan)
 
 bool CEpgDatabase::PersistLastEpgScanTime(int iEpgId /* = 0 */)
 {
-  CDateTime now = CDateTime::GetCurrentDateTime();
-  CLog::Log(LOGDEBUG, "EpgDB - %s - updating last scan time of table %d to '%s'",
-      __FUNCTION__, iEpgId, now.GetAsDBDateTime().c_str());
+  CLog::Log(LOGDEBUG, "EpgDB - %s - updating last scan time of table %d",
+      __FUNCTION__, iEpgId);
 
   bool bReturn = true;
-  time_t iLastScan;
-  now.GetAsTime(iLastScan);
-  CStdString strQuery = FormatSQL("REPLACE INTO lastepgscan(idEpg, iLastScan) VALUES (%u, %u);",
-      iEpgId, iLastScan);
+  CStdString strQuery = FormatSQL("REPLACE INTO lastepgscan(idEpg, sLastScan) VALUES (%u, '%s');",
+      iEpgId, CDateTime::GetCurrentDateTime().GetAsDBDateTime().c_str());
 
   bReturn = ExecuteQuery(strQuery);
 
