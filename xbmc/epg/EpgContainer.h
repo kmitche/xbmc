@@ -51,15 +51,8 @@ private:
   /** @name Configuration */
   //@{
   bool         m_bIgnoreDbForClient; /*!< don't save the EPG data in the database */
-  int          m_iLingerTime;        /*!< hours to keep old EPG data */
   int          m_iDisplayTime;       /*!< hours of EPG data to fetch */
   int          m_iUpdateTime;        /*!< update the full EPG after this period */
-  //@}
-
-  /** @name Cached data */
-  //@{
-  CDateTime    m_First;              /*!< the earliest EPG date in our tables */
-  CDateTime    m_Last;               /*!< the latest EPG date in our tables */
   //@}
 
   /** @name Class state properties */
@@ -68,6 +61,8 @@ private:
   time_t       m_iLastEpgCleanup;    /*!< the time the EPG was cleaned up */
   time_t       m_iLastEpgUpdate;     /*!< the time the EPG was updated */
   //@}
+
+  CCriticalSection m_critSection;    /*!< a critical section for changes to this container */
 
   /*!
    * @brief Load the EPG settings.
@@ -82,24 +77,11 @@ private:
   virtual bool RemoveOldEntries(void);
 
   /*!
-   * @brief Update the last and first EPG date cache after changing or inserting a tag.
-   * @param tag The tag that was changed or added.
-   */
-  virtual void UpdateFirstAndLastEPGDates(const CEpgInfoTag &tag);
-
-  /*!
    * @brief Load and update the EPG data.
    * @param bShowProgress Show a progress bar if true.
    * @return True if the update was successful, false otherwise.
    */
   virtual bool UpdateEPG(bool bShowProgress = false);
-
-  /*!
-   * @brief Get an EPG table given it's ID.
-   * @param iEpgId The database ID of the table.
-   * @return The table or NULL if it wasn't found.
-   */
-  virtual CEpg *GetById(int iEpgId) const;
 
   /*!
    * @brief A hook that will be called on every update thread iteration.
@@ -165,6 +147,14 @@ public:
   virtual void Reset(void) { Clear(true); }
 
   /*!
+   * @brief Delete an EPG table from this container.
+   * @param epg The table to delete.
+   * @param bDeleteFromDatabase Delete this table from the database too if true.
+   * @return
+   */
+  virtual bool DeleteEpg(const CEpg &epg, bool bDeleteFromDatabase = false);
+
+  /*!
    * @brief Process a notification from an observable.
    * @param obs The observable that sent the update.
    * @param msg The update message.
@@ -198,13 +188,27 @@ public:
    * @brief Get the start time of the first entry.
    * @return The start time.
    */
-  virtual const CDateTime &GetFirstEPGDate(void) { return m_First; }
+  virtual const CDateTime GetFirstEPGDate(void) const;
 
   /*!
     * @brief Get the end time of the last entry.
     * @return The end time.
     */
-  virtual const CDateTime &GetLastEPGDate(void) { return m_Last; }
+  virtual const CDateTime GetLastEPGDate(void) const;
+
+  /*!
+   * @brief Get an EPG table given it's ID.
+   * @param iEpgId The database ID of the table.
+   * @return The table or NULL if it wasn't found.
+   */
+  virtual CEpg *GetById(int iEpgId) const;
+
+  /*!
+   * @brief Get an EPG table given it's index in this container.
+   * @param iIndex The index.
+   * @return The table or NULL if it wasn't found.
+   */
+  virtual CEpg *GetByIndex(unsigned int iIndex) const;
 };
 
 extern CEpgContainer g_EpgContainer; /*!< The container for all EPG tables */

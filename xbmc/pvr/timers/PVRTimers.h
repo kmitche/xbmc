@@ -117,7 +117,7 @@ public:
    * Add a timer to the client.
    * True if it was sent correctly, false if not.
    */
-  static bool AddTimer(const CPVRTimerInfoTag &item);
+  static bool AddTimer(CPVRTimerInfoTag &item);
 
   /**
    * Delete a timer on the client.
@@ -153,10 +153,8 @@ public:
    * Get updated timer information from the client.
    * True if it was requested correctly, false if not.
    */
-  static bool UpdateTimer(const CPVRTimerInfoTag &item);
+  static bool UpdateTimer(CPVRTimerInfoTag &item);
 
-  // TODO
-  CPVRTimerInfoTag *GetMatch(CDateTime t);
-  CPVRTimerInfoTag *GetMatch(time_t t);
-  CPVRTimerInfoTag *GetMatch(const CPVREpgInfoTag *Epg, int *Match = NULL);
+  CPVRTimerInfoTag *GetMatch(const CEpgInfoTag *Epg);
+  CPVRTimerInfoTag *GetMatch(const CFileItem *item);
 };

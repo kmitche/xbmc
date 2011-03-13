@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="win32">
@@ -363,9 +363,6 @@
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DVDAudioCodecFFmpeg.cpp">
       <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DVDAudioCodecLibFaad.cpp">
-      <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DVDAudioCodecLibMad.cpp">
       <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
     </ClCompile>
@@ -489,12 +486,6 @@
     <ClCompile Include="..\..\xbmc\cores\dvdplayer\DVDSubtitles\DVDSubtitleStream.cpp">
       <Filter>cores\dvdplayer\DVDSubtitles</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\paplayer\AC3CDDACodec.cpp">
-      <Filter>cores\paplayer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\paplayer\AC3Codec.cpp">
-      <Filter>cores\paplayer</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\paplayer\ADPCMCodec.cpp">
       <Filter>cores\paplayer</Filter>
     </ClCompile>
@@ -511,12 +502,6 @@
       <Filter>cores\paplayer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\paplayer\CodecFactory.cpp">
-      <Filter>cores\paplayer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\paplayer\DTSCDDACodec.cpp">
-      <Filter>cores\paplayer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\paplayer\DTSCodec.cpp">
       <Filter>cores\paplayer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\paplayer\DVDPlayerCodec.cpp">
@@ -898,6 +883,9 @@
       <Filter>filesystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\FileSystem\StackDirectory.cpp">
+      <Filter>filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\FileSystem\SourcesDirectory.cpp">
       <Filter>filesystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\FileSystem\UPnPDirectory.cpp">
@@ -1928,9 +1916,6 @@
     <ClCompile Include="..\..\xbmc\utils\AliasShortcutUtils.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\utils\ArabicShaping.cpp">
-      <Filter>utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\utils\Archive.cpp">
       <Filter>utils</Filter>
     </ClCompile>
@@ -2115,9 +2100,6 @@
       <Filter>video\windows</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\video\windows\GUIWindowVideoBase.cpp">
-      <Filter>video\windows</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\video\windows\GUIWindowVideoFiles.cpp">
       <Filter>video\windows</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\video\windows\GUIWindowVideoNav.cpp">
@@ -2618,16 +2600,38 @@
     <ClCompile Include="..\..\xbmc\dialogs\GUIDialogExtendedProgressBar.cpp">
       <Filter>dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\pvr\GUIViewStatePVR.cpp">
-      <Filter>pvr</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\pvr\PVRDatabase.cpp">
       <Filter>pvr</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\pvr\PVRManager.cpp">
       <Filter>pvr</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\xbmc\interfaces\python\xbmcmodule\xbmcvfsmodule.cpp">
       <Filter>interfaces\python\xbmcmodule</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\cores\VideoRenderers\RenderCapture.cpp">
+      <Filter>cores\VideoRenderers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\pvr\windows\GUIViewStatePVR.cpp">
+      <Filter>pvr\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRChannels.cpp">
+      <Filter>pvr\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRCommon.cpp">
+      <Filter>pvr\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRGuide.cpp">
+      <Filter>pvr\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRRecordings.cpp">
+      <Filter>pvr\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRSearch.cpp">
+      <Filter>pvr\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRTimers.cpp">
+      <Filter>pvr\windows</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2739,15 +2743,6 @@
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\DVDFactoryCodec.h">
       <Filter>cores\dvdplayer\DVDCodecs</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DllLiba52.h">
-      <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DllLibDts.h">
-      <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DllLibFaad.h">
-      <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DllLibMad.h">
       <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
     </ClInclude>
@@ -2755,9 +2750,6 @@
       <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DVDAudioCodecFFmpeg.h">
-      <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DVDAudioCodecLibFaad.h">
       <Filter>cores\dvdplayer\DVDCodecs\Audio</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDCodecs\Audio\DVDAudioCodecLibMad.h">
@@ -2967,12 +2959,6 @@
     <ClInclude Include="..\..\xbmc\cores\dvdplayer\DVDSubtitles\DVDSubtitleStream.h">
       <Filter>cores\dvdplayer\DVDSubtitles</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\AC3CDDACodec.h">
-      <Filter>cores\paplayer</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\AC3Codec.h">
-      <Filter>cores\paplayer</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\paplayer\ADPCMCodec.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
@@ -2991,16 +2977,10 @@
     <ClInclude Include="..\..\xbmc\cores\paplayer\CodecFactory.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\lib\DllAc3codec.h">
-      <Filter>cores\paplayer</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\lib\DllAdpcm.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\lib\DllASAP.h">
-      <Filter>cores\paplayer</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\lib\DllDCACodec.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\lib\DllLibFlac.h">
@@ -3022,12 +3002,6 @@
       <Filter>cores\paplayer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\lib\DllWAVPack.h">
-      <Filter>cores\paplayer</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DTSCDDACodec.h">
-      <Filter>cores\paplayer</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\DTSCodec.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\paplayer\DVDPlayerCodec.h">
@@ -3385,6 +3359,9 @@
       <Filter>filesystem</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\FileSystem\StackDirectory.h">
+      <Filter>filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\FileSystem\SourcesDirectory.h">
       <Filter>filesystem</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\FileSystem\UPnPDirectory.h">
@@ -4562,9 +4539,6 @@
     <ClInclude Include="..\..\xbmc\utils\AliasShortcutUtils.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\utils\ArabicShaping.h">
-      <Filter>utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\utils\Archive.h">
       <Filter>utils</Filter>
     </ClInclude>
@@ -4770,9 +4744,6 @@
       <Filter>video\windows</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\video\windows\GUIWindowVideoBase.h">
-      <Filter>video\windows</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\video\windows\GUIWindowVideoFiles.h">
       <Filter>video\windows</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\video\windows\GUIWindowVideoNav.h">
@@ -5235,14 +5206,38 @@
     <ClInclude Include="..\..\xbmc\dialogs\GUIDialogExtendedProgressBar.h">
       <Filter>dialogs</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\pvr\GUIViewStatePVR.h">
-      <Filter>pvr</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\pvr\PVRDatabase.h">
       <Filter>pvr</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\pvr\PVRManager.h">
       <Filter>pvr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\cores\VideoRenderers\RenderCapture.h">
+      <Filter>cores\VideoRenderers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\pvr\windows\GUIWindowPVRTimers.h">
+      <Filter>pvr\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\pvr\windows\GUIViewStatePVR.h">
+      <Filter>pvr\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\pvr\windows\GUIWindowPVRChannels.h">
+      <Filter>pvr\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\pvr\windows\GUIWindowPVRCommon.h">
+      <Filter>pvr\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\pvr\windows\GUIWindowPVRGuide.h">
+      <Filter>pvr\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\pvr\windows\GUIWindowPVRRecordings.h">
+      <Filter>pvr\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\pvr\windows\GUIWindowPVRSearch.h">
+      <Filter>pvr\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\GlobalsHandling.h">
+      <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

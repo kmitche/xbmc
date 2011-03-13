@@ -77,7 +77,7 @@ bool IsClientConnected(bool forceReconnect)
       {
         XBMC->Log(LOG_NOTICE, "Trying to reconnect to VNSI Server (try %i)", m_retries+1);
         sleep(2);
-        if (VNSIData->Open(g_szHostname, g_iPort, g_iConnectTimeout))
+        if (VNSIData->Open(g_szHostname, g_iPort))
         {
           XBMC->Log(LOG_NOTICE, "Reconnect to VNSI Server succesfull");
           m_CurStatus = STATUS_OK;
@@ -201,13 +201,14 @@ ADDON_STATUS Create(void* hdl, void* props)
   }
 
   VNSIData = new cVNSIData;
-  if (!VNSIData->Open(g_szHostname, g_iPort, g_iConnectTimeout))
+  if (!VNSIData->Open(g_szHostname, g_iPort))
   {
     m_CurStatus = STATUS_LOST_CONNECTION;
     return m_CurStatus;
   }
 
-  VNSIData->EnableStatusInterface(g_bHandleMessages);
+  if (!VNSIData->EnableStatusInterface(g_bHandleMessages))
+    return m_CurStatus;
 
   m_CurStatus = STATUS_OK;
   m_bCreated = true;

@@ -152,7 +152,6 @@
 #include "video/windows/GUIWindowVideoPlaylist.h"
 #include "music/dialogs/GUIDialogMusicInfo.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
-#include "video/windows/GUIWindowVideoFiles.h"
 #include "video/windows/GUIWindowVideoNav.h"
 #include "settings/GUIWindowSettingsProfile.h"
 #ifdef HAS_GL
@@ -322,6 +321,7 @@ CApplication::CApplication(void) : m_itemCurrentFile(new CFileItem), m_progressT
   m_strPlayListFile = "";
   m_nextPlaylistItem = -1;
   m_bPlaybackStarting = false;
+  m_skinReloading = false;
 
 #ifdef HAS_GLX
   XInitThreads();
@@ -867,6 +867,10 @@ bool CApplication::InitDirectoriesOSX()
   CUtil::GetHomePath(xbmcPath);
   setenv("XBMC_HOME", xbmcPath.c_str(), 0);
 
+  // setup path to our internal dylibs so loader can find them
+  CStdString frameworksPath = CUtil::GetFrameworksPath();
+  CSpecialProtocol::SetXBMCFrameworksPath(frameworksPath);
+  
   // OSX always runs with m_bPlatformDirectories == true
   if (m_bPlatformDirectories)
   {
@@ -1028,7 +1032,6 @@ bool CApplication::Initialize()
   g_windowManager.Add(new CGUIWindowPrograms);                 // window id = 1
   g_windowManager.Add(new CGUIWindowPictures);                 // window id = 2
   g_windowManager.Add(new CGUIWindowFileManager);      // window id = 3
-  g_windowManager.Add(new CGUIWindowVideoFiles);          // window id = 6
   g_windowManager.Add(new CGUIWindowSettings);                 // window id = 4
   g_windowManager.Add(new CGUIWindowSystemInfo);               // window id = 7
 #ifdef HAS_GL
@@ -1094,18 +1097,18 @@ bool CApplication::Initialize()
   g_windowManager.Add(new CGUIWindowMusicPlaylistEditor);    // window id = 503
 
   /* Load PVR related Windows and Dialogs */
-  g_windowManager.Add(new CGUIWindowPVR);                      // window id = 600
-  g_windowManager.Add(new CGUIDialogPVRGuideInfo);             // window id = 601
-  g_windowManager.Add(new CGUIDialogPVRRecordingInfo);         // window id = 602
-  g_windowManager.Add(new CGUIDialogPVRTimerSettings);         // window id = 603
-  g_windowManager.Add(new CGUIDialogPVRGroupManager);          // window id = 604
-  g_windowManager.Add(new CGUIDialogPVRChannelManager);        // window id = 605
-  g_windowManager.Add(new CGUIDialogPVRGuideSearch);           // window id = 606
-  g_windowManager.Add(new CGUIDialogPVRChannelsOSD);           // window id = 609
-  g_windowManager.Add(new CGUIDialogPVRGuideOSD);              // window id = 610
-  g_windowManager.Add(new CGUIDialogPVRDirectorOSD);           // window id = 611
-  g_windowManager.Add(new CGUIDialogPVRCutterOSD);             // window id = 612
-  g_windowManager.Add(new CGUIDialogTeletext);                 // window id = 613
+  g_windowManager.Add(new CGUIWindowPVR);                    // window id = 600
+  g_windowManager.Add(new CGUIDialogPVRGuideInfo);           // window id = 601
+  g_windowManager.Add(new CGUIDialogPVRRecordingInfo);       // window id = 602
+  g_windowManager.Add(new CGUIDialogPVRTimerSettings);       // window id = 603
+  g_windowManager.Add(new CGUIDialogPVRGroupManager);        // window id = 604
+  g_windowManager.Add(new CGUIDialogPVRChannelManager);      // window id = 605
+  g_windowManager.Add(new CGUIDialogPVRGuideSearch);         // window id = 606
+  g_windowManager.Add(new CGUIDialogPVRChannelsOSD);         // window id = 609
+  g_windowManager.Add(new CGUIDialogPVRGuideOSD);            // window id = 610
+  g_windowManager.Add(new CGUIDialogPVRDirectorOSD);         // window id = 611
+  g_windowManager.Add(new CGUIDialogPVRCutterOSD);           // window id = 612
+  g_windowManager.Add(new CGUIDialogTeletext);               // window id = 613
 
   g_windowManager.Add(new CGUIDialogSelect);             // window id = 2000
   g_windowManager.Add(new CGUIDialogMusicInfo);          // window id = 2001
@@ -1259,8 +1262,8 @@ void CApplication::StartJSONRPCServer()
 #ifdef HAS_JSONRPC
   if (g_guiSettings.GetBool("services.esenabled"))
   {
-    if (CTCPServer::StartServer(9090, g_guiSettings.GetBool("services.esallinterfaces")))
-      CZeroconf::GetInstance()->PublishService("servers.jsonrpc", "_xbmc-jsonrpc._tcp", "XBMC JSONRPC", 9090);
+    if (CTCPServer::StartServer(g_advancedSettings.m_jsonTcpPort, g_guiSettings.GetBool("services.esallinterfaces")))
+      CZeroconf::GetInstance()->PublishService("servers.jsonrpc", "_xbmc-jsonrpc._tcp", "XBMC JSONRPC", g_advancedSettings.m_jsonTcpPort);
   }
 #endif
 }
@@ -1518,6 +1521,7 @@ void CApplication::StopServices()
 
 void CApplication::ReloadSkin()
 {
+  m_skinReloading = false;
   CGUIMessage msg(GUI_MSG_LOAD_SKIN, -1, g_windowManager.GetActiveWindow());
   g_windowManager.SendMessage(msg);
   // Reload the skin, restoring the previously focused control.  We need this as
@@ -1535,6 +1539,9 @@ void CApplication::ReloadSkin()
 
 bool CApplication::LoadSkin(const CStdString& skinID)
 {
+  if (m_skinReloading)
+    return false;
+
   AddonPtr addon;
   if (CAddonMgr::Get().GetAddon(skinID, addon, ADDON_SKIN))
   {
@@ -1580,7 +1587,6 @@ void CApplication::LoadSkin(const SkinPtr& skin)
   vector<int> currentModelessWindows;
   g_windowManager.GetActiveModelessWindows(currentModelessWindows);
 
-  CLog::Log(LOGINFO, "  delete old skin...");
   UnloadSkin();
 
   CLog::Log(LOGINFO, "  load skin from:%s", skin->Path().c_str());
@@ -1689,8 +1695,12 @@ void CApplication::LoadSkin(const SkinPtr& skin)
   }
 }
 
-void CApplication::UnloadSkin()
+void CApplication::UnloadSkin(bool forReload /* = false */)
 {
+  m_skinReloading = forReload;
+
+  CLog::Log(LOGINFO, "Unloading old skin %s...", forReload ? "for reload " : "");
+
   g_audioManager.Enable(false);
 
   g_windowManager.DeInitialize();
@@ -2095,6 +2105,7 @@ void CApplication::Render()
   g_graphicsContext.Flip();
 
   g_renderManager.UpdateResolution();
+  g_renderManager.ManageCaptures();
 
 #ifdef HAS_SDL
   SDL_mutexP(m_frameMutex);
@@ -3167,8 +3178,8 @@ bool CApplication::Cleanup()
     g_windowManager.Delete(WINDOW_DIALOG_PVR_OSD_DIRECTOR);
     g_windowManager.Delete(WINDOW_DIALOG_PVR_OSD_CUTTER);
     g_windowManager.Delete(WINDOW_DIALOG_OSD_TELETEXT);
-    g_windowManager.Delete(WINDOW_DIALOG_TEXT_VIEWER);
 
+    g_windowManager.Delete(WINDOW_DIALOG_TEXT_VIEWER);
     g_windowManager.Delete(WINDOW_STARTUP_ANIM);
     g_windowManager.Delete(WINDOW_LOGIN_SCREEN);
     g_windowManager.Delete(WINDOW_VISUALISATION);

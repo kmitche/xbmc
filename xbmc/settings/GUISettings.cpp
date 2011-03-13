@@ -771,12 +771,10 @@ void CGUISettings::Initialize()
   AddString(pvrm, "pvrmenu.iconpath", 19018, "", BUTTON_CONTROL_PATH_INPUT, false, 657);
   AddString(pvrm, "pvrmenu.searchicons", 19167, "", BUTTON_CONTROL_STANDARD);
   AddSeparator(pvrm, "pvrmenu.sep2");
-  AddInt(pvrm, "pvrmenu.defaultguideview", 19065, GUIDE_VIEW_CHANNEL, GUIDE_VIEW_CHANNEL, 1, GUIDE_VIEW_TIMELINE, SPIN_CONTROL_TEXT);
+  AddInt(pvrm, "pvrmenu.defaultguideview", 19065, GUIDE_VIEW_NOW, GUIDE_VIEW_CHANNEL, 1, GUIDE_VIEW_TIMELINE, SPIN_CONTROL_TEXT);
 
   CSettingsCategory* pvre = AddCategory(8, "epg", 19069);
   AddInt(pvre, "epg.daystodisplay", 19182, 2, 1, 1, 14, SPIN_CONTROL_INT_PLUS, MASK_DAYS);
-  AddInt(pvre, "epg.lingertime", 19183, 0, 0, 30, 960, SPIN_CONTROL_INT_PLUS, MASK_MINS);
-  AddInt(pvre, "epg.epgscan", 19070, 5, 1, 1, 24, SPIN_CONTROL_INT_PLUS, MASK_HOURS);
   AddInt(pvre, "epg.epgupdate", 19071, 120, 15, 15, 480, SPIN_CONTROL_INT_PLUS, MASK_MINS);
   AddBool(pvre, "epg.ignoredbforclient", 19072, false);
   AddString(pvre, "epg.resetepg", 19187, "", BUTTON_CONTROL_STANDARD);

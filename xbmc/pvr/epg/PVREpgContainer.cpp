@@ -19,6 +19,7 @@
  *
  */
 
+#include "threads/SingleLock.h"
 #include "PVREpgContainer.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
@@ -29,6 +30,7 @@ using namespace std;
 
 void CPVREpgContainer::Clear(bool bClearDb /* = false */)
 {
+  CSingleLock lock(m_critSection);
   // XXX stop the timers from being updated while clearing tags
   /* remove all pointers to epg tables on timers */
   CPVRTimers *timers = CPVRManager::GetTimers();
@@ -64,41 +66,21 @@ bool CPVREpgContainer::CreateChannelEpgs(void)
 int CPVREpgContainer::GetEPGAll(CFileItemList* results, bool bRadio /* = false */)
 {
   int iInitialSize = results->Size();
+  const CPVRChannelGroup *group = CPVRManager::GetChannelGroups()->GetGroupAll(bRadio);
+  if (!group)
+    return -1;
 
-  for (unsigned int iEpgPtr = 0; iEpgPtr < size(); iEpgPtr++)
+  CSingleLock lock(m_critSection);
+  for (unsigned int iChannelPtr = 0; iChannelPtr < group->Size(); iChannelPtr++)
   {
-    CPVREpg *epg = (CPVREpg *) at(iEpgPtr);
-    CPVRChannel *channel = (CPVRChannel *) epg->Channel();
-    if (!channel || channel->IsRadio() != bRadio)
+    CPVRChannel *channel = (CPVRChannel *) group->GetByIndex(iChannelPtr);
+    if (!channel || !channel->GetEPG())
       continue;
 
-    epg->Get(results);
+    channel->GetEPG()->Get(results);
   }
 
   return results->Size() - iInitialSize;
-}
-
-void CPVREpgContainer::UpdateFirstAndLastEPGDates(const CPVREpgInfoTag &tag)
-{
-  CEpgContainer::UpdateFirstAndLastEPGDates(tag);
-
-  if (!tag.ChannelTag())
-    return;
-
-  if (tag.ChannelTag()->IsRadio())
-  {
-    if (tag.Start() < m_First)
-      m_RadioFirst = tag.Start();
-    if (tag.End() > m_Last)
-      m_RadioLast = tag.End();
-  }
-  else
-  {
-    if (tag.Start() < m_First)
-      m_TVFirst = tag.Start();
-    if (tag.End() > m_Last)
-      m_TVLast = tag.End();
-  }
 }
 
 bool CPVREpgContainer::AutoCreateTablesHook(void)
@@ -121,14 +103,16 @@ CEpg* CPVREpgContainer::CreateEpg(int iEpgId)
   }
 }
 
-const CDateTime &CPVREpgContainer::GetFirstEPGDate(bool bRadio /* = false */)
+const CDateTime CPVREpgContainer::GetFirstEPGDate(bool bRadio /* = false */)
 {
-  return bRadio ? m_RadioFirst : m_TVFirst;
+  // TODO should use two separate containers, one for radio, one for tv
+  return CEpgContainer::GetFirstEPGDate();
 }
 
-const CDateTime &CPVREpgContainer::GetLastEPGDate(bool bRadio /* = false */)
+const CDateTime CPVREpgContainer::GetLastEPGDate(bool bRadio /* = false */)
 {
-  return bRadio ? m_RadioLast : m_TVLast;
+  // TODO should use two separate containers, one for radio, one for tv
+  return CEpgContainer::GetLastEPGDate();
 }
 
 int CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFilter &filter)
@@ -143,12 +127,12 @@ int CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFil
       for (int iResultPtr = 0; iResultPtr < results->Size(); iResultPtr++)
       {
         const CPVREpgInfoTag *epgentry  = (CPVREpgInfoTag *) results->Get(iResultPtr)->GetEPGInfoTag();
-        CPVRRecordingInfoTag *recording = &CPVRManager::GetRecordings()->at(iRecordingPtr);
+        CPVRRecording *recording = CPVRManager::GetRecordings()->at(iRecordingPtr);
         if (epgentry)
         {
-          if (epgentry->Title()       != recording->Title() ||
-              epgentry->PlotOutline() != recording->PlotOutline() ||
-              epgentry->Plot()        != recording->Plot())
+          if (epgentry->Title()       != recording->m_strTitle ||
+              epgentry->PlotOutline() != recording->m_strPlotOutline ||
+              epgentry->Plot()        != recording->m_strPlot)
             continue;
 
           results->Remove(iResultPtr);
@@ -171,8 +155,8 @@ int CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFil
         if (epgentry)
         {
           if (epgentry->ChannelTag()->ChannelNumber() != timer->ChannelNumber() ||
-              epgentry->Start()                       <  timer->Start() ||
-              epgentry->End()                         >  timer->Stop())
+              epgentry->Start()                       <  timer->m_StartTime ||
+              epgentry->End()                         >  timer->m_StopTime)
             continue;
 
           results->Remove(iResultPtr);
@@ -188,13 +172,14 @@ int CPVREpgContainer::GetEPGSearch(CFileItemList* results, const PVREpgSearchFil
 int CPVREpgContainer::GetEPGNow(CFileItemList* results, bool bRadio)
 {
   CPVRChannelGroup *channels = (CPVRChannelGroup *) CPVRManager::GetChannelGroups()->GetGroupAll(bRadio);
+  CSingleLock lock(m_critSection);
   int iInitialSize           = results->Size();
 
   for (unsigned int iChannelPtr = 0; iChannelPtr < channels->Size(); iChannelPtr++)
   {
     CPVRChannel *channel = (CPVRChannel *) channels->GetByIndex(iChannelPtr);
     CPVREpg *epg = channel->GetEPG();
-    if (!epg->HasValidEntries() || epg->IsUpdateRunning())
+    if (!epg->HasValidEntries())
       continue;
 
     const CPVREpgInfoTag *epgNow = (CPVREpgInfoTag *) epg->InfoTagNow();
@@ -214,20 +199,19 @@ int CPVREpgContainer::GetEPGNow(CFileItemList* results, bool bRadio)
 int CPVREpgContainer::GetEPGNext(CFileItemList* results, bool bRadio)
 {
   CPVRChannelGroup *channels = (CPVRChannelGroup *) CPVRManager::GetChannelGroups()->GetGroupAll(bRadio);
+  CSingleLock lock(m_critSection);
   int iInitialSize           = results->Size();
 
   for (unsigned int iChannelPtr = 0; iChannelPtr < channels->Size(); iChannelPtr++)
   {
     CPVRChannel *channel = (CPVRChannel *) channels->GetByIndex(iChannelPtr);
     CPVREpg *epg = channel->GetEPG();
-    if (!epg->HasValidEntries() || epg->IsUpdateRunning())
+    if (!epg->HasValidEntries())
       continue;
 
     const CPVREpgInfoTag *epgNext = (CPVREpgInfoTag *) epg->InfoTagNext();
     if (!epgNext)
-    {
       continue;
-    }
 
     CFileItemPtr entry(new CFileItem(*epgNext));
     entry->SetLabel2(epgNext->Start().GetAsLocalizedTime("", false));

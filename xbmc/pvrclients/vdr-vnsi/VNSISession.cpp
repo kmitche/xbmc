@@ -67,7 +67,7 @@ void cVNSISession::Close()
   }
 }
 
-bool cVNSISession::Open(const CStdString& hostname, int port, long timeout, const char *name)
+bool cVNSISession::Open(const CStdString& hostname, int port, const char *name)
 {
   struct hostent hostbuf, *hp;
   int herr, fd, r, res, err;
@@ -172,9 +172,9 @@ bool cVNSISession::Open(const CStdString& hostname, int port, long timeout, cons
       pfd.events = POLLOUT;
       pfd.revents = 0;
 
-      r = poll(&pfd, 1, timeout*1000);
+      r = poll(&pfd, 1, g_iConnectTimeout*1000);
       if (r == 0) /* Timeout */
-        XBMC->Log(LOG_ERROR, "Connection attempt timed out %i", timeout);
+        XBMC->Log(LOG_ERROR, "Connection attempt timed out %i", g_iConnectTimeout);
 
       if (r == -1)
       {
@@ -255,7 +255,7 @@ bool cVNSISession::Open(const CStdString& hostname, int port, long timeout, cons
   return true;
 }
 
-cResponsePacket* cVNSISession::ReadMessage(int timeout)
+cResponsePacket* cVNSISession::ReadMessage()
 {
   uint32_t channelID = 0;
   uint32_t requestID;
@@ -269,7 +269,7 @@ cResponsePacket* cVNSISession::ReadMessage(int timeout)
 
   cResponsePacket* vresp = NULL;
 
-  bool readSuccess = readData((uint8_t*)&channelID, sizeof(uint32_t), timeout) > 0;  // 2s timeout atm
+  bool readSuccess = readData((uint8_t*)&channelID, sizeof(uint32_t)) > 0;
   if (!readSuccess)
     return NULL;
 
@@ -357,18 +357,19 @@ cResponsePacket* cVNSISession::ReadResult(cRequestPacket* vrp, bool sequence)
   if(!SendMessage(vrp))
     return NULL;
 
-  cResponsePacket *pkt = ReadMessage();
+  cResponsePacket *pkt = NULL;
 
-  if (!pkt)
-    return NULL;
-
-  /* Discard everything other as response packets until it is received */
-  if (pkt->getChannelID() == CHANNEL_REQUEST_RESPONSE || sequence)
+  while((pkt = ReadMessage()))
   {
-    return pkt;
+    /* Discard everything other as response packets until it is received */
+    if (pkt->getChannelID() == CHANNEL_REQUEST_RESPONSE
+        && (!sequence || pkt->getRequestID() == vrp->getSerial()))
+    {
+      return pkt;
+    }
+    else
+      delete pkt;
   }
-
-  delete pkt;
   return NULL;
 }
 
@@ -423,7 +424,7 @@ int cVNSISession::sendData(void* bufR, size_t count)
   return(count);
 }
 
-int cVNSISession::readData(uint8_t* buffer, int totalBytes, int TimeOut)
+int cVNSISession::readData(uint8_t* buffer, int totalBytes)
 {
   int bytesRead = 0;
   int thisRead;
@@ -435,7 +436,7 @@ int cVNSISession::readData(uint8_t* buffer, int totalBytes, int TimeOut)
   {
     FD_ZERO(&readSet);
     FD_SET(m_fd, &readSet);
-    timeout.tv_sec = TimeOut;
+    timeout.tv_sec = g_iConnectTimeout;
     timeout.tv_usec = 0;
     success = select(m_fd + 1, &readSet, NULL, NULL, &timeout);
     if (success < 1)
