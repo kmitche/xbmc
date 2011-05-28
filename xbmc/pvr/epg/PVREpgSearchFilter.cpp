@@ -23,13 +23,15 @@
 #include "utils/TextSearch.h"
 
 #include "PVREpgSearchFilter.h"
-#include "PVREpgInfoTag.h"
 #include "pvr/PVRManager.h"
+#include "PVREpgContainer.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 
 using namespace std;
+using namespace PVR;
+using namespace EPG;
 
-void PVREpgSearchFilter::Reset()
+void PVR::PVREpgSearchFilter::Reset()
 {
   EpgSearchFilter::Reset();
   m_iChannelNumber           = -1;
@@ -39,7 +41,7 @@ void PVREpgSearchFilter::Reset()
   m_bIgnorePresentRecordings = true;
 }
 
-bool PVREpgSearchFilter::FilterEntry(const CPVREpgInfoTag &tag) const
+bool PVR::PVREpgSearchFilter::FilterEntry(const CPVREpgInfoTag &tag) const
 {
   bool bReturn = EpgSearchFilter::FilterEntry(tag);
 
@@ -66,7 +68,7 @@ bool PVREpgSearchFilter::FilterEntry(const CPVREpgInfoTag &tag) const
     }
     if (m_iChannelGroup != -1)
     {
-      const CPVRChannelGroup *group = CPVRManager::GetChannelGroups()->GetById(tag.ChannelTag()->IsRadio(), m_iChannelGroup);
+      const CPVRChannelGroup *group = g_PVRChannelGroups->GetById(tag.ChannelTag()->IsRadio(), m_iChannelGroup);
       if (!group || !group->IsGroupMember(tag.ChannelTag()))
         bReturn = false;
     }

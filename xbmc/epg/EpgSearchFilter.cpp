@@ -20,13 +20,14 @@
  */
 
 #include "guilib/LocalizeStrings.h"
-#include "TextSearch.h"
+#include "utils/TextSearch.h"
 #include "../addons/include/xbmc_pvr_types.h"
 
 #include "EpgSearchFilter.h"
 #include "EpgContainer.h"
 
 using namespace std;
+using namespace EPG;
 
 void EpgSearchFilter::Reset()
 {
@@ -61,7 +62,7 @@ bool EpgSearchFilter::FilterEntry(const CEpgInfoTag &tag) const
   {
     if (tag.GenreType() != m_iGenreType &&
         (!m_bIncludeUnknownGenres &&
-        ((tag.GenreType() < EVCONTENTMASK_USERDEFINED || tag.GenreType() >= EVCONTENTMASK_MOVIEDRAMA))))
+        ((tag.GenreType() < EPG_EVENT_CONTENTMASK_USERDEFINED || tag.GenreType() >= EPG_EVENT_CONTENTMASK_MOVIEDRAMA))))
     {
       return false;
     }
@@ -77,7 +78,7 @@ bool EpgSearchFilter::FilterEntry(const CEpgInfoTag &tag) const
       return false;
   }
 
-  int timeTag = (tag.Start().GetHour()*60 + tag.Start().GetMinute());
+  int timeTag = (tag.StartAsLocalTime().GetHour()*60 + tag.StartAsLocalTime().GetMinute());
 
   if (timeTag < (m_startTime.wHour*60 + m_startTime.wMinute))
     return false;
@@ -85,10 +86,10 @@ bool EpgSearchFilter::FilterEntry(const CEpgInfoTag &tag) const
   if (timeTag > (m_endTime.wHour*60 + m_endTime.wMinute))
     return false;
 
-  if (tag.Start() < m_startDate)
+  if (tag.StartAsLocalTime() < m_startDate)
     return false;
 
-  if (tag.Start() > m_endDate)
+  if (tag.StartAsLocalTime() > m_endDate)
     return false;
 
   if (m_strSearchTerm != "")

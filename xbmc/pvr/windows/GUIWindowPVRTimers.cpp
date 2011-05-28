@@ -26,12 +26,22 @@
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/GUIWindowManager.h"
 #include "pvr/PVRManager.h"
-#include "pvr/timers/PVRTimerInfoTag.h"
+#include "pvr/timers/PVRTimers.h"
+#include "pvr/addons/PVRClients.h"
 #include "GUIWindowPVR.h"
+#include "threads/SingleLock.h"
+
+using namespace PVR;
 
 CGUIWindowPVRTimers::CGUIWindowPVRTimers(CGUIWindowPVR *parent) :
   CGUIWindowPVRCommon(parent, PVR_WINDOW_TIMERS, CONTROL_BTNTIMERS, CONTROL_LIST_TIMERS)
 {
+}
+
+void CGUIWindowPVRTimers::ResetObservers(void)
+{
+  CSingleLock lock(m_critSection);
+  g_PVRTimers->RegisterObserver(this);
 }
 
 void CGUIWindowPVRTimers::GetContextButtons(int itemNumber, CContextButtons &buttons) const
@@ -60,7 +70,7 @@ void CGUIWindowPVRTimers::GetContextButtons(int itemNumber, CContextButtons &but
     buttons.Add(CONTEXT_BUTTON_DELETE, 117);            /* delete timer */
     buttons.Add(CONTEXT_BUTTON_SORTBY_NAME, 103);       /* sort by name */
     buttons.Add(CONTEXT_BUTTON_SORTBY_DATE, 104);       /* sort by date */
-    if (CPVRManager::Get()->HasMenuHooks(pItem->GetPVRTimerInfoTag()->m_iClientID))
+    if (g_PVRClients->HasMenuHooks(pItem->GetPVRTimerInfoTag()->m_iClientId))
       buttons.Add(CONTEXT_BUTTON_MENU_HOOKS, 19195);    /* PVR client specific action */
   }
 }
@@ -81,12 +91,21 @@ bool CGUIWindowPVRTimers::OnContextButton(int itemNumber, CONTEXT_BUTTON button)
 
 void CGUIWindowPVRTimers::UpdateData(void)
 {
+  CSingleLock lock(m_critSection);
   if (m_bIsFocusing)
     return;
 
   CLog::Log(LOGDEBUG, "CGUIWindowPVRTimers - %s - update window '%s'. set view to %d", __FUNCTION__, GetName(), m_iControlList);
   m_bIsFocusing = true;
   m_bUpdateRequired = false;
+
+  g_PVRTimers->RegisterObserver(this);
+
+  /* lock the graphics context while updating */
+  CSingleLock graphicsLock(g_graphicsContext);
+
+  m_iSelected = m_parent->m_viewControl.GetSelectedItem();
+  m_parent->m_viewControl.Clear();
   m_parent->m_vecItems->Clear();
   m_parent->m_viewControl.SetCurrentView(m_iControlList);
   m_parent->m_vecItems->m_strPath = "pvr://timers/";
@@ -107,8 +126,7 @@ bool CGUIWindowPVRTimers::OnClickButton(CGUIMessage &message)
   if (IsSelectedButton(message))
   {
     bReturn = true;
-    CPVRManager::GetTimers()->Update();
-    UpdateData();
+    g_PVRManager.TriggerTimersUpdate();
   }
 
   return bReturn;
@@ -153,20 +171,19 @@ bool CGUIWindowPVRTimers::OnContextButtonActivate(CFileItem *item, CONTEXT_BUTTO
 
     CPVRTimerInfoTag *timer = item->GetPVRTimerInfoTag();
     int iLabelId;
-    if (timer->m_bIsActive)
+    if (timer->IsActive())
     {
-      timer->m_bIsActive = false;
+      timer->m_state = PVR_TIMER_STATE_CANCELLED;
       iLabelId = 13106;
     }
     else
     {
-      timer->m_bIsActive = true;
+      timer->m_state = PVR_TIMER_STATE_SCHEDULED;
       iLabelId = 305;
     }
 
     CGUIDialogOK::ShowAndGetInput(19033, 19040, 0, iLabelId);
-    CPVRManager::GetTimers()->UpdateTimer(*item);
-    UpdateData();
+    g_PVRTimers->UpdateTimer(*item);
   }
 
   return bReturn;
@@ -177,17 +194,7 @@ bool CGUIWindowPVRTimers::OnContextButtonAdd(CFileItem *item, CONTEXT_BUTTON but
   bool bReturn = false;
 
   if (button == CONTEXT_BUTTON_ADD)
-  {
-    bReturn = true;
-    CPVRTimerInfoTag *newtimer = CPVRManager::GetTimers()->InstantTimer(NULL, false);
-    CFileItem *item = new CFileItem(*newtimer);
-
-    if (ShowTimerSettings(item))
-    {
-      CPVRManager::GetTimers()->AddTimer(*item);
-      UpdateData();
-    }
-  }
+    bReturn = ShowNewTimerDialog();
 
   return bReturn;
 }
@@ -214,8 +221,7 @@ bool CGUIWindowPVRTimers::OnContextButtonDelete(CFileItem *item, CONTEXT_BUTTON 
     if (!pDialog->IsConfirmed())
       return bReturn;
 
-    if (CPVRManager::GetTimers()->DeleteTimer(*item))
-      UpdateData();
+    g_PVRTimers->DeleteTimer(*item);
   }
 
   return bReturn;
@@ -232,10 +238,7 @@ bool CGUIWindowPVRTimers::OnContextButtonEdit(CFileItem *item, CONTEXT_BUTTON bu
       return bReturn;
 
     if (ShowTimerSettings(item))
-    {
-      CPVRManager::GetTimers()->UpdateTimer(*item);
-      UpdateData();
-    }
+      g_PVRTimers->UpdateTimer(*item);
   }
 
   return bReturn;
@@ -254,11 +257,26 @@ bool CGUIWindowPVRTimers::OnContextButtonRename(CFileItem *item, CONTEXT_BUTTON 
 
     CStdString strNewName(timer->m_strTitle);
     if (CGUIDialogKeyboard::ShowAndGetInput(strNewName, g_localizeStrings.Get(19042), false))
-    {
-      if (CPVRManager::GetTimers()->RenameTimer(*item, strNewName))
-        UpdateData();
-    }
+      g_PVRTimers->RenameTimer(*item, strNewName);
   }
 
   return bReturn;
+}
+
+void CGUIWindowPVRTimers::Notify(const Observable &obs, const CStdString& msg)
+{
+  if (msg.Equals("timers"))
+  {
+    if (IsVisible())
+      SetInvalid();
+    else
+      m_bUpdateRequired = true;
+  }
+  else if (msg.Equals("timers-reset"))
+  {
+    if (IsVisible())
+      UpdateData();
+    else
+      m_bUpdateRequired = true;
+  }
 }

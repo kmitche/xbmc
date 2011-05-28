@@ -25,10 +25,12 @@
 #include "GUIDialogPVRGuideInfo.h"
 #include "guilib/GUIWindowManager.h"
 #include "ViewState.h"
+#include "epg/EpgInfoTag.h"
 
 #include "pvr/PVRManager.h"
 
 using namespace std;
+using namespace PVR;
 
 #define CONTROL_LIST  11
 
@@ -56,7 +58,7 @@ bool CGUIDialogPVRGuideOSD::OnMessage(CGUIMessage& message)
   case GUI_MSG_WINDOW_INIT:
     {
       /* Close dialog immediately if now TV or radio channel is playing */
-      if (!CPVRManager::Get()->IsPlayingTV() && !CPVRManager::Get()->IsPlayingRadio())
+      if (!g_PVRManager.IsPlaying())
       {
         Close();
         return true;
@@ -98,7 +100,7 @@ void CGUIDialogPVRGuideOSD::Update()
   // empty the list ready for population
   Clear();
 
-  CPVRManager::Get()->GetCurrentEpg(m_vecItems);
+  g_PVRManager.GetCurrentEpg(m_vecItems);
   m_viewControl.SetItems(*m_vecItems);
 
   /* select the active entry */

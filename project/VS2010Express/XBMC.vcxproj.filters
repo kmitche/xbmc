@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="win32">
@@ -264,9 +264,6 @@
     <ClCompile Include="..\..\xbmc\win32\strverscmp.cpp">
       <Filter>win32</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\win32\Win32DelayedDllLoad.cpp">
-      <Filter>win32</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\win32\WIN32Util.cpp">
       <Filter>win32</Filter>
     </ClCompile>
@@ -489,9 +486,6 @@
     <ClCompile Include="..\..\xbmc\cores\paplayer\ADPCMCodec.cpp">
       <Filter>cores\paplayer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\paplayer\AIFFcodec.cpp">
-      <Filter>cores\paplayer</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\paplayer\ASAPCodec.cpp">
       <Filter>cores\paplayer</Filter>
     </ClCompile>
@@ -589,9 +583,6 @@
       <Filter>cores\DllLoader\exports</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\DllLoader\exports\emu_msvcrt.cpp">
-      <Filter>cores\DllLoader\exports</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\cores\DllLoader\exports\exports_python_win32.cpp">
       <Filter>cores\DllLoader\exports</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\cores\DllLoader\exports\win32-dirent.cpp">
@@ -765,9 +756,6 @@
     <ClCompile Include="..\..\xbmc\FileSystem\FileTuxBox.cpp">
       <Filter>filesystem</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\FileSystem\FileXBMSP.cpp">
-      <Filter>filesystem</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\FileSystem\FileZip.cpp">
       <Filter>filesystem</Filter>
     </ClCompile>
@@ -907,9 +895,6 @@
       <Filter>filesystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\FileSystem\VTPSession.cpp">
-      <Filter>filesystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\FileSystem\XBMSDirectory.cpp">
       <Filter>filesystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\FileSystem\ZipDirectory.cpp">
@@ -1556,9 +1541,6 @@
     <ClCompile Include="..\..\xbmc\interfaces\python\XBPyThread.cpp">
       <Filter>interfaces\python</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\win32\WIN32XBPythonDll.cpp">
-      <Filter>interfaces\python</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\music\dialogs\GUIDialogMusicInfo.cpp">
       <Filter>music\dialogs</Filter>
     </ClCompile>
@@ -1872,9 +1854,6 @@
       <Filter>storage</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\storage\cdioSupport.cpp">
-      <Filter>storage</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\storage\DetectDVDType.cpp">
       <Filter>storage</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\storage\IoSupport.cpp">
@@ -2333,9 +2312,6 @@
     <ClCompile Include="..\..\xbmc\CueDocument.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\DateTime.cpp">
-      <Filter>utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\DynamicDll.cpp">
       <Filter>utils</Filter>
     </ClCompile>
@@ -2480,18 +2456,6 @@
     <ClCompile Include="..\..\xbmc\epg\EpgSearchFilter.cpp">
       <Filter>epg</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\xbmc\addons\AddonHelpers_Addon.cpp">
-      <Filter>addons</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\addons\AddonHelpers_GUI.cpp">
-      <Filter>addons</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\addons\AddonHelpers_local.cpp">
-      <Filter>addons</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\addons\AddonHelpers_PVR.cpp">
-      <Filter>addons</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\xbmc\filesystem\PVRDirectory.cpp">
       <Filter>filesystem</Filter>
     </ClCompile>
@@ -2509,9 +2473,6 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\utils\TextSearch.cpp">
       <Filter>utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\xbmc\guilib\GUIEPGGridContainer.cpp">
-      <Filter>guilib</Filter>
     </ClCompile>
     <ClCompile Include="..\..\xbmc\utils\GLUtils.cpp">
       <Filter>utils</Filter>
@@ -2632,6 +2593,55 @@
     </ClCompile>
     <ClCompile Include="..\..\xbmc\pvr\windows\GUIWindowPVRTimers.cpp">
       <Filter>pvr\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\pvr\addons\PVRClients.cpp">
+      <Filter>pvr\addons</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\addons\AddonCallbacks.cpp">
+      <Filter>addons</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\addons\AddonCallbacksAddon.cpp">
+      <Filter>addons</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\addons\AddonCallbacksGUI.cpp">
+      <Filter>addons</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\addons\AddonCallbacksPVR.cpp">
+      <Filter>addons</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\filesystem\CacheCircular.cpp">
+      <Filter>filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\dialogs\GUIDialogPlayEject.cpp">
+      <Filter>dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\pvr\PVRGUIInfo.cpp">
+      <Filter>pvr</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\interfaces\json-rpc\JSONServiceDescription.cpp">
+      <Filter>interfaces\json-rpc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\XBDateTime.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\win32\Win32DelayedDllLoad.cpp">
+      <Filter>win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\win32\win32env.cpp">
+      <Filter>win32</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\utils\RecentlyAddedJob.cpp" />
+    <ClCompile Include="..\..\xbmc\interfaces\json-rpc\InputOperations.cpp">
+      <Filter>interfaces\json-rpc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\filesystem\CacheCircular.cpp">
+      <Filter>filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\epg\GUIEPGGridContainer.cpp">
+      <Filter>epg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xbmc\input\XBMC_keytable.cpp">
+      <Filter>input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2962,9 +2972,6 @@
     <ClInclude Include="..\..\xbmc\cores\paplayer\ADPCMCodec.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\cores\paplayer\AIFFcodec.h">
-      <Filter>cores\paplayer</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\cores\paplayer\ASAPCodec.h">
       <Filter>cores\paplayer</Filter>
     </ClInclude>
@@ -3256,9 +3263,6 @@
     <ClInclude Include="..\..\xbmc\FileSystem\FileTuxBox.h">
       <Filter>filesystem</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\FileSystem\FileXBMSP.h">
-      <Filter>filesystem</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\FileSystem\FileZip.h">
       <Filter>filesystem</Filter>
     </ClInclude>
@@ -3380,9 +3384,6 @@
       <Filter>filesystem</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\FileSystem\VTPSession.h">
-      <Filter>filesystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\FileSystem\XBMSDirectory.h">
       <Filter>filesystem</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\FileSystem\ZipDirectory.h">
@@ -3621,9 +3622,6 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\music\karaoke\karaokewindowbackground.h">
       <Filter>music\karaoke</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\lib\win32\sqlite\sqlite3.h">
-      <Filter>libs\sqlite</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\dbwrappers\Database.h">
       <Filter>database</Filter>
@@ -4146,9 +4144,6 @@
     <ClInclude Include="..\..\xbmc\interfaces\python\XBPython.h">
       <Filter>interfaces\python</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\interfaces\python\XBPythonDll.h">
-      <Filter>interfaces\python</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\interfaces\python\XBPyThread.h">
       <Filter>interfaces\python</Filter>
     </ClInclude>
@@ -4492,9 +4487,6 @@
       <Filter>storage</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\storage\cdioSupport.h">
-      <Filter>storage</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\storage\DetectDVDType.h">
       <Filter>storage</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\storage\IoSupport.h">
@@ -4926,9 +4918,6 @@
     <ClInclude Include="..\..\xbmc\CueDocument.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\DateTime.h">
-      <Filter>utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\DynamicDll.h">
       <Filter>utils</Filter>
     </ClInclude>
@@ -5082,18 +5071,6 @@
     <ClInclude Include="..\..\xbmc\epg\EpgInfoTag.h">
       <Filter>epg</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\xbmc\addons\AddonHelpers_Addon.h">
-      <Filter>addons</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\addons\AddonHelpers_GUI.h">
-      <Filter>addons</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\addons\AddonHelpers_local.h">
-      <Filter>addons</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\addons\AddonHelpers_PVR.h">
-      <Filter>addons</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\xbmc\filesystem\PVRFile.h">
       <Filter>filesystem</Filter>
     </ClInclude>
@@ -5114,9 +5091,6 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\utils\TextSearch.h">
       <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\xbmc\guilib\GUIEPGGridContainer.h">
-      <Filter>guilib</Filter>
     </ClInclude>
     <ClInclude Include="..\..\xbmc\utils\GLUtils.h">
       <Filter>utils</Filter>
@@ -5238,6 +5212,49 @@
     </ClInclude>
     <ClInclude Include="..\..\xbmc\utils\GlobalsHandling.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\pvr\addons\PVRClients.h">
+      <Filter>pvr\addons</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\addons\AddonCallbacks.h">
+      <Filter>addons</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\addons\AddonCallbacksAddon.h">
+      <Filter>addons</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\addons\AddonCallbacksGUI.h">
+      <Filter>addons</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\addons\AddonCallbacksPVR.h">
+      <Filter>addons</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\filesystem\CacheCircular.h">
+      <Filter>filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\dialogs\GUIDialogPlayEject.h">
+      <Filter>dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\pvr\PVRGUIInfo.h">
+      <Filter>pvr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\interfaces\json-rpc\JSONServiceDescription.h">
+      <Filter>interfaces\json-rpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\interfaces\json-rpc\ServiceDescription.h">
+      <Filter>interfaces\json-rpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\XBDateTime.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\utils\RecentlyAddedJob.h" />
+    <ClInclude Include="..\..\xbmc\interfaces\json-rpc\InputOperations.h">
+      <Filter>interfaces\json-rpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\epg\GUIEPGGridContainer.h">
+      <Filter>epg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xbmc\input\XBMC_keytable.h">
+      <Filter>input</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

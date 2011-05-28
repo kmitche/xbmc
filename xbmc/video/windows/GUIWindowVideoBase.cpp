@@ -74,6 +74,7 @@ using namespace PLAYLIST;
 using namespace VIDEODATABASEDIRECTORY;
 using namespace VIDEO;
 using namespace ADDON;
+using namespace PVR;
 
 #define CONTROL_BTNVIEWASICONS     2
 #define CONTROL_BTNSORTBY          3
@@ -855,7 +856,7 @@ int  CGUIWindowVideoBase::GetResumeItemOffset(const CFileItem *item)
   {
     CBookmark bookmark;
     CStdString strPath = item->m_strPath;
-    if (item->IsVideoDb() && item->HasVideoInfoTag())
+    if ((item->IsVideoDb() || item->IsDVD()) && item->HasVideoInfoTag())
       strPath = item->GetVideoInfoTag()->m_strFileNameAndPath;
 
     if (db.GetResumeBookMark(strPath, bookmark))
@@ -993,7 +994,7 @@ CStdString CGUIWindowVideoBase::GetResumeString(CFileItem item)
   {
     CBookmark bookmark;
     CStdString itemPath(item.m_strPath);
-    if (item.IsVideoDb())
+    if (item.IsVideoDb() || item.IsDVD())
       itemPath = item.GetVideoInfoTag()->m_strFileNameAndPath;
     if (db.GetResumeBookMark(itemPath, bookmark) )
       resumeString.Format(g_localizeStrings.Get(12022).c_str(), StringUtils::SecondsToTimeString(lrint(bookmark.timeInSeconds)).c_str());
@@ -1117,7 +1118,8 @@ void CGUIWindowVideoBase::GetContextButtons(int itemNumber, CContextButtons &but
 
       // if autoresume is enabled then add restart video button
       // check to see if the Resume Video button is applicable
-      if (GetResumeItemOffset(item.get()) > 0)
+      // only if the video is NOT a DVD (in that case the resume button will be added by CGUIDialogContextMenu::GetContextButtons)
+      if (!item->IsDVD() && GetResumeItemOffset(item.get()) > 0)
       {
         buttons.Add(CONTEXT_BUTTON_RESUME_ITEM, GetResumeString(*(item.get())));     // Resume Video
       }
@@ -1353,7 +1355,7 @@ bool CGUIWindowVideoBase::OnPlayMedia(int iItem)
   if (item.m_strPath.Left(17) == "pvr://recordings/")
   {
     /* For recordings we check here for a available stream URL */
-    CPVRRecording *tag = CPVRManager::GetRecordings()->GetByPath(item.m_strPath);
+    CPVRRecording *tag = g_PVRRecordings->GetByPath(item.m_strPath);
     if (tag && !tag->m_strStreamURL.IsEmpty())
     {
       CStdString stream = tag->m_strStreamURL;
@@ -1570,6 +1572,11 @@ void CGUIWindowVideoBase::MarkWatched(const CFileItemPtr &item, bool bMark)
     for (int i=0;i<items.Size();++i)
     {
       CFileItemPtr pItem=items[i];
+      if (pItem->m_bIsFolder)
+      {
+        MarkWatched(pItem, bMark);
+        continue;
+      }
 
       if (pItem->HasVideoInfoTag() &&
           (( bMark && pItem->GetVideoInfoTag()->m_playCount) ||
@@ -1621,10 +1628,7 @@ void CGUIWindowVideoBase::UpdateVideoTitle(const CFileItem* pItem)
   if (iType == VIDEODB_CONTENT_MOVIES)
     database.GetMovieInfo("", detail, pItem->GetVideoInfoTag()->m_iDbId);
   if (iType == VIDEODB_CONTENT_MOVIE_SETS)
-  {
-    database.GetSetById(params.GetSetId(),detail.m_strTitle);
-    iDbId = params.GetSetId();
-  }
+    database.GetSetInfo(params.GetSetId(), detail);
   if (iType == VIDEODB_CONTENT_EPISODES)
     database.GetEpisodeInfo(pItem->m_strPath,detail,pItem->GetVideoInfoTag()->m_iDbId);
   if (iType == VIDEODB_CONTENT_TVSHOWS)

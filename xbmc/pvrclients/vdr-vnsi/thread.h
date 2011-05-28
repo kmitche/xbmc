@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include "tools.h"
+#include "libPlatform/os-dependent.h"
+#include "client.h"
 
 class cCondWait {
 private:

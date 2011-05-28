@@ -25,11 +25,15 @@
 #include "dialogs/GUIDialogProgress.h"
 #include "guilib/GUIWindowManager.h"
 #include "pvr/PVRManager.h"
-#include "pvr/channels/PVRChannel.h"
+#include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/dialogs/GUIDialogPVRGuideSearch.h"
-#include "pvr/epg/PVREpgInfoTag.h"
-#include "pvr/recordings/PVRRecording.h"
+#include "pvr/epg/PVREpgContainer.h"
+#include "pvr/recordings/PVRRecordings.h"
 #include "GUIWindowPVR.h"
+#include "utils/log.h"
+#include "pvr/addons/PVRClients.h"
+
+using namespace PVR;
 
 CGUIWindowPVRSearch::CGUIWindowPVRSearch(CGUIWindowPVR *parent) :
   CGUIWindowPVRCommon(parent, PVR_WINDOW_SEARCH, CONTROL_BTNSEARCH, CONTROL_LIST_SEARCH)
@@ -46,30 +50,30 @@ void CGUIWindowPVRSearch::GetContextButtons(int itemNumber, CContextButtons &but
 
   if (pItem->GetLabel() != g_localizeStrings.Get(19027))
   {
-    if (pItem->GetEPGInfoTag()->End() > CDateTime::GetCurrentDateTime())
+    if (pItem->GetEPGInfoTag()->EndAsLocalTime() > CDateTime::GetCurrentDateTime())
     {
       if (((CPVREpgInfoTag *) pItem->GetEPGInfoTag())->Timer() == NULL)
       {
-        if (pItem->GetEPGInfoTag()->Start() < CDateTime::GetCurrentDateTime())
+        if (pItem->GetEPGInfoTag()->StartAsLocalTime() < CDateTime::GetCurrentDateTime())
           buttons.Add(CONTEXT_BUTTON_START_RECORD, 264);   /* RECORD programme */
         else
           buttons.Add(CONTEXT_BUTTON_START_RECORD, 19061); /* Create a Timer */
       }
       else
       {
-        if (pItem->GetEPGInfoTag()->Start() < CDateTime::GetCurrentDateTime())
+        if (pItem->GetEPGInfoTag()->StartAsLocalTime() < CDateTime::GetCurrentDateTime())
           buttons.Add(CONTEXT_BUTTON_STOP_RECORD, 19059); /* Stop recording */
         else
           buttons.Add(CONTEXT_BUTTON_STOP_RECORD, 19060); /* Delete Timer */
       }
     }
 
-    buttons.Add(CONTEXT_BUTTON_INFO, 658);                /* Epg info button */
+    buttons.Add(CONTEXT_BUTTON_INFO, 19047);              /* Epg info button */
     buttons.Add(CONTEXT_BUTTON_SORTBY_CHANNEL, 19062);    /* Sort by channel */
     buttons.Add(CONTEXT_BUTTON_SORTBY_NAME, 103);         /* Sort by Name */
     buttons.Add(CONTEXT_BUTTON_SORTBY_DATE, 104);         /* Sort by Date */
     buttons.Add(CONTEXT_BUTTON_CLEAR, 20375);             /* Clear search results */
-    if (CPVRManager::Get()->HasMenuHooks(((CPVREpgInfoTag *) pItem->GetEPGInfoTag())->ChannelTag()->ClientID()))
+    if (g_PVRClients->HasMenuHooks(((CPVREpgInfoTag *) pItem->GetEPGInfoTag())->ChannelTag()->ClientID()))
       buttons.Add(CONTEXT_BUTTON_MENU_HOOKS, 19195);      /* PVR client specific action */
   }
 }
@@ -107,6 +111,12 @@ void CGUIWindowPVRSearch::UpdateData(void)
   CLog::Log(LOGDEBUG, "CGUIWindowPVRSearch - %s - update window '%s'. set view to %d", __FUNCTION__, GetName(), m_iControlList);
   m_bIsFocusing = true;
   m_bUpdateRequired = false;
+
+  /* lock the graphics context while updating */
+  CSingleLock graphicsLock(g_graphicsContext);
+
+  m_iSelected = m_parent->m_viewControl.GetSelectedItem();
+  m_parent->m_viewControl.Clear();
   m_parent->m_vecItems->Clear();
   m_parent->m_viewControl.SetCurrentView(m_iControlList);
 
@@ -123,7 +133,7 @@ void CGUIWindowPVRSearch::UpdateData(void)
       dlgProgress->Progress();
     }
 
-    CPVRManager::GetEpg()->GetEPGSearch(m_parent->m_vecItems, m_searchfilter);
+    g_PVREpg->GetEPGSearch(m_parent->m_vecItems, m_searchfilter);
     if (dlgProgress)
       dlgProgress->Close();
 

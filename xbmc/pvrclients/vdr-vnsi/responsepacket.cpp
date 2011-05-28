@@ -19,9 +19,16 @@
  *
  */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "responsepacket.h"
 #include "vdrcommand.h"
 #include "tools.h"
+
+extern "C" {
+#include "libTcpSocket/os-dependent_socket.h"
+}
 
 cResponsePacket::cResponsePacket()
 {

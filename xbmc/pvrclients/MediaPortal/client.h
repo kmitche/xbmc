@@ -23,7 +23,7 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include "StdString.h"
+#include "utils/StdString.h"
 #include "pvrclient-mediaportal.h"
 #include "libXBMC_addon.h"
 #include "libXBMC_pvr.h"
@@ -64,8 +64,8 @@ extern std::string  g_szRecordingsDir;
 extern std::string  g_szTVGroup;
 extern std::string  g_szRadioGroup;
 
-extern cHelper_libXBMC_addon *XBMC;
-extern cHelper_libXBMC_pvr   *PVR;
+extern CHelper_libXBMC_addon *XBMC;
+extern CHelper_libXBMC_pvr   *PVR;
 
 extern int          g_iTVServerXBMCBuild;
 

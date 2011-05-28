@@ -25,8 +25,9 @@
 #include "dialogs/GUIDialogExtendedProgressBar.h"
 #include "dialogs/GUIDialogProgress.h"
 #include "guilib/GUIWindowManager.h"
-#include "log.h"
-#include "TimeUtils.h"
+#include "guilib/LocalizeStrings.h"
+#include "utils/log.h"
+#include "utils/TimeUtils.h"
 
 #include "EpgContainer.h"
 #include "Epg.h"
@@ -34,11 +35,11 @@
 #include "EpgSearchFilter.h"
 
 using namespace std;
-
-CEpgContainer g_EpgContainer;
+using namespace EPG;
 
 CEpgContainer::CEpgContainer(void)
 {
+  m_progressDialog = NULL;
   m_bStop = true;
   Clear(false);
 }
@@ -46,6 +47,18 @@ CEpgContainer::CEpgContainer(void)
 CEpgContainer::~CEpgContainer(void)
 {
   Clear();
+}
+
+CEpgContainer &CEpgContainer::Get(void)
+{
+  static CEpgContainer epgInstance;
+  return epgInstance;
+}
+
+void CEpgContainer::Unload(void)
+{
+  Stop();
+  Clear(false);
 }
 
 void CEpgContainer::Clear(bool bClearDb /* = false */)
@@ -98,19 +111,8 @@ void CEpgContainer::Start(void)
   CSingleLock lock(m_critSection);
 
   m_bStop = false;
+  g_guiSettings.RegisterObserver(this);
   LoadSettings();
-  g_guiSettings.AddObserver(this);
-
-  if (m_database.Open())
-  {
-    m_database.DeleteOldEpgEntries();
-    m_database.Get(this);
-    m_database.Close();
-  }
-
-  AutoCreateTablesHook();
-
-  lock.Leave();
 
   Create();
   SetName("XBMC EPG thread");
@@ -122,7 +124,7 @@ bool CEpgContainer::Stop(void)
 {
   StopThread();
 
-  g_guiSettings.RemoveObserver(this);
+  g_guiSettings.UnregisterObserver(this);
 
   return true;
 }
@@ -138,9 +140,17 @@ void CEpgContainer::Process(void)
 {
   time_t iNow       = 0;
   m_iLastEpgUpdate  = 0;
+  m_iLastEpgActiveTagCheck = 0;
   CDateTime::GetCurrentDateTime().GetAsTime(m_iLastEpgCleanup);
 
-  UpdateEPG(true);
+  if (m_database.Open())
+  {
+    m_database.DeleteOldEpgEntries();
+    m_database.Get(*this);
+    m_database.Close();
+  }
+
+  AutoCreateTablesHook();
 
   while (!m_bStop)
   {
@@ -148,11 +158,17 @@ void CEpgContainer::Process(void)
 
     /* load or update the EPG */
     if (!m_bStop && (iNow > m_iLastEpgUpdate + g_advancedSettings.m_iEpgUpdateCheckInterval || !m_bDatabaseLoaded))
-      UpdateEPG(false);
+    {
+      UpdateEPG(!m_bDatabaseLoaded);
+    }
 
     /* clean up old entries */
     if (!m_bStop && iNow > m_iLastEpgCleanup + g_advancedSettings.m_iEpgCleanupInterval)
       RemoveOldEntries();
+
+    /* check for updated active tag */
+    if (!m_bStop && iNow > m_iLastEpgActiveTagCheck + g_advancedSettings.m_iEpgActiveTagCheckInterval)
+      CheckPlayingEvents();
 
     /* call the update hook */
     ProcessHook(iNow);
@@ -235,7 +251,7 @@ bool CEpgContainer::RemoveOldEntries(void)
   CLog::Log(LOGINFO, "EpgContainer - %s - removing old EPG entries",
       __FUNCTION__);
 
-  CDateTime now = CDateTime::GetCurrentDateTime();
+  CDateTime now = CDateTime::GetCurrentDateTime().GetAsUTCDateTime();
 
   if (!m_database.Open())
   {
@@ -271,7 +287,7 @@ bool CEpgContainer::DeleteEpg(const CEpg &epg, bool bDeleteFromDatabase /* = fal
 
   for (unsigned int iEpgPtr = 0; iEpgPtr < size(); iEpgPtr++)
   {
-    if (at(iEpgPtr)->m_iEpgID == epg.m_iEpgID)
+    if (at(iEpgPtr)->EpgID() == epg.EpgID())
     {
       if (bDeleteFromDatabase && m_database.Open())
       {
@@ -287,15 +303,60 @@ bool CEpgContainer::DeleteEpg(const CEpg &epg, bool bDeleteFromDatabase /* = fal
   return bReturn;
 }
 
+bool CEpgContainer::UpdateSingleTable(CEpg *epg, const time_t start, const time_t end)
+{
+  bool bReturn(false);
+
+  if (!epg)
+    return bReturn;
+
+  if (m_bDatabaseLoaded)
+    epg->Cleanup();
+
+  bReturn = m_bDatabaseLoaded || m_bIgnoreDbForClient ?
+      epg->Update(start, end, m_iUpdateTime) :
+      epg->Load();
+
+  /* try to update the table from clients if nothing was loaded from the db */
+  if (!m_bDatabaseLoaded && !m_bIgnoreDbForClient && !bReturn)
+    bReturn = epg->Update(start, end, m_iUpdateTime);
+
+  if (!bReturn && m_bDatabaseLoaded)
+  {
+    CLog::Log(LOGERROR, "EpgContainer - %s - failed to update table '%s'",
+        __FUNCTION__, epg->Name().c_str());
+  }
+
+  return bReturn;
+}
+
+void CEpgContainer::CloseUpdateDialog(void)
+{
+  CSingleLock lock(m_critSection);
+  if (m_progressDialog)
+  {
+    m_progressDialog->Close(true);
+    m_progressDialog = NULL;
+  }
+}
+
+bool CEpgContainer::InterruptUpdate(void) const
+{
+  return m_bStop;
+}
+
 bool CEpgContainer::UpdateEPG(bool bShowProgress /* = false */)
 {
   CSingleLock lock(m_critSection);
   unsigned int iEpgCount = size();
+
+  if (InterruptUpdate())
+    return false;
   lock.Leave();
 
+  bool bInterrupted(false);
   long iStartTime                         = CTimeUtils::GetTimeMS();
   bool bUpdateSuccess                     = true;
-  CGUIDialogExtendedProgressBar *progress = NULL;
 
   if (!m_bDatabaseLoaded)
     CLog::Log(LOGNOTICE, "EpgContainer - %s - loading EPG entries for %i tables from the database",
@@ -307,7 +368,7 @@ bool CEpgContainer::UpdateEPG(bool bShowProgress /* = false */)
   /* set start and end time */
   time_t start;
   time_t end;
-  CDateTime::GetCurrentDateTime().GetAsTime(start); // NOTE: XBMC stores the EPG times as local time
+  CDateTime::GetCurrentDateTime().GetAsUTCDateTime().GetAsTime(start);
   end = start;
   start -= g_advancedSettings.m_iEpgLingerTime * 60;
   end += m_iDisplayTime;
@@ -322,19 +383,20 @@ bool CEpgContainer::UpdateEPG(bool bShowProgress /* = false */)
   /* show the progress bar */
   if (bShowProgress)
   {
-    progress = (CGUIDialogExtendedProgressBar *)g_windowManager.GetWindow(WINDOW_DIALOG_EXT_PROGRESS);
-    progress->Show();
-    progress->SetHeader(g_localizeStrings.Get(19004));
+    m_progressDialog = (CGUIDialogExtendedProgressBar *)g_windowManager.GetWindow(WINDOW_DIALOG_EXT_PROGRESS);
+    m_progressDialog->Show();
+    m_progressDialog->SetHeader(g_localizeStrings.Get(19004));
   }
+
+  int iUpdatedTables = 0;
 
   /* load or update all EPG tables */
   for (unsigned int iEpgPtr = 0; iEpgPtr < iEpgCount; iEpgPtr++)
   {
-    /* interrupt the update on exit */
-    if (m_bStop)
+    if (InterruptUpdate())
     {
       CLog::Log(LOGNOTICE, "EpgContainer - %s - EPG load/update interrupted", __FUNCTION__);
-      bUpdateSuccess = false;
+      bInterrupted = true;
       break;
     }
 
@@ -342,45 +404,53 @@ bool CEpgContainer::UpdateEPG(bool bShowProgress /* = false */)
     if (!epg)
       continue;
 
-    bool bCurrent = m_bDatabaseLoaded || m_bIgnoreDbForClient ?
-        at(iEpgPtr)->Update(start, end, m_iUpdateTime, !m_bIgnoreDbForClient) :
-        at(iEpgPtr)->Load() && bUpdateSuccess;
-
-    if (!bCurrent && m_bDatabaseLoaded)
-      CLog::Log(LOGERROR, "EpgContainer - %s - failed to update table '%s'",
-          __FUNCTION__, at(iEpgPtr)->Name().c_str());
+    bool bCurrent = UpdateSingleTable(epg, start, end);
 
     bUpdateSuccess = bCurrent && bUpdateSuccess;
+    if (bCurrent)
+      ++iUpdatedTables;
 
-    if (bShowProgress)
+    lock.Enter();
+    if (bShowProgress && m_progressDialog)
     {
       /* update the progress bar */
-      progress->SetProgress(iEpgPtr, iEpgCount);
-      progress->SetTitle(at(iEpgPtr)->Name());
-      progress->UpdateState();
+      m_progressDialog->SetProgress(iEpgPtr, iEpgCount);
+      m_progressDialog->SetTitle(at(iEpgPtr)->Name());
+      m_progressDialog->UpdateState();
     }
+    lock.Leave();
+
+    if (m_bDatabaseLoaded)
+      Sleep(50); /* give other threads a chance to get a lock on tables */
   }
 
-  /* update the last scan time if we did a full update */
-  if (m_bDatabaseLoaded || m_bIgnoreDbForClient)
+  if (!bInterrupted)
   {
-    if (!m_bIgnoreDbForClient)
-      m_database.PersistLastEpgScanTime(0);
-
+    lock.Enter();
+    /* only try to load the database once */
+    m_bDatabaseLoaded = true;
     CDateTime::GetCurrentDateTime().GetAsTime(m_iLastEpgUpdate);
+    lock.Leave();
+
+    /* update the last scan time if we did a full update */
+    if (bUpdateSuccess && m_bDatabaseLoaded && !m_bIgnoreDbForClient)
+        m_database.PersistLastEpgScanTime(0);
   }
 
   m_database.Close();
 
-  if (bShowProgress)
-    progress->Close();
+  CloseUpdateDialog();
 
   long lUpdateTime = CTimeUtils::GetTimeMS() - iStartTime;
   CLog::Log(LOGINFO, "EpgContainer - %s - finished %s %d EPG tables after %li.%li seconds",
       __FUNCTION__, m_bDatabaseLoaded ? "updating" : "loading", iEpgCount, lUpdateTime / 1000, lUpdateTime % 1000);
 
-  /* only try to load the database once */
-  m_bDatabaseLoaded = true;
+  /* notify observers */
+  if (iUpdatedTables > 0)
+  {
+    SetChanged();
+    NotifyObservers("epg", true);
+  }
 
   return bUpdateSuccess;
 }
@@ -460,4 +530,12 @@ int CEpgContainer::GetEPGSearch(CFileItemList* results, const EpgSearchFilter &f
   }
 
   return results->Size();
+}
+
+void CEpgContainer::CheckPlayingEvents(void)
+{
+  CSingleLock lock(m_critSection);
+  for (unsigned int iEpgPtr = 0; iEpgPtr < size(); iEpgPtr++)
+    at(iEpgPtr)->CheckPlayingEvent();
+  CDateTime::GetCurrentDateTime().GetAsTime(m_iLastEpgActiveTagCheck);
 }

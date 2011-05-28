@@ -23,16 +23,21 @@
  * Most of this code is taken from thread.c in the Video Disk Recorder ('VDR')
  */
 
+#include <errno.h>
 #include "tools.h"
 #include "thread.h"
-#include <errno.h>
+#include "client.h"
+
 #ifndef __APPLE__
 #include <malloc.h>
 #endif
 
+#if !defined(__WINDOWS__)
+#include <sys/signal.h>
+#endif
+
 #include <stdarg.h>
 #include <stdlib.h>
-#include "StdString.h"
 
 static bool GetAbsTime(struct timespec *Abstime, int MillisecondsFromNow)
 {
@@ -195,7 +200,7 @@ cThread::cThread(const char *Description)
   childThreadId = 0;
   description = NULL;
   if (Description)
-     SetDescription("%s", Description);
+     SetDescription(Description);
 }
 
 cThread::~cThread()
@@ -229,10 +234,18 @@ void cThread::SetDescription(const char *Description, ...)
   if (Description)
   {
      va_list ap;
+
+     // get string size
      va_start(ap, Description);
-     CStdString desc;
-     desc.FormatV(Description, ap);
-     description = strdup(desc.c_str());
+     int s = vsnprintf(NULL, 0, Description, ap);
+     va_end(ap);
+
+     if(s <= 0)
+       return;
+
+     va_start(ap, Description);
+     description = (char*)malloc(s+1);
+     vsnprintf(description, s+1, Description, ap);
      va_end(ap);
   }
 }

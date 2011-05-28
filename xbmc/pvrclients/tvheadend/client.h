@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2005-2009 Team XBMC
+ *      Copyright (C) 2005-2011 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -20,33 +20,27 @@
  *
  */
 
-#ifndef CLIENT_H
-#define CLIENT_H
-
-#include "StdString.h"
 #include "../../../addons/library.xbmc.addon/libXBMC_addon.h"
 #include "../../../addons/library.xbmc.pvr/libXBMC_pvr.h"
 
-#define DEFAULT_HOST                  "127.0.0.1"
-#define DEFAULT_HTTP_PORT             9981
-#define DEFAULT_HTSP_PORT             9982
-#define DEFAULT_TIMEOUT               30000
-#define DEFAULT_SKIP_I_FRAME          true
-#define DEFAULT_EPG_OFFSET_CORRECTION 0
+#define DEFAULT_HOST             "127.0.0.1"
+#define DEFAULT_HTTP_PORT        9981
+#define DEFAULT_HTSP_PORT        9982
+#define DEFAULT_CONNECT_TIMEOUT  30
+#define DEFAULT_RESPONSE_TIMEOUT 2
 
-extern bool         m_bCreated;
-extern CStdString   g_szHostname;
-extern int          g_iPortHTSP;
-extern int          g_iPortHTTP;
-extern CStdString   g_szUsername;
-extern CStdString   g_szPassword;
-extern int          g_iConnectTimout;
-extern bool         g_bSkipIFrame;
-extern int          g_iEpgOffsetCorrection;
-extern int          g_clientID;
-extern CStdString   g_szUserPath;
-extern CStdString   g_szClientPath;
-extern cHelper_libXBMC_addon *XBMC;
-extern cHelper_libXBMC_pvr   *PVR;
-
-#endif /* CLIENT_H */
+extern bool                      m_bCreated;
+extern std::string               g_strHostname;
+extern int                       g_iPortHTSP;
+extern int                       g_iPortHTTP;
+extern std::string               g_strUsername;
+extern std::string               g_strPassword;
+extern int                       g_iConnectTimeout;
+extern int                       g_iResponseTimeout;
+extern int                       g_iClientId;
+extern unsigned int              g_iPacketSequence;
+extern bool                      g_bShowTimerNotifications;
+extern std::string               g_szUserPath;
+extern std::string               g_szClientPath;
+extern CHelper_libXBMC_addon *   XBMC;
+extern CHelper_libXBMC_pvr *     PVR;

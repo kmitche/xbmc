@@ -24,15 +24,18 @@
 #include "Util.h"
 #include "URL.h"
 #include "utils/log.h"
+#include "utils/URIUtils.h"
 #include "guilib/LocalizeStrings.h"
 
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/channels/PVRChannelGroup.h"
+#include "pvr/recordings/PVRRecordings.h"
 #include "pvr/timers/PVRTimers.h"
 
 using namespace std;
 using namespace XFILE;
+using namespace PVR;
 
 CPVRDirectory::CPVRDirectory()
 {
@@ -83,15 +86,15 @@ bool CPVRDirectory::GetDirectory(const CStdString& strPath, CFileItemList &items
   }
   else if (fileName.Left(10) == "recordings")
   {
-    return CPVRManager::GetRecordings()->GetDirectory(strPath, items) > 0;
+    return g_PVRRecordings->GetDirectory(strPath, items);
   }
   else if (fileName.Left(8) == "channels")
   {
-    return CPVRManager::GetChannelGroups()->GetDirectory(strPath, items) > 0;
+    return g_PVRChannelGroups->GetDirectory(strPath, items);
   }
   else if (fileName.Left(6) == "timers")
   {
-    return CPVRManager::GetTimers()->GetDirectory(strPath, items) > 0;
+    return g_PVRTimers->GetDirectory(strPath, items);
   }
 
   return false;
@@ -115,5 +118,5 @@ bool CPVRDirectory::IsLiveTV(const CStdString& strPath)
 
 bool CPVRDirectory::HasRecordings()
 {
-  return CPVRManager::GetRecordings()->GetNumRecordings() > 0;
+  return g_PVRRecordings->GetNumRecordings() > 0;
 }

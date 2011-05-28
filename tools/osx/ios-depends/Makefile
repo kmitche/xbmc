@@ -4,13 +4,13 @@ SUBDIRS = \
 	Backrow \
 	gas-preprocessor help2man autoconf automake pkg-config tar dpkg \
 	pcre expat gettext readline sqlite3 \
-	liblzo liblzo2 freetype2 fontconfig \
+	liblzo2 freetype2 fontconfig \
 	openssl libssh2 curl \
 	jpeg tiff libpng libogg \
-	libvorbis libmad fribidi libwavpack libmpeg2 \
-	faad2 libcdio libsamplerate librtmp \
-	boost \
-	mysqlclient samba python26
+	libvorbis libflac libmad fribidi libwavpack libmpeg2 \
+	libass libcdio libsamplerate librtmp \
+	libmicrohttpd libmodplug libbluray \
+	samba python26 mysqlclient boost
 
 .PHONY: setup $(SUBDIRS)
 

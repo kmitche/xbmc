@@ -234,6 +234,9 @@
 #include "dialogs/GUIDialogSlider.h"
 #include "guilib/GUIControlFactory.h"
 #include "dialogs/GUIDialogCache.h"
+#include "dialogs/GUIDialogPlayEject.h"
+#include "utils/XMLUtils.h"
+#include "addons/AddonInstaller.h"
 
 #ifdef HAS_PERFORMANCE_SAMPLE
 #include "utils/PerformanceSample.h"
@@ -252,8 +255,10 @@
 #include "windowing/X11/XRandR.h"
 #endif
 #ifdef __APPLE__
+#if !defined(__arm__)
 #include "CocoaInterface.h"
 #include "XBMCHelper.h"
+#endif
 #endif
 
 #ifdef HAS_DVD_DRIVE
@@ -299,6 +304,7 @@ using namespace DBUSSERVER;
 using namespace JSONRPC;
 #endif
 using namespace ANNOUNCEMENT;
+using namespace PVR;
 
 // uncomment this if you want to use release libs in the debug build.
 // Atm this saves you 7 mb of memory
@@ -336,7 +342,7 @@ CApplication::CApplication(void) : m_itemCurrentFile(new CFileItem), m_progressT
 #endif
   m_currentStack = new CFileItemList;
 
-#ifdef HAS_SDL
+#if defined(HAS_SDL) || defined(HAS_XBMC_MUTEX)
   m_frameCount = 0;
   m_frameMutex = SDL_CreateMutex();
   m_frameCond = SDL_CreateCond();
@@ -359,7 +365,7 @@ CApplication::~CApplication(void)
   delete m_pKaraokeMgr;
 #endif
 
-#ifdef HAS_SDL
+#if defined(HAS_SDL) || defined(HAS_XBMC_MUTEX)
   if (m_frameMutex)
     SDL_DestroyMutex(m_frameMutex);
 
@@ -449,12 +455,12 @@ void CApplication::Preflight()
 #endif
 
   // run any platform preflight scripts.
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(__arm__)
   CStdString install_path;
 
   CUtil::GetHomePath(install_path);
   setenv("XBMC_HOME", install_path.c_str(), 0);
-  install_path += "/tools/osx/preflight";
+  install_path += "/tools/preflight";
   system(install_path.c_str());
 #endif
 }
@@ -507,6 +513,8 @@ bool CApplication::Create()
   CLog::Log(LOGNOTICE, "-----------------------------------------------------------------------");
 #if defined(__APPLE__)
   CLog::Log(LOGNOTICE, "Starting XBMC, Platform: Mac OS X (%s). Built on %s (Git:%s)", g_sysinfo.GetUnameVersion().c_str(), __DATE__, GIT_REV);
+#elif defined(__FreeBSD__)
+  CLog::Log(LOGNOTICE, "Starting XBMC, Platform: FreeBSD (%s). Built on %s (Git:%s)", g_sysinfo.GetUnameVersion().c_str(), __DATE__, GIT_REV);
 #elif defined(_LINUX)
   CLog::Log(LOGNOTICE, "Starting XBMC, Platform: Linux (%s, %s). Built on %s (Git:%s)", g_sysinfo.GetLinuxDistro().c_str(), g_sysinfo.GetUnameVersion().c_str(), __DATE__, GIT_REV);
 #elif defined(_WIN32)
@@ -670,7 +678,7 @@ bool CApplication::Create()
   g_Joystick.Initialize();
 #endif
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(__arm__)
   // Configure and possible manually start the helper.
   XBMCHelper::GetInstance().Configure();
 #endif
@@ -867,30 +875,46 @@ bool CApplication::InitDirectoriesOSX()
   CUtil::GetHomePath(xbmcPath);
   setenv("XBMC_HOME", xbmcPath.c_str(), 0);
 
+#if defined(__arm__)
+  CStdString fontconfigPath;
+  fontconfigPath = xbmcPath + "/system/players/dvdplayer/etc/fonts/fonts.conf";
+  setenv("FONTCONFIG_FILE", fontconfigPath.c_str(), 0);
+#endif
+  
   // setup path to our internal dylibs so loader can find them
   CStdString frameworksPath = CUtil::GetFrameworksPath();
   CSpecialProtocol::SetXBMCFrameworksPath(frameworksPath);
-  
+
   // OSX always runs with m_bPlatformDirectories == true
   if (m_bPlatformDirectories)
   {
     // map our special drives
     CSpecialProtocol::SetXBMCBinPath(xbmcPath);
     CSpecialProtocol::SetXBMCPath(xbmcPath);
-    CSpecialProtocol::SetHomePath(userHome + "/Library/Application Support/XBMC");
-    CSpecialProtocol::SetMasterProfilePath(userHome + "/Library/Application Support/XBMC/userdata");
+    #if defined(__arm__)
+      CSpecialProtocol::SetHomePath(userHome + "/Library/Preferences/XBMC");
+      CSpecialProtocol::SetMasterProfilePath(userHome + "/Library/Preferences/XBMC/userdata");
+    #else
+      CSpecialProtocol::SetHomePath(userHome + "/Library/Application Support/XBMC");
+      CSpecialProtocol::SetMasterProfilePath(userHome + "/Library/Application Support/XBMC/userdata");
+    #endif
 
-#ifdef __APPLE__
-    CStdString strTempPath = URIUtils::AddFileToFolder(userHome, ".xbmc/");
-    CDirectory::Create(strTempPath);
-#endif
-
-    strTempPath = URIUtils::AddFileToFolder(userHome, ".xbmc/temp");
+    // location for temp files
+    #if defined(__arm__)
+      CStdString strTempPath = URIUtils::AddFileToFolder(userHome,  "Library/Preferences/XBMC/temp");
+    #else
+      CStdString strTempPath = URIUtils::AddFileToFolder(userHome, ".xbmc/");
+      CDirectory::Create(strTempPath);
+      strTempPath = URIUtils::AddFileToFolder(userHome, ".xbmc/temp");
+    #endif
     CSpecialProtocol::SetTempPath(strTempPath);
 
-#ifdef __APPLE__
-    strTempPath = userHome + "/Library/Logs";
-#endif
+    // xbmc.log file location
+    #if defined(__arm__)
+      strTempPath = userHome + "/Library/Preferences";
+    #else
+      strTempPath = userHome + "/Library/Logs";
+    #endif
     URIUtils::AddSlashAtEnd(strTempPath);
     g_settings.m_logFolder = strTempPath;
 
@@ -1006,7 +1030,7 @@ void CApplication::CreateUserDirs()
 
 bool CApplication::Initialize()
 {
-#ifdef HAS_DVD_DRIVE
+#if defined(HAS_DVD_DRIVE) && !defined(_WIN32) // somehow this throws an "unresolved external symbol" on win32
   // turn off cdio logging
   cdio_loglevel_default = CDIO_LOG_ERROR;
 #endif
@@ -1090,6 +1114,8 @@ bool CApplication::Initialize()
   g_windowManager.Add(new CGUIDialogLockSettings); // window id = 131
 
   g_windowManager.Add(new CGUIDialogContentSettings);        // window id = 132
+
+  g_windowManager.Add(new CGUIDialogPlayEject);
 
   g_windowManager.Add(new CGUIWindowMusicPlayList);          // window id = 500
   g_windowManager.Add(new CGUIWindowMusicSongs);             // window id = 501
@@ -1184,7 +1210,7 @@ bool CApplication::Initialize()
 
   m_slowTimer.StartZero();
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(__arm__)
   XBMCHelper::GetInstance().CaptureAllInput();
 #endif
 #if defined(HAVE_LIBCRYSTALHD)
@@ -1202,7 +1228,7 @@ bool CApplication::Initialize()
   return true;
 }
 
-void CApplication::StartWebServer()
+bool CApplication::StartWebServer()
 {
 #ifdef HAS_WEB_SERVER
   if (g_guiSettings.GetBool("services.webserver") && m_network.IsAvailable())
@@ -1213,12 +1239,14 @@ void CApplication::StartWebServer()
     if (webPort < 1024 && geteuid() != 0)
     {
         CLog::Log(LOGERROR, "Cannot start Web Server as port is smaller than 1024 and user is not root");
-        return;
+        return false;
     }
 #endif
 
+    bool started = false;
     if (m_WebServer.Start(webPort, g_guiSettings.GetString("services.webserverusername"), g_guiSettings.GetString("services.webserverpassword")))
     {
+      started = true;
       // publish web frontend and API services
 #ifdef HAS_WEB_INTERFACE
       CZeroconf::GetInstance()->PublishService("servers.webserver", "_http._tcp", "XBMC Web Server", webPort);
@@ -1234,8 +1262,12 @@ void CApplication::StartWebServer()
     if (g_settings.m_HttpApiBroadcastLevel >= 1)
       getApplicationMessenger().HttpApi("broadcastlevel; StartUp;1");
 #endif
+
+    return started;
   }
 #endif
+
+  return true;
 }
 
 void CApplication::StopWebServer()
@@ -1257,15 +1289,24 @@ void CApplication::StopWebServer()
 #endif
 }
 
-void CApplication::StartJSONRPCServer()
+bool CApplication::StartJSONRPCServer()
 {
 #ifdef HAS_JSONRPC
   if (g_guiSettings.GetBool("services.esenabled"))
   {
+    CJSONRPC::Initialize();
+
     if (CTCPServer::StartServer(g_advancedSettings.m_jsonTcpPort, g_guiSettings.GetBool("services.esallinterfaces")))
+    {
       CZeroconf::GetInstance()->PublishService("servers.jsonrpc", "_xbmc-jsonrpc._tcp", "XBMC JSONRPC", g_advancedSettings.m_jsonTcpPort);
+      return true;
+    }
+    else
+      return false;
   }
 #endif
+
+  return true;
 }
 
 void CApplication::StopJSONRPCServer(bool bWait)
@@ -1295,21 +1336,23 @@ void CApplication::StopUPnP(bool bWait)
 #endif
 }
 
-void CApplication::StartEventServer()
+bool CApplication::StartEventServer()
 {
 #ifdef HAS_EVENT_SERVER
   CEventServer* server = CEventServer::GetInstance();
   if (!server)
   {
     CLog::Log(LOGERROR, "ES: Out of memory");
-    return;
+    return false;
   }
   if (g_guiSettings.GetBool("services.esenabled"))
   {
     CLog::Log(LOGNOTICE, "ES: Starting event server");
     server->StartServer();
+    return true;
   }
 #endif
+  return true;
 }
 
 bool CApplication::StopEventServer(bool bWait, bool promptuser)
@@ -1458,17 +1501,14 @@ void CApplication::StopZeroconf()
 void CApplication::StartPVRManager()
 {
   if (g_guiSettings.GetBool("pvrmanager.enabled"))
-  {
-    CLog::Log(LOGINFO, "starting PVRManager");
-    CPVRManager::Get()->Start();
-  }
+    g_PVRManager.Start();
 }
 
 void CApplication::StopPVRManager()
 {
   CLog::Log(LOGINFO, "stopping PVRManager");
   StopPlaying();
-  CPVRManager::Destroy();
+  g_PVRManager.Stop();
 }
 
 void CApplication::DimLCDOnPlayback(bool dim)
@@ -1871,7 +1911,7 @@ void CApplication::RenderNoPresent()
     m_guiPointer.Render();
 
   // reset image scaling and effect states
-  g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetVideoResolution(), false);
+  g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
 
   RenderMemoryStatus();
   RenderScreenSaver();
@@ -1926,7 +1966,7 @@ void CApplication::RenderScreenSaver()
 bool CApplication::WaitFrame(unsigned int timeout)
 {
   bool done = false;
-#ifdef HAS_SDL
+#if defined(HAS_SDL) || defined(HAS_XBMC_MUTEX)
   // Wait for all other frames to be presented
   SDL_mutexP(m_frameMutex);
   //wait until event is set, but modify remaining time
@@ -1964,7 +2004,7 @@ bool CApplication::WaitFrame(unsigned int timeout)
 
 void CApplication::NewFrame()
 {
-#ifdef HAS_SDL
+#if defined(HAS_SDL) || defined(HAS_XBMC_MUTEX)
   // We just posted another frame. Keep track and notify.
   SDL_mutexP(m_frameMutex);
   m_frameCount++;
@@ -1976,6 +2016,10 @@ void CApplication::NewFrame()
 
 void CApplication::Render()
 {
+  // do not render if we are stopped
+  if (m_bStop)
+    return;
+
   if (!m_AppActive && !m_bStop && (!IsPlayingVideo() || IsPaused()))
   {
     Sleep(1);
@@ -2002,7 +2046,7 @@ void CApplication::Render()
     m_bPresentFrame = false;
     if (!extPlayerActive && g_graphicsContext.IsFullScreenVideo() && !IsPaused())
     {
-#ifdef HAS_SDL
+#if defined(HAS_SDL) || defined(HAS_XBMC_MUTEX)
       SDL_mutexP(m_frameMutex);
 
       //wait until event is set, but modify remaining time
@@ -2107,7 +2151,7 @@ void CApplication::Render()
   g_renderManager.UpdateResolution();
   g_renderManager.ManageCaptures();
 
-#ifdef HAS_SDL
+#if defined(HAS_SDL) || defined(HAS_XBMC_MUTEX)
   SDL_mutexP(m_frameMutex);
   if(m_frameCount > 0 && decrement)
     m_frameCount--;
@@ -2129,7 +2173,7 @@ void CApplication::RenderMemoryStatus()
 
   // reset the window scaling and fade status
   RESOLUTION res = g_graphicsContext.GetVideoResolution();
-  g_graphicsContext.SetRenderingResolution(res, false);
+  g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
 
   static int yShift = 20;
   static int xShift = 40;
@@ -2195,7 +2239,7 @@ void CApplication::RenderMemoryStatus()
       g_graphicsContext.SetScalingResolution(window->GetCoordsRes(), true);
       point.x *= g_graphicsContext.GetGUIScaleX();
       point.y *= g_graphicsContext.GetGUIScaleY();
-      g_graphicsContext.SetRenderingResolution(res, false);
+      g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
     }
     info.AppendFormat("Mouse: (%d,%d)  ", (int)point.x, (int)point.y);
     if (window)
@@ -3180,6 +3224,7 @@ bool CApplication::Cleanup()
     g_windowManager.Delete(WINDOW_DIALOG_OSD_TELETEXT);
 
     g_windowManager.Delete(WINDOW_DIALOG_TEXT_VIEWER);
+    g_windowManager.Delete(WINDOW_DIALOG_PLAY_EJECT);
     g_windowManager.Delete(WINDOW_STARTUP_ANIM);
     g_windowManager.Delete(WINDOW_LOGIN_SCREEN);
     g_windowManager.Delete(WINDOW_VISUALISATION);
@@ -3276,7 +3321,7 @@ bool CApplication::Cleanup()
   }
 }
 
-void CApplication::Stop()
+void CApplication::Stop(int exitCode)
 {
   try
   {
@@ -3313,6 +3358,9 @@ void CApplication::Stop()
       CLog::Log(LOGNOTICE, "Not saving settings (settings.xml is not present)");
 
     m_bStop = true;
+    m_AppActive = false;
+    m_AppFocused = false;
+    m_ExitCode = exitCode;
     CLog::Log(LOGNOTICE, "stop all");
 
     // stop scanning before we kill the network and so on
@@ -3330,7 +3378,7 @@ void CApplication::Stop()
     StopServices();
     //Sleep(5000);
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(__arm__)
     XBMCHelper::GetInstance().ReleaseAllInput();
 #endif
 
@@ -3370,7 +3418,7 @@ void CApplication::Stop()
     CLog::Log(LOGNOTICE, "unload skin");
     UnloadSkin();
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(__arm__)
     if (XBMCHelper::GetInstance().IsAlwaysOn() == false)
       XBMCHelper::GetInstance().Stop();
 #endif
@@ -3400,6 +3448,7 @@ void CApplication::Stop()
 #endif
 
     g_Windowing.DestroyRenderSystem();
+    g_Windowing.DestroyWindow();
     g_Windowing.DestroyWindowSystem();
 
     CLog::Log(LOGNOTICE, "stopped");
@@ -3412,6 +3461,9 @@ void CApplication::Stop()
   // we may not get to finish the run cycle but exit immediately after a call to g_application.Stop()
   // so we may never get to Destroy() in CXBApplicationEx::Run(), we call it here.
   Destroy();
+
+  // 
+  Sleep(200);
 }
 
 bool CApplication::PlayMedia(const CFileItem& item, int iPlaylist)
@@ -3587,6 +3639,16 @@ bool CApplication::PlayFile(const CFileItem& item, bool bRestart)
       CUtil::ClearSubtitles();
   }
 
+  if (item.IsDiscStub())
+  {
+#ifdef HAS_DVD_DRIVE
+    // Display the Play Eject dialog
+    if (CGUIDialogPlayEject::ShowAndGetInput(item))
+      return MEDIA_DETECT::CAutorun::PlayDisc();
+#endif
+    return true;
+  }
+
   if (item.IsPlayList())
     return false;
 
@@ -3671,7 +3733,10 @@ bool CApplication::PlayFile(const CFileItem& item, bool bRestart)
       {
         options.starttime = 0.0f;
         CBookmark bookmark;
-        if(dbs.GetResumeBookMark(item.m_strPath, bookmark))
+        CStdString path = item.m_strPath;
+        if (item.IsDVD()) 
+          path = item.GetVideoInfoTag()->m_strFileNameAndPath;
+        if(dbs.GetResumeBookMark(path, bookmark))
         {
           options.starttime = bookmark.timeInSeconds;
           options.state = bookmark.playerState;
@@ -3861,7 +3926,7 @@ void CApplication::OnPlayBackEnded()
     getApplicationMessenger().HttpApi("broadcastlevel; OnPlayBackEnded;1");
 #endif
 
-  CAnnouncementManager::Announce(Playback, "xbmc", "PlaybackEnded");
+  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackEnded");
 
   if (IsPlayingAudio())
   {
@@ -3890,7 +3955,7 @@ void CApplication::OnPlayBackStarted()
     getApplicationMessenger().HttpApi("broadcastlevel; OnPlayBackStarted;1");
 #endif
 
-  CAnnouncementManager::Announce(Playback, "xbmc", "PlaybackStarted", m_itemCurrentFile);
+  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackStarted", m_itemCurrentFile);
 
   CGUIMessage msg(GUI_MSG_PLAYBACK_STARTED, 0, 0);
   g_windowManager.SendThreadMessage(msg);
@@ -3910,7 +3975,7 @@ void CApplication::OnQueueNextItem()
     getApplicationMessenger().HttpApi("broadcastlevel; OnQueueNextItem;1");
 #endif
 
-  CAnnouncementManager::Announce(Playback, "xbmc", "QueueNextItem");
+  CAnnouncementManager::Announce(Player, "xbmc", "QueueNextItem");
 
   if(IsPlayingAudio())
   {
@@ -3939,7 +4004,7 @@ void CApplication::OnPlayBackStopped()
     getApplicationMessenger().HttpApi("broadcastlevel; OnPlayBackStopped;1");
 #endif
 
-  CAnnouncementManager::Announce(Playback, "xbmc", "PlaybackStopped", m_itemCurrentFile);
+  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackStopped", m_itemCurrentFile);
 
   CLastfmScrobbler::GetInstance()->SubmitQueue();
   CLibrefmScrobbler::GetInstance()->SubmitQueue();
@@ -3960,7 +4025,7 @@ void CApplication::OnPlayBackPaused()
     getApplicationMessenger().HttpApi("broadcastlevel; OnPlayBackPaused;1");
 #endif
 
-  CAnnouncementManager::Announce(Playback, "xbmc", "PlaybackPaused", m_itemCurrentFile);
+  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackPaused", m_itemCurrentFile);
 }
 
 void CApplication::OnPlayBackResumed()
@@ -3975,7 +4040,7 @@ void CApplication::OnPlayBackResumed()
     getApplicationMessenger().HttpApi("broadcastlevel; OnPlayBackResumed;1");
 #endif
 
-  CAnnouncementManager::Announce(Playback, "xbmc", "PlaybackResumed", m_itemCurrentFile);
+  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackResumed", m_itemCurrentFile);
 }
 
 void CApplication::OnPlayBackSpeedChanged(int iSpeed)
@@ -3996,7 +4061,7 @@ void CApplication::OnPlayBackSpeedChanged(int iSpeed)
 
   CVariant param;
   param["speed"] = iSpeed;
-  CAnnouncementManager::Announce(Playback, "xbmc", "PlaybackSpeedChanged", m_itemCurrentFile, param);
+  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackSpeedChanged", m_itemCurrentFile, param);
 }
 
 void CApplication::OnPlayBackSeek(int iTime, int seekOffset)
@@ -4018,7 +4083,7 @@ void CApplication::OnPlayBackSeek(int iTime, int seekOffset)
   CVariant param;
   param["time"] = iTime;
   param["seekoffset"] = seekOffset;
-  CAnnouncementManager::Announce(Playback, "xbmc", "PlaybackSeek", param);
+  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackSeek", param);
   g_infoManager.SetDisplayAfterSeek(2500, seekOffset/1000);
 }
 
@@ -4040,7 +4105,7 @@ void CApplication::OnPlayBackSeekChapter(int iChapter)
 
   CVariant param;
   param["chapter"] = iChapter;
-  CAnnouncementManager::Announce(Playback, "xbmc", "PlaybackSeekChapter", param);
+  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackSeekChapter", param);
 }
 
 bool CApplication::IsPlaying() const
@@ -4200,7 +4265,7 @@ void CApplication::ResetScreenSaver()
 
 void CApplication::ResetScreenSaverTimer()
 {
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(__arm__)
   Cocoa_UpdateSystemActivity();
 #endif
   m_screenSaverTimer.StartZero();
@@ -4370,7 +4435,7 @@ void CApplication::ActivateScreenSaver(bool forceType /*= false */)
   if (!forceType)
   {
     // set to Dim in the case of a dialog on screen or playing video
-    if (g_windowManager.HasModalDialog() || (IsPlayingVideo() && g_guiSettings.GetBool("screensaver.usedimonpause")) || CPVRManager::Get()->ChannelScanRunning())
+    if (g_windowManager.HasModalDialog() || (IsPlayingVideo() && g_guiSettings.GetBool("screensaver.usedimonpause")) || g_PVRManager.IsRunningChannelScan())
     {
       if (!CAddonMgr::Get().GetAddon("screensaver.xbmc.builtin.dim", m_screenSaver))
         m_screenSaver.reset(new CScreenSaver(""));
@@ -4671,7 +4736,7 @@ bool CApplication::ExecuteXBMCAction(std::string actionStr)
 #ifdef HAS_PYTHON
         if (item.IsPythonScript())
         { // a python script
-          g_pythonParser.evalFile(item.m_strPath.c_str());
+          g_pythonParser.evalFile(item.m_strPath.c_str(),ADDON::AddonPtr());
         }
         else
 #endif
@@ -4751,7 +4816,7 @@ void CApplication::ProcessSlow()
 {
   g_powerManager.ProcessEvents();
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) &&  !defined(__arm__)
   // There is an issue on OS X that several system services ask the cursor to become visible
   // during their startup routines.  Given that we can't control this, we hack it in by
   // forcing the
@@ -4859,7 +4924,7 @@ void CApplication::ProcessSlow()
 #endif
   
   if (!IsPlayingVideo())
-    ADDON::CAddonMgr::Get().UpdateRepos();
+    CAddonInstaller::Get().UpdateRepos();
 }
 
 // Global Idle Time in Seconds
@@ -5198,6 +5263,14 @@ float CApplication::GetPercentage() const
   return 0.0f;
 }
 
+float CApplication::GetCachePercentage() const
+{
+  if (IsPlaying() && m_pPlayer)
+    return m_pPlayer->GetCachePercentage();
+
+  return 0.0f;
+}
+
 void CApplication::SeekPercentage(float percent)
 {
   if (IsPlaying() && m_pPlayer && (percent >= 0.0))
@@ -5227,7 +5300,7 @@ bool CApplication::SwitchToFullScreen()
   // See if we're playing a video, and are in GUI mode
   if ( IsPlayingVideo() && g_windowManager.GetActiveWindow() != WINDOW_FULLSCREEN_VIDEO)
   {
-#ifdef HAS_SDL
+#if defined(HAS_SDL) || defined(HAS_XBMC_MUTEX)
     // Reset frame count so that timing is FPS will be correct.
     SDL_mutexP(m_frameMutex);
     m_frameCount = 0;
@@ -5405,7 +5478,7 @@ bool CApplication::IsCurrentThread() const
 
 bool CApplication::IsPresentFrame()
 {
-#ifdef HAS_SDL // TODO:DIRECTX
+#if defined(HAS_SDL) || defined(HAS_XBMC_MUTEX)
   SDL_mutexP(m_frameMutex);
   bool ret = m_bPresentFrame;
   SDL_mutexV(m_frameMutex);

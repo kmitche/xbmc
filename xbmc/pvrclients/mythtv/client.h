@@ -1,4 +1,5 @@
 #pragma once
+
 /*
  *      Copyright (C) 2005-2009 Team XBMC
  *      http://www.xbmc.org
@@ -20,12 +21,10 @@
  *
  */
 
-#ifndef CLIENT_H
-#define CLIENT_H
+#include "library.xbmc.addon/libXBMC_addon.h"
+#include "library.xbmc.pvr/libXBMC_pvr.h"
 
-#include "StdString.h"
-#include "../../../addons/library.xbmc.addon/libXBMC_addon.h"
-#include "../../../addons/library.xbmc.pvr/libXBMC_pvr.h"
+#include "utils/StdString.h"
 
 #define DEFAULT_HOST          "127.0.0.1"
 #define DEFAULT_MYTHXML_PORT  6544
@@ -46,7 +45,5 @@ extern CStdString   g_szHostname;         ///< The Host name or IP of the mythtv
 extern int          g_iMythXmlPort;       ///< The MYTHXML Port (default is 6544)
 extern int          g_iPin;               ///< The Mythtv server PIN (default is 0000)
 
-extern cHelper_libXBMC_addon *XBMC;
-extern cHelper_libXBMC_pvr   *PVR;
-
-#endif /* CLIENT_H */
+extern CHelper_libXBMC_addon *XBMC;
+extern CHelper_libXBMC_pvr   *PVR;

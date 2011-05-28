@@ -24,6 +24,11 @@
 #include <mach-o/dyld.h>
 #endif
 
+#if defined(__FreeBSD__)
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#endif
+
 #ifdef _LINUX
 #include <sys/types.h>
 #include <dirent.h>
@@ -71,7 +76,7 @@
 #include "WIN32Util.h"
 #endif
 #if defined(__APPLE__)
-#include "CocoaInterface.h"
+#include "osx/DarwinUtils.h"
 #endif
 #include "GUIUserMessages.h"
 #include "filesystem/File.h"
@@ -92,6 +97,7 @@
 #include "cores/dvdplayer/DVDSubtitles/DVDSubtitleTagSami.h"
 #include "cores/dvdplayer/DVDSubtitles/DVDSubtitleStream.h"
 #include "windowing/WindowingFactory.h"
+#include "video/VideoInfoTag.h"
 
 using namespace std;
 using namespace XFILE;
@@ -177,10 +183,6 @@ CStdString CUtil::GetTitleFromPath(const CStdString& strFileNameAndPath, bool bI
       strFilename = url.GetHostName();
     }
   }
-  // XBMSP Network
-  else if (url.GetProtocol() == "xbms" && strFilename.IsEmpty())
-    strFilename = "XBMSP Network";
-
   // iTunes music share (DAAP)
   else if (url.GetProtocol() == "daap" && strFilename.IsEmpty())
     strFilename = g_localizeStrings.Get(20174);
@@ -209,13 +211,20 @@ CStdString CUtil::GetTitleFromPath(const CStdString& strFileNameAndPath, bool bI
   else if (url.GetProtocol() == "sap" && strFilename.IsEmpty())
     strFilename = "SAP Streams";
 
+  // Root file views
+  else if (url.GetProtocol() == "sources")
+    strFilename = g_localizeStrings.Get(744);
+
   // Music Playlists
   else if (path.Left(24).Equals("special://musicplaylists"))
-    strFilename = g_localizeStrings.Get(20011);
+    strFilename = g_localizeStrings.Get(136);
 
   // Video Playlists
   else if (path.Left(24).Equals("special://videoplaylists"))
-    strFilename = g_localizeStrings.Get(20012);
+    strFilename = g_localizeStrings.Get(136);
+
+  else if ((url.GetProtocol() == "rar" || url.GetProtocol() == "zip") && strFilename.IsEmpty())
+    strFilename = URIUtils::GetFileName(url.GetHostName());
 
   // now remove the extension if needed
   if (!g_guiSettings.GetBool("filelists.showextensions") && !bIsFolder)
@@ -493,17 +502,21 @@ void CUtil::GetHomePath(CStdString& strPath, const CStdString& strTarget)
 #ifdef __APPLE__
     int      result = -1;
     char     given_path[2*MAXPATHLEN];
-    uint32_t path_size = 2*MAXPATHLEN;
+    uint32_t path_size =2*MAXPATHLEN;
 
-    result = _NSGetExecutablePath(given_path, &path_size);
+    result = GetDarwinExecutablePath(given_path, &path_size);
     if (result == 0)
     {
       // Move backwards to last /.
       for (int n=strlen(given_path)-1; given_path[n] != '/'; n--)
         given_path[n] = '\0';
 
-      // Assume local path inside application bundle.
-      strcat(given_path, "../Resources/XBMC/");
+      #if defined(__arm__)
+        strcat(given_path, "/XBMCData/XBMCHome/");
+      #else
+        // Assume local path inside application bundle.
+        strcat(given_path, "../Resources/XBMC/");
+      #endif
 
       // Convert to real path.
       char real_path[2*MAXPATHLEN];
@@ -782,7 +795,7 @@ bool CUtil::ThumbCached(const CStdString& strFileName)
   return CThumbnailCache::GetThumbnailCache()->IsCached(strFileName);
 }
 
-void CUtil::PlayDVD(const CStdString& strProtocol)
+void CUtil::PlayDVD(const CStdString& strProtocol, bool restart)
 {
 #if defined(HAS_DVDPLAYER) && defined(HAS_DVD_DRIVE)
   CIoSupport::Dismount("Cdrom0");
@@ -791,7 +804,10 @@ void CUtil::PlayDVD(const CStdString& strProtocol)
   strPath.Format("%s://1", strProtocol.c_str());
   CFileItem item(strPath, false);
   item.SetLabel(g_mediaManager.GetDiskLabel());
-  g_application.PlayFile(item);
+  item.GetVideoInfoTag()->m_strFileNameAndPath = "removable://"; // need to put volume label for resume point in videoInfoTag
+  item.GetVideoInfoTag()->m_strFileNameAndPath += g_mediaManager.GetDiskLabel();
+  if (!restart) item.m_lStartOffset = STARTOFFSET_RESUME;
+  g_application.PlayFile(item, restart);
 #endif
 }
 
@@ -1323,6 +1339,9 @@ bool CUtil::TestSplitExec()
   CUtil::SplitExecFunction("ActivateWindow(Video, \"C:\\\\\\\\test\\\\\\foo\\\\\")", function, params);
   if (function != "ActivateWindow" || params.size() != 2 || params[0] != "Video" || params[1] != "C:\\\\test\\\\foo\\")
     return false;
+  CUtil::SplitExecFunction("SetProperty(Foo,\"\")", function, params);
+  if (function != "SetProperty" || params.size() != 2 || params[0] != "Foo" || params[1] != "")
+   return false;
   return true;
 }
 #endif
@@ -1412,7 +1431,7 @@ void CUtil::SplitExecFunction(const CStdString &execString, CStdString &function
     CLog::Log(LOGWARNING, "%s(%s) - end of string while searching for ) or \"", __FUNCTION__, execString.c_str());
   if (whiteSpacePos)
     parameter = parameter.Left(whiteSpacePos);
-  if (!parameter.IsEmpty())
+  if (!parameter.IsEmpty() || parameters.size())
     parameters.push_back(parameter);
 }
 
@@ -2198,15 +2217,26 @@ CStdString CUtil::ResolveExecutablePath()
   CStdStringW strPathW = szAppPathW;
   g_charsetConverter.wToUTF8(strPathW,strExecutablePath);
 #elif defined(__APPLE__)
-  int      result = -1;
   char     given_path[2*MAXPATHLEN];
-  char     real_given_path[2*MAXPATHLEN];
-  uint32_t path_size = 2*MAXPATHLEN;
+  uint32_t path_size =2*MAXPATHLEN;
 
-  result = _NSGetExecutablePath(given_path, &path_size);
-  if (result == 0)
-    realpath(given_path, real_given_path);
-  strExecutablePath = real_given_path;
+  GetDarwinExecutablePath(given_path, &path_size);
+  strExecutablePath = given_path;
+#elif defined(__FreeBSD__)                                                                                                                                                                   
+  char buf[PATH_MAX];
+  size_t buflen;
+  int mib[4];
+
+  mib[0] = CTL_KERN;
+  mib[1] = KERN_PROC;
+  mib[2] = KERN_PROC_PATHNAME;
+  mib[3] = getpid();
+
+  buflen = sizeof(buf) - 1;
+  if(sysctl(mib, 4, buf, &buflen, NULL, 0) < 0)
+    strExecutablePath = "";
+  else
+    strExecutablePath = buf;
 #else
   /* Get our PID and build the name of the link in /proc */
   pid_t pid = getpid();
@@ -2223,36 +2253,15 @@ CStdString CUtil::ResolveExecutablePath()
   return strExecutablePath;
 }
 
-CStdString CUtil::GetFrameworksPath(void)
+CStdString CUtil::GetFrameworksPath(bool forPython)
 {
   CStdString strFrameworksPath;
 #if defined(__APPLE__)
-  int      result = -1;
   char     given_path[2*MAXPATHLEN];
-  char     real_given_path[2*MAXPATHLEN];
-  uint32_t path_size = 2*MAXPATHLEN;
+  uint32_t path_size =2*MAXPATHLEN;
 
-  result = _NSGetExecutablePath(given_path, &path_size);
-  if (result == 0)
-  {
-    // Move backwards to last /.
-    for (int n=strlen(given_path)-1; given_path[n] != '/'; n--)
-      given_path[n] = '\0';
-
-    // Assume local path inside application bundle.
-    strcat(given_path, "../Frameworks");
-
-    // Convert to real path.
-    if (realpath(given_path, real_given_path) != NULL)
-    {
-      // check if we are running as real xbmc.app
-      if (strstr(real_given_path, "Contents"))
-      {
-        strFrameworksPath = real_given_path;
-        return strFrameworksPath;
-      }
-    }
-  }
+  GetDarwinFrameworkPath(forPython, given_path, &path_size);
+  strFrameworksPath = given_path;
 #endif
   return strFrameworksPath;
 }

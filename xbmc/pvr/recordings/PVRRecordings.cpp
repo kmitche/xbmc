@@ -30,24 +30,21 @@
 
 #include "utils/URIUtils.h"
 #include "pvr/PVRManager.h"
+#include "pvr/addons/PVRClients.h"
 #include "PVRRecordings.h"
+
+using namespace PVR;
+
+CPVRRecordings::CPVRRecordings(void)
+{
+  m_bIsUpdating = false;
+}
 
 void CPVRRecordings::UpdateFromClients(void)
 {
-  CLIENTMAP *clients = CPVRManager::Get()->Clients();
-
+  CSingleLock lock(m_critSection);
   Clear();
-
-  CLIENTMAPITR itr = clients->begin();
-  while (itr != clients->end())
-  {
-    /* Load only if the client have Recordings */
-    if ((*itr).second->GetNumRecordings() > 0)
-    {
-      (*itr).second->GetAllRecordings(this);
-    }
-    itr++;
-  }
+  g_PVRClients->GetRecordings(this);
 }
 
 CStdString CPVRRecordings::TrimSlashes(const CStdString &strOrig) const
@@ -103,9 +100,9 @@ void CPVRRecordings::GetContents(const CStdString &strDirectory, CFileItemList *
       continue;
 
     CFileItemPtr pFileItem(new CFileItem(*current));
-    pFileItem->SetLabel2(current->m_recordingTime.GetAsLocalizedDateTime(true, false));
-    pFileItem->m_dateTime = current->m_recordingTime;
-    pFileItem->m_strPath.Format("pvr://recordings/%05i-%05i.pvr", current->m_clientID, current->m_clientIndex);
+    pFileItem->SetLabel2(current->RecordingTimeAsLocalTime().GetAsLocalizedDateTime(true, false));
+    pFileItem->m_dateTime = current->RecordingTimeAsLocalTime();
+    pFileItem->m_strPath.Format("pvr://recordings/%05i-%05i.pvr", current->m_iClientId, current->m_iClientIndex);
     results->Add(pFileItem);
   }
 }
@@ -135,7 +132,10 @@ void CPVRRecordings::GetSubDirectories(const CStdString &strBase, CFileItemList 
     }
   }
 
-  if (bAutoSkip && results->Size() == 1)
+  CFileItemList files;
+  GetContents(strBase, &files);
+
+  if (bAutoSkip && results->Size() == 1 && files.Size() == 0)
   {
     CStdString strGetPath;
     strGetPath.Format("%s/%s/", strUseBase.c_str(), results->Get(0)->GetLabel());
@@ -148,16 +148,14 @@ void CPVRRecordings::GetSubDirectories(const CStdString &strBase, CFileItemList 
     return;
   }
 
-  if (results->Size() == 0)
-  {
-    GetContents(strUseBase, results);
-  }
+  results->Append(files);
 }
 
-void CPVRRecordings::Process()
+int CPVRRecordings::Load(void)
 {
-  CSingleLock lock(m_critSection);
-  UpdateFromClients();
+  Update();
+
+  return size();
 }
 
 void CPVRRecordings::Unload()
@@ -165,20 +163,23 @@ void CPVRRecordings::Unload()
   Clear();
 }
 
-bool CPVRRecordings::Update(bool bAsync /* = false */)
+void CPVRRecordings::Update(void)
 {
-  if (!bAsync)
-  {
-    Process();
-    return true;
-  }
-  else
-  {
-    Create();
-    SetName("PVR Recordings Update");
-    SetPriority(-1);
-  }
-  return false;
+  CSingleLock lock(m_critSection);
+  if (m_bIsUpdating)
+    return;
+  m_bIsUpdating = true;
+  lock.Leave();
+
+  CLog::Log(LOGDEBUG, "CPVRRecordings - %s - updating recordings", __FUNCTION__);
+  UpdateFromClients();
+
+  lock.Enter();
+  m_bIsUpdating = false;
+  SetChanged();
+  lock.Leave();
+
+  NotifyObservers("recordings-reset");
 }
 
 int CPVRRecordings::GetNumRecordings()
@@ -202,32 +203,14 @@ int CPVRRecordings::GetRecordings(CFileItemList* results)
 
 bool CPVRRecordings::DeleteRecording(const CFileItem &item)
 {
-  bool bReturn = false;
-
   if (!item.IsPVRRecording())
   {
     CLog::Log(LOGERROR, "CPVRRecordings - %s - cannot delete file: no valid recording tag", __FUNCTION__);
-    return bReturn;
+    return false;
   }
 
-  const CPVRRecording* tag = item.GetPVRRecordingInfoTag();
-  CSingleLock lock(m_critSection);
-  if (tag->Delete())
-  {
-    bReturn = true;
-
-    for (unsigned int iRecordingPtr = 0; iRecordingPtr < size(); iRecordingPtr++)
-    {
-      if (*at(iRecordingPtr) == *tag)
-      {
-        delete at(iRecordingPtr);
-        erase(begin() + iRecordingPtr);
-        break;
-      }
-    }
-  }
-
-  return bReturn;
+  CPVRRecording *tag = (CPVRRecording *)item.GetPVRRecordingInfoTag();
+  return tag->Delete();
 }
 
 bool CPVRRecordings::RenameRecording(CFileItem &item, CStdString &strNewName)
@@ -290,7 +273,7 @@ CPVRRecording *CPVRRecordings::GetByPath(CStdString &path)
     {
       CPVRRecording *recording = at(iRecordingPtr);
 
-      if (recording->m_clientID == iClientID && recording->m_clientIndex == iClientIndex)
+      if (recording->m_iClientId == iClientID && recording->m_iClientIndex == iClientIndex)
       {
         tag = recording;
         break;
@@ -318,8 +301,8 @@ void CPVRRecordings::UpdateEntry(const CPVRRecording &tag)
   for (unsigned int iRecordingPtr = 0; iRecordingPtr < size(); iRecordingPtr++)
   {
     CPVRRecording *currentTag = at(iRecordingPtr);
-    if (currentTag->m_clientID == tag.m_clientID &&
-        currentTag->m_clientIndex == tag.m_clientIndex)
+    if (currentTag->m_iClientId == tag.m_iClientId &&
+        currentTag->m_iClientIndex == tag.m_iClientIndex)
     {
       currentTag->Update(tag);
       bFound = true;

@@ -26,6 +26,7 @@
 #include "dialogs/GUIDialogOK.h"
 #include "GUIDialogPVRGuideInfo.h"
 #include "ViewState.h"
+#include "settings/GUISettings.h"
 
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
@@ -33,6 +34,7 @@
 #include "pvr/timers/PVRTimerInfoTag.h"
 
 using namespace std;
+using namespace PVR;
 
 #define CONTROL_LIST                  11
 
@@ -60,7 +62,7 @@ bool CGUIDialogPVRChannelsOSD::OnMessage(CGUIMessage& message)
   case GUI_MSG_WINDOW_INIT:
     {
       /* Close dialog immediately if now TV or radio channel is playing */
-      if (!CPVRManager::Get()->IsPlayingTV() && !CPVRManager::Get()->IsPlayingRadio())
+      if (!g_PVRManager.IsPlaying())
       {
         Close();
         return true;
@@ -110,8 +112,8 @@ void CGUIDialogPVRChannelsOSD::Update()
   Clear();
 
   CPVRChannel channel;
-  CPVRManager::Get()->GetCurrentChannel(&channel);
-  CPVRManager::Get()->GetPlayingGroup(channel.IsRadio())->GetMembers(m_vecItems);
+  g_PVRManager.GetCurrentChannel(&channel);
+  g_PVRManager.GetPlayingGroup(channel.IsRadio())->GetMembers(m_vecItems);
   m_viewControl.SetItems(*m_vecItems);
   m_viewControl.SetSelectedItem(channel.ChannelNumber() - 1);
   g_graphicsContext.Unlock();
@@ -123,16 +125,29 @@ void CGUIDialogPVRChannelsOSD::Clear()
   m_vecItems->Clear();
 }
 
+void CGUIDialogPVRChannelsOSD::CloseOrSelect(void)
+{
+  if (g_guiSettings.GetBool("pvrmenu.closechannelosdonswitch"))
+  {
+    Close();
+  }
+  else
+  {
+    CPVRChannel channel;
+    g_PVRManager.GetCurrentChannel(&channel);
+    m_viewControl.SetSelectedItem(channel.ChannelNumber() - 1);
+  }
+}
+
 void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
 {
   /* Check file item is in list range and get his pointer */
   if (item < 0 || item >= (int)m_vecItems->Size()) return;
-
   CFileItemPtr pItem = m_vecItems->Get(item);
 
   if (pItem->m_strPath == g_application.CurrentFile())
   {
-    Close();
+    CloseOrSelect();
     return;
   }
 
@@ -141,8 +156,8 @@ void CGUIDialogPVRChannelsOSD::GotoChannel(int item)
     CGUIDialogOK::ShowAndGetInput(19033,0,19136,0);
     return;
   }
-  m_viewControl.SetItems(*m_vecItems);
-  m_viewControl.SetSelectedItem(item);
+
+  CloseOrSelect();
 }
 
 void CGUIDialogPVRChannelsOSD::ShowInfo(int item)

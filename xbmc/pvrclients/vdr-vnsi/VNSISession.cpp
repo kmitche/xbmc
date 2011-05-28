@@ -21,14 +21,11 @@
 
 #include "VNSISession.h"
 #include "client.h"
-#ifdef _MSC_VER
-#include <winsock2.h>
-#define SHUT_RDWR SD_BOTH
-#define ETIMEDOUT WSAETIMEDOUT
-#else
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#endif
+
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "responsepacket.h"
 #include "requestpacket.h"
@@ -40,7 +37,6 @@
 #ifndef SOL_TCP
 #define SOL_TCP IPPROTO_TCP
 #endif
-using namespace std;
 
 cVNSISession::cVNSISession()
   : m_fd(INVALID_SOCKET)
@@ -62,155 +58,34 @@ void cVNSISession::Close()
 {
   if(m_fd != INVALID_SOCKET)
   {
-    closesocket(m_fd);
+    tcp_close(m_fd);
     m_fd = INVALID_SOCKET;
   }
 }
 
-bool cVNSISession::Open(const CStdString& hostname, int port, const char *name)
+bool cVNSISession::Open(const std::string& hostname, int port, const char *name)
 {
-  struct hostent hostbuf, *hp;
-  int herr, fd, r, res, err;
-  struct sockaddr_in6 in6;
-  struct sockaddr_in in;
-  socklen_t errlen  = sizeof(int);
-  size_t hstbuflen  = 1024;
-  char *tmphstbuf   = (char*)malloc(hstbuflen);
-
+  if(m_fd != INVALID_SOCKET)
+  {
+    return true;
+  }
+  char errbuf[1024];
+  int  errlen = sizeof(errbuf);
   if (port == 0)
     port = 34890;
 
-  while((res = gethostbyname_r(hostname.c_str(), &hostbuf, tmphstbuf, hstbuflen, &hp, &herr)) == ERANGE)
-  {
-    hstbuflen *= 2;
-    tmphstbuf = (char*)realloc(tmphstbuf, hstbuflen);
-  }
+  m_fd = tcp_connect(	hostname.c_str()
+                        , port
+                        , errbuf, errlen, 3000);
 
-  if(res != 0)
+  if (m_fd == INVALID_SOCKET)
   {
-    XBMC->Log(LOG_ERROR, "cVNSISession::Open - Resolver internal error");
-    free(tmphstbuf);
+    XBMC->Log(LOG_ERROR, "%s - Can't connect to VSNI Server: %s", __FUNCTION__, errbuf);
     return false;
   }
-  else if(herr != 0)
-  {
-    switch(herr)
-    {
-      case HOST_NOT_FOUND:
-        XBMC->Log(LOG_ERROR, "cVNSISession::Open - The specified host is unknown");
-        break;
-      case NO_ADDRESS:
-        XBMC->Log(LOG_ERROR, "cVNSISession::Open - The requested name is valid but does not have an IP address");
-        break;
-      case NO_RECOVERY:
-        XBMC->Log(LOG_ERROR, "cVNSISession::Open - A non-recoverable name server error occurred");
-        break;
-      case TRY_AGAIN:
-        XBMC->Log(LOG_ERROR, "cVNSISession::Open - A temporary error occurred on an authoritative name server");
-        break;
-      default:
-        XBMC->Log(LOG_ERROR, "cVNSISession::Open - Unknown error");
-        break;
-    }
-
-    free(tmphstbuf);
-    return false;
-  }
-  else if(hp == NULL)
-  {
-    XBMC->Log(LOG_ERROR, "cVNSISession::Open - Resolver internal error");
-    free(tmphstbuf);
-    return false;
-  }
-
-  fd = socket(hp->h_addrtype, SOCK_STREAM, 0);
-  if (fd == -1)
-  {
-    XBMC->Log(LOG_ERROR, "cVNSISession::Open - Unable to create socket: %s", strerror(errno));
-    free(tmphstbuf);
-    return false;
-  }
-
-  /**
-   * Switch to nonblocking
-   */
-  fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
-
-  switch(hp->h_addrtype)
-  {
-    case AF_INET:
-      memset(&in, 0, sizeof(in));
-      in.sin_family = AF_INET;
-      in.sin_port = htons(port);
-      memcpy(&in.sin_addr, hp->h_addr_list[0], sizeof(struct in_addr));
-      r = connect(fd, (struct sockaddr *)&in, sizeof(struct sockaddr_in));
-      break;
-
-    case AF_INET6:
-      memset(&in6, 0, sizeof(in6));
-      in6.sin6_family = AF_INET6;
-      in6.sin6_port = htons(port);
-      memcpy(&in6.sin6_addr, hp->h_addr_list[0], sizeof(struct in6_addr));
-      r = connect(fd, (struct sockaddr *)&in, sizeof(struct sockaddr_in6));
-      break;
-
-    default:
-      XBMC->Log(LOG_ERROR, "cVNSISession::Open - Invalid protocol family");
-      free(tmphstbuf);
-      return false;
-  }
-
-  free(tmphstbuf);
-
-  if (r == -1)
-  {
-    if (errno == EINPROGRESS)
-    {
-      struct pollfd pfd;
-
-      pfd.fd = fd;
-      pfd.events = POLLOUT;
-      pfd.revents = 0;
-
-      r = poll(&pfd, 1, g_iConnectTimeout*1000);
-      if (r == 0) /* Timeout */
-        XBMC->Log(LOG_ERROR, "Connection attempt timed out %i", g_iConnectTimeout);
-
-      if (r == -1)
-      {
-        XBMC->Log(LOG_ERROR, "poll() error: %s", strerror(errno));
-        return false;
-      }
-
-      getsockopt(fd, SOL_SOCKET, SO_ERROR, (void *)&err, &errlen);
-    }
-    else
-    {
-      err = errno;
-    }
-  }
-  else
-  {
-    err = 0;
-  }
-
-  if (err != 0)
-  {
-    XBMC->Log(LOG_ERROR, "%s", strerror(err));
-    return false;
-  }
-
-  fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK);
-
-  int val = 1;
-  setsockopt(fd, SOL_TCP, TCP_NODELAY, &val, sizeof(val));
 
   try
   {
-    m_fd = fd;
-    if (m_fd == INVALID_SOCKET)
-      throw "Can't connect to VSNI Server";
-
     cRequestPacket vrp;
     if (!vrp.init(VDR_LOGIN))                 throw "Can't init cRequestPacket";
     if (!vrp.add_U32(VNSIProtocolVersion))    throw "Can't add protocol version to RequestPacket";
@@ -247,7 +122,7 @@ bool cVNSISession::Open(const CStdString& hostname, int port, const char *name)
   catch (const char * str)
   {
     XBMC->Log(LOG_ERROR, "cVNSISession::Open - %s", str);
-    close(m_fd);
+    tcp_close(m_fd);
     m_fd = INVALID_SOCKET;
     return false;
   }
@@ -297,7 +172,6 @@ cResponsePacket* cVNSISession::ReadMessage()
 
     vresp = new cResponsePacket();
     vresp->setResponse(requestID, userData, userDataLength);
-    DEVDBG("cVNSISession::ReadMessage() - Rxd a response packet, requestID=%lu, len=%lu", requestID, userDataLength);
   }
   else if (channelID == CHANNEL_STREAM)
   {
@@ -378,7 +252,6 @@ bool cVNSISession::ReadSuccess(cRequestPacket* vrp, bool sequence)
   cResponsePacket *pkt = NULL;
   if((pkt = ReadResult(vrp, sequence)) == NULL)
   {
-    DEVDBG("cVNSISession::ReadSuccess - failed");
     return false;
   }
   uint32_t retCode = pkt->extract_U32();
@@ -402,16 +275,15 @@ int cVNSISession::sendData(void* bufR, size_t count)
 
   while (bytes_sent < count)
   {
-#ifndef WIN32
-    do
-    {
-      temp_write = this_write = write(m_fd, buf, count - bytes_sent);
-    } while ( (this_write < 0) && (errno == EINTR) );
-#else
+#ifdef __WINDOWS__
     do
     {
       temp_write = this_write = send(m_fd,(char*) buf, count- bytes_sent,0);
     } while ( (this_write == SOCKET_ERROR) && (WSAGetLastError() == WSAEINTR) );
+#else
+    {
+      temp_write = this_write = write(m_fd, buf, count - bytes_sent);
+    } while ( (this_write < 0) && (errno == EINTR) );
 #endif
     if (this_write <= 0)
     {
@@ -443,10 +315,10 @@ int cVNSISession::readData(uint8_t* buffer, int totalBytes)
     {
       return 0;  // error, or timeout
     }
-#ifndef WIN32
-    thisRead = read(m_fd, &buffer[bytesRead], totalBytes - bytesRead);
-#else
+#ifdef __WINDOWS__
     thisRead = recv(m_fd, (char*)&buffer[bytesRead], totalBytes - bytesRead, 0);
+#else
+    thisRead = read(m_fd, &buffer[bytesRead], totalBytes - bytesRead);
 #endif
     if (!thisRead)
     {
@@ -454,7 +326,6 @@ int cVNSISession::readData(uint8_t* buffer, int totalBytes)
       // in non-blocking mode if read is called with no data available, it returns -1
       // and sets errno to EGAGAIN. but we use select so it wouldn't do that anyway.
       XBMC->Log(LOG_ERROR, "cVNSISession::readData - Detected connection closed");
-      SetClientConnected(false);
       return -1;
     }
     bytesRead += thisRead;

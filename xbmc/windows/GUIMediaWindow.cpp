@@ -725,6 +725,9 @@ bool CGUIMediaWindow::Update(const CStdString &strDirectory)
     return false;
   }
 
+  if (items.GetLabel().IsEmpty())
+    items.SetLabel(CUtil::GetTitleFromPath(items.m_strPath, true));
+
   ClearFileItems();
   m_vecItems->Copy(items);
 
@@ -880,7 +883,7 @@ bool CGUIMediaWindow::OnClick(int iItem)
     {
 #ifdef HAS_PYTHON
       if (!g_pythonParser.StopScript(addon->LibPath()))
-        g_pythonParser.evalFile(addon->LibPath());
+        g_pythonParser.evalFile(addon->LibPath(),addon);
 #endif
       return true;
     }
@@ -1027,8 +1030,6 @@ void CGUIMediaWindow::ShowShareErrorMessage(CFileItem* pItem)
 
     if (pItem->m_iDriveType != CMediaSource::SOURCE_TYPE_REMOTE) //  Local shares incl. dvd drive
       idMessageText=15300;
-    else if (url.GetProtocol() == "xbms" && strHostName.IsEmpty()) //  xbms server discover
-      idMessageText=15302;
     else if (url.GetProtocol() == "smb" && strHostName.IsEmpty()) //  smb workgroup
       idMessageText=15303;
     else  //  All other remote shares

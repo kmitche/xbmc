@@ -26,41 +26,45 @@
 #include "utils/TimeUtils.h"
 
 #include "PVREpg.h"
-#include "pvr/channels/PVRChannel.h"
 #include "pvr/PVRManager.h"
-
+#include "pvr/channels/PVRChannelGroupsContainer.h"
+#include "pvr/addons/PVRClients.h"
 #include "epg/EpgContainer.h"
 #include "epg/EpgDatabase.h"
 
-CPVREpg::CPVREpg(CPVRChannel *channel) :
-  CEpg(channel->ChannelID(), channel->ChannelName(), channel->EPGScraper())
+using namespace PVR;
+using namespace EPG;
+
+PVR::CPVREpg::CPVREpg(CPVRChannel *channel, bool bLoadedFromDb /* = false */) :
+  CEpg(channel->EpgID(), channel->ChannelName(), channel->EPGScraper(), bLoadedFromDb)
 {
-  m_Channel     = channel;
-  m_bHasChannel = true;
+  SetChannel(channel);
 }
 
-bool CPVREpg::HasValidEntries(void) const
-{
-  return m_Channel->ChannelID() > 0 && CEpg::HasValidEntries();
-}
-
-void CPVREpg::Cleanup(const CDateTime &Time)
+bool PVR::CPVREpg::HasValidEntries(void) const
 {
   CSingleLock lock(m_critSection);
 
-  for (unsigned int i = 0; i < size(); i++)
-  {
-    CPVREpgInfoTag *tag = (CPVREpgInfoTag *) at(i);
-    if ( tag && /* valid tag */
-        !tag->HasTimer() && /* no timer set */
-        (tag->End() + CDateTimeSpan(0, g_advancedSettings.m_iEpgLingerTime / 60, g_advancedSettings.m_iEpgLingerTime % 60, 0) < Time))
-    {
-      DeleteInfoTag(tag);
-    }
-  }
+  return m_Channel != NULL && m_Channel->ChannelID() > 0 && CEpg::HasValidEntries();
 }
 
-bool CPVREpg::UpdateEntry(const PVR_PROGINFO *data, bool bUpdateDatabase /* = false */)
+bool PVR::CPVREpg::IsRemovableTag(const CEpgInfoTag *tag) const
+{
+  const CPVREpgInfoTag *epgTag = (CPVREpgInfoTag *) tag;
+  return (!epgTag || !epgTag->HasTimer());
+}
+
+void PVR::CPVREpg::Clear(void)
+{
+  CSingleLock lock(m_critSection);
+
+  if (m_Channel)
+    m_Channel->m_EPG = NULL;
+
+  CEpg::Clear();
+}
+
+bool PVR::CPVREpg::UpdateEntry(const EPG_TAG *data, bool bUpdateDatabase /* = false */)
 {
   if (!data)
     return false;
@@ -69,18 +73,19 @@ bool CPVREpg::UpdateEntry(const PVR_PROGINFO *data, bool bUpdateDatabase /* = fa
   return CEpg::UpdateEntry(tag, bUpdateDatabase);
 }
 
-bool CPVREpg::UpdateFromScraper(time_t start, time_t end)
+bool PVR::CPVREpg::UpdateFromScraper(time_t start, time_t end)
 {
   bool bGrabSuccess = false;
 
   if (m_Channel && m_Channel->EPGEnabled() && ScraperName() == "client")
   {
-    if (CPVRManager::Get()->GetClientProperties(m_Channel->ClientID())->SupportEPG &&
-        CPVRManager::Get()->Clients()->find(m_Channel->ClientID())->second->ReadyToUse())
+    if (g_PVRClients->GetAddonCapabilities(m_Channel->ClientID())->bSupportsEPG)
     {
       CLog::Log(LOGINFO, "%s - updating EPG for channel '%s' from client '%i'",
           __FUNCTION__, m_Channel->ChannelName().c_str(), m_Channel->ClientID());
-      bGrabSuccess = CPVRManager::Get()->Clients()->find(m_Channel->ClientID())->second->GetEPGForChannel(*m_Channel, this, start, end) == PVR_ERROR_NO_ERROR;
+      PVR_ERROR error;
+      g_PVRClients->GetEPGForChannel(*m_Channel, this, start, end, &error);
+      bGrabSuccess = error == PVR_ERROR_NO_ERROR;
     }
     else
     {
@@ -96,17 +101,16 @@ bool CPVREpg::UpdateFromScraper(time_t start, time_t end)
   return bGrabSuccess;
 }
 
-bool CPVREpg::IsRadio(void) const
+bool PVR::CPVREpg::IsRadio(void) const
 {
   return m_Channel->IsRadio();
 }
 
-bool CPVREpg::Update(const CEpg &epg, bool bUpdateDb /* = false */)
+bool PVR::CPVREpg::Update(const CEpg &epg, bool bUpdateDb /* = false */)
 {
   bool bReturn = CEpg::Update(epg, false); // don't update the db yet
 
-  m_Channel     = epg.m_Channel;
-  m_bHasChannel = true;
+  SetChannel((CPVRChannel*) epg.Channel());
 
   if (bUpdateDb)
     bReturn = Persist(false);
@@ -114,7 +118,7 @@ bool CPVREpg::Update(const CEpg &epg, bool bUpdateDb /* = false */)
   return bReturn;
 }
 
-CEpgInfoTag *CPVREpg::CreateTag(void)
+CEpgInfoTag *PVR::CPVREpg::CreateTag(void)
 {
   CEpgInfoTag *newTag = new CPVREpgInfoTag();
   if (!newTag)
@@ -124,4 +128,22 @@ CEpgInfoTag *CPVREpg::CreateTag(void)
   }
 
   return newTag;
+}
+
+bool PVR::CPVREpg::LoadFromClients(time_t start, time_t end)
+{
+  bool bReturn(false);
+  if (m_Channel)
+  {
+    CPVREpg tmpEpg(m_Channel);
+    if (tmpEpg.UpdateFromScraper(start, end))
+      bReturn = UpdateEntries(tmpEpg, !g_guiSettings.GetBool("epg.ignoredbforclient"));
+  }
+  else
+  {
+    CLog::Log(LOGERROR, "PVREPG - %s - no channel tag set for table '%s' id %d",
+        __FUNCTION__, m_strName.c_str(), m_iEpgID);
+  }
+
+  return bReturn;
 }

@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <mysql/mysql.h>
-#include "../StdString.h"
+#include "utils/StdString.h"
 #include "SSchedule.h"
 
 class IScheduleCommands

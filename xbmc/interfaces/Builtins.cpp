@@ -39,6 +39,7 @@
 #include "video/windows/GUIWindowVideoBase.h"
 #include "addons/GUIWindowAddonBrowser.h"
 #include "addons/Addon.h" // for TranslateType, TranslateContent
+#include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
 #include "addons/PluginSource.h"
 #include "music/LastFmManager.h"
@@ -121,7 +122,7 @@ const BUILT_IN commands[] = {
 #if defined(__APPLE__)
   { "RunAppleScript",             true,   "Run the specified AppleScript command" },
 #endif
-  { "RunPlugin",                  true,   "Run the specified plugin. This command is deprecated, use PlayMedia instead" },
+  { "RunPlugin",                  true,   "Run the specified plugin" },
   { "RunAddon",                   true,   "Run the specified plugin/script" },
   { "Extract",                    true,   "Extracts the specified archive" },
   { "PlayMedia",                  true,   "Play the specified media file (or playlist)" },
@@ -330,6 +331,10 @@ int CBuiltins::Execute(const CStdString& execString)
     {
       // disable the screensaver
       g_application.WakeUpScreenSaverAndDPMS();
+#if defined(__APPLE__) && defined(__arm__)
+      if (params[0].Equals("shutdownmenu"))
+        CBuiltins::Execute("Quit");
+#endif     
       g_windowManager.ActivateWindow(iWindow, params, !execute.Equals("activatewindow"));
     }
     else
@@ -342,7 +347,7 @@ int CBuiltins::Execute(const CStdString& execString)
   {
     int controlID = atol(params[0].c_str());
     int subItem = (params.size() > 1) ? atol(params[1].c_str())+1 : 0;
-    CGUIMessage msg(GUI_MSG_SETFOCUS, g_windowManager.GetActiveWindow(), controlID, subItem);
+    CGUIMessage msg(GUI_MSG_SETFOCUS, g_windowManager.GetFocusedWindow(), controlID, subItem);
     g_windowManager.SendMessage(msg);
   }
 #ifdef HAS_PYTHON
@@ -370,7 +375,7 @@ int CBuiltins::Execute(const CStdString& execString)
       if (CAddonMgr::Get().GetAddon(params[0], script))
         scriptpath = script->LibPath();
 
-      g_pythonParser.evalFile(scriptpath, argv);
+      g_pythonParser.evalFile(scriptpath, argv,script);
     }
   }
 #endif
@@ -428,13 +433,14 @@ int CBuiltins::Execute(const CStdString& execString)
   }
   else if (execute.Equals("runplugin"))
   {
-    CLog::Log(LOGWARNING,"RunPlugin() is deprecated, use PlayMedia() instead");
-    
     if (params.size())
     {
-      CStdString cmd(execString);
-      cmd.Replace("RunPlugin","PlayMedia");
-      return Execute(cmd);
+      CFileItem item(params[0]);
+      if (!item.m_bIsFolder)
+      {
+        item.m_strPath = params[0];
+        CPluginDirectory::RunScriptWithParams(item.m_strPath);
+      }
     }
     else
     {
@@ -1129,7 +1135,8 @@ int CBuiltins::Execute(const CStdString& execString)
     g_settings.LoadMasterForLogin();
     g_passwordManager.bMasterUser = false;
     g_windowManager.ActivateWindow(WINDOW_LOGIN_SCREEN);
-    g_application.StartEventServer(); // event server could be needed in some situations
+    if (!g_application.StartEventServer()) // event server could be needed in some situations
+      g_application.m_guiDialogKaiToast.QueueNotification("DefaultIconWarning.png", g_localizeStrings.Get(33102), g_localizeStrings.Get(33100));
   }
   else if (execute.Equals("pagedown"))
   {
@@ -1392,7 +1399,7 @@ int CBuiltins::Execute(const CStdString& execString)
     if (window)
       window->SetProperty(params[0],params[1]);
   }
-  else if (execute.Equals("clearproperty") && params.size() == 2)
+  else if (execute.Equals("clearproperty") && params.size())
   {
     CGUIWindow *window = g_windowManager.GetWindow(g_windowManager.GetFocusedWindow());
     if (window)
@@ -1437,7 +1444,7 @@ int CBuiltins::Execute(const CStdString& execString)
   }
   else if (execute.Equals("updateaddonrepos"))
   {
-    CAddonMgr::Get().UpdateRepos(true);
+    CAddonInstaller::Get().UpdateRepos(true);
   }
   else if (execute.Equals("toggledpms"))
   {

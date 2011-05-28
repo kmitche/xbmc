@@ -23,8 +23,24 @@
 #include "DVDDemux.h"
 #include <map>
 
+#ifndef _LINUX
+#include <libavformat/avformat.h>
+#else
+extern "C" {
+#if (defined USE_EXTERNAL_FFMPEG)
+  #if (defined HAVE_LIBAVFORMAT_AVFORMAT_H)
+    #include <libavformat/avformat.h>
+  #elif (defined HAVE_FFMPEG_AVFORMAT_H)
+    #include <ffmpeg/avformat.h>
+  #endif
+#else
+  #include "libavformat/avformat.h"
+#endif
+}
+#endif
+
 class CDVDDemuxPVRClient;
-struct PVR_STREAMPROPS;
+struct PVR_STREAM_PROPERTIES;
 
 class CDemuxStreamVideoPVRClient : public CDemuxStreamVideo
 {
@@ -81,11 +97,10 @@ public:
 protected:
   CDVDInputStream* m_pInput;
 
-  #define MAX_PVR_STREAMS 42
-  CDemuxStream* m_streams[MAX_PVR_STREAMS]; // maximum number of streams that ffmpeg can handle
+  CDemuxStream* m_streams[MAX_STREAMS]; // maximum number of streams that ffmpeg can handle
 
 private:
   void RequestStreams();
-  void UpdateStreams(PVR_STREAMPROPS *props);
+  void UpdateStreams(PVR_STREAM_PROPERTIES *props);
 };
 

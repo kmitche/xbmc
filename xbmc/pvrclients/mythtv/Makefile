@@ -16,13 +16,10 @@ SRCS = \
 include ../../../Makefile.include
 
 # Reset INCLUDES to just be the libraries needed for the addon.
-INCLUDES = -I../../addons/include -I../../../addons/library.xbmc.pvr -I../../../addons/library.xbmc.addon
+INCLUDES = -I../../../addons -I../../addons/include
 
 # Additional include for FileCurl (and it's associated dependencies)
 INCLUDES += -I../..
-
-# Additional include for StdString (referenced by FileCurls associated dependencies)
-INCLUDES += -I../../utils
 
 # Additional include for tinyxml (until MythXml.cpp moves to the libcmyth directory)
 INCLUDES += -I../../../lib/tinyXML

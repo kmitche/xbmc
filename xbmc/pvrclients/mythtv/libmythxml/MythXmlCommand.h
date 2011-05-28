@@ -6,10 +6,9 @@
  *      Author: tafypz
  */
 
-#include "../StdString.h"
-
 #include "MythXmlParameters.h"
 
+#include "utils/StdString.h"
 #include "tinyxml.h"
 
 class MythXmlCommand

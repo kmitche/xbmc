@@ -22,28 +22,33 @@
  */
 
 #include "GUIWindowPVRCommon.h"
+#include "utils/Observer.h"
 
-class CGUIWindowPVR;
-
-class CGUIWindowPVRTimers : public CGUIWindowPVRCommon
+namespace PVR
 {
-  friend class CGUIWindowPVR;
+  class CGUIWindowPVR;
 
-public:
-  CGUIWindowPVRTimers(CGUIWindowPVR *parent);
-  virtual ~CGUIWindowPVRTimers(void) {};
+  class CGUIWindowPVRTimers : public CGUIWindowPVRCommon, private Observer
+  {
+    friend class CGUIWindowPVR;
 
-  virtual void GetContextButtons(int itemNumber, CContextButtons &buttons) const;
-  virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button);
-  virtual void UpdateData(void);
+  public:
+    CGUIWindowPVRTimers(CGUIWindowPVR *parent);
 
-private:
-  virtual bool OnClickButton(CGUIMessage &message);
-  virtual bool OnClickList(CGUIMessage &message);
+    virtual void GetContextButtons(int itemNumber, CContextButtons &buttons) const;
+    virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button);
+    virtual void UpdateData(void);
+    virtual void Notify(const Observable &obs, const CStdString& msg);
+    virtual void ResetObservers(void);
 
-  virtual bool OnContextButtonActivate(CFileItem *item, CONTEXT_BUTTON button);
-  virtual bool OnContextButtonAdd(CFileItem *item, CONTEXT_BUTTON button);
-  virtual bool OnContextButtonDelete(CFileItem *item, CONTEXT_BUTTON button);
-  virtual bool OnContextButtonEdit(CFileItem *item, CONTEXT_BUTTON button);
-  virtual bool OnContextButtonRename(CFileItem *item, CONTEXT_BUTTON button);
-};
+  private:
+    virtual bool OnClickButton(CGUIMessage &message);
+    virtual bool OnClickList(CGUIMessage &message);
+
+    virtual bool OnContextButtonActivate(CFileItem *item, CONTEXT_BUTTON button);
+    virtual bool OnContextButtonAdd(CFileItem *item, CONTEXT_BUTTON button);
+    virtual bool OnContextButtonDelete(CFileItem *item, CONTEXT_BUTTON button);
+    virtual bool OnContextButtonEdit(CFileItem *item, CONTEXT_BUTTON button);
+    virtual bool OnContextButtonRename(CFileItem *item, CONTEXT_BUTTON button);
+  };
+}

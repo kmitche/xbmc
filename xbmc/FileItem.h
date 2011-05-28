@@ -28,12 +28,11 @@
 #include "guilib/GUIListItem.h"
 #include "utils/Archive.h"
 #include "utils/ISerializable.h"
-#include "DateTime.h"
+#include "XBDateTime.h"
 #include "SortFileItem.h"
 #include "utils/LabelFormatter.h"
 #include "GUIPassword.h"
 #include "threads/CriticalSection.h"
-#include "video/VideoDatabase.h"
 
 #include <vector>
 #include "boost/shared_ptr.hpp"
@@ -43,11 +42,17 @@ namespace MUSIC_INFO
   class CMusicInfoTag;
 }
 class CVideoInfoTag;
-class CEpgInfoTag;
-class CPVREpgInfoTag;
-class CPVRChannel;
-class CPVRRecording;
-class CPVRTimerInfoTag;
+namespace EPG
+{
+  class CEpgInfoTag;
+}
+namespace PVR
+{
+  class CPVREpgInfoTag;
+  class CPVRChannel;
+  class CPVRRecording;
+  class CPVRTimerInfoTag;
+}
 class CPictureInfoTag;
 
 class CAlbum;
@@ -80,11 +85,11 @@ public:
   CFileItem(const CArtist& artist);
   CFileItem(const CGenre& genre);
   CFileItem(const CVideoInfoTag& movie);
-  CFileItem(const CPVREpgInfoTag& tag);
-  CFileItem(const CEpgInfoTag& tag);
-  CFileItem(const CPVRChannel& channel);
-  CFileItem(const CPVRRecording& record);
-  CFileItem(const CPVRTimerInfoTag& timer);
+  CFileItem(const PVR::CPVREpgInfoTag& tag);
+  CFileItem(const EPG::CEpgInfoTag& tag);
+  CFileItem(const PVR::CPVRChannel& channel);
+  CFileItem(const PVR::CPVRRecording& record);
+  CFileItem(const PVR::CPVRTimerInfoTag& timer);
   CFileItem(const CMediaSource& share);
   virtual ~CFileItem(void);
   virtual CGUIListItem *Clone() const { return new CFileItem(*this); };
@@ -97,6 +102,7 @@ public:
 
   bool Exists(bool bUseCache = true) const;
   bool IsVideo() const;
+  bool IsDiscStub() const;
   bool IsPicture() const;
   bool IsLyrics() const;
   bool IsAudio() const;
@@ -163,7 +169,7 @@ public:
   virtual void SetLabel(const CStdString &strLabel);
   virtual void SetLabel2(const CStdString &strLabel);
   CURL GetAsUrl() const;
-  VIDEODB_CONTENT_TYPE GetVideoContentType() const;
+  int GetVideoContentType() const; /* return VIDEODB_CONTENT_TYPE, but don't want to include videodb in this header */
   bool IsLabelPreformated() const { return m_bLabelPreformated; }
   void SetLabelPreformated(bool bYesNo) { m_bLabelPreformated=bYesNo; }
   bool SortsOnTop() const { return m_specialSort == SORT_ON_TOP; }
@@ -199,9 +205,9 @@ public:
     return m_epgInfoTag != NULL;
   }
 
-  CEpgInfoTag* GetEPGInfoTag();
+  EPG::CEpgInfoTag* GetEPGInfoTag();
 
-  inline const CEpgInfoTag* GetEPGInfoTag() const
+  inline const EPG::CEpgInfoTag* GetEPGInfoTag() const
   {
     return m_epgInfoTag;
   }
@@ -211,9 +217,9 @@ public:
     return m_pvrChannelInfoTag != NULL;
   }
 
-  CPVRChannel* GetPVRChannelInfoTag();
+  PVR::CPVRChannel* GetPVRChannelInfoTag();
 
-  inline const CPVRChannel* GetPVRChannelInfoTag() const
+  inline const PVR::CPVRChannel* GetPVRChannelInfoTag() const
   {
     return m_pvrChannelInfoTag;
   }
@@ -223,9 +229,9 @@ public:
     return m_pvrRecordingInfoTag != NULL;
   }
 
-  CPVRRecording* GetPVRRecordingInfoTag();
+  PVR::CPVRRecording* GetPVRRecordingInfoTag();
 
-  inline const CPVRRecording* GetPVRRecordingInfoTag() const
+  inline const PVR::CPVRRecording* GetPVRRecordingInfoTag() const
   {
     return m_pvrRecordingInfoTag;
   }
@@ -235,9 +241,9 @@ public:
     return m_pvrTimerInfoTag != NULL;
   }
 
-  CPVRTimerInfoTag* GetPVRTimerInfoTag();
+  PVR::CPVRTimerInfoTag* GetPVRTimerInfoTag();
 
-  inline const CPVRTimerInfoTag* GetPVRTimerInfoTag() const
+  inline const PVR::CPVRTimerInfoTag* GetPVRTimerInfoTag() const
   {
     return m_pvrTimerInfoTag;
   }
@@ -368,10 +374,10 @@ private:
   CStdString m_extrainfo;
   MUSIC_INFO::CMusicInfoTag* m_musicInfoTag;
   CVideoInfoTag* m_videoInfoTag;
-  CEpgInfoTag* m_epgInfoTag;
-  CPVRChannel* m_pvrChannelInfoTag;
-  CPVRRecording* m_pvrRecordingInfoTag;
-  CPVRTimerInfoTag * m_pvrTimerInfoTag;
+  EPG::CEpgInfoTag* m_epgInfoTag;
+  PVR::CPVRChannel* m_pvrChannelInfoTag;
+  PVR::CPVRRecording* m_pvrRecordingInfoTag;
+  PVR::CPVRTimerInfoTag * m_pvrTimerInfoTag;
   CPictureInfoTag* m_pictureInfoTag;
   bool m_bIsAlbum;
 };
@@ -516,6 +522,14 @@ public:
   void AddSortMethod(SORT_METHOD method, int buttonLabel, const LABEL_MASKS &labelMasks);
   bool HasSortDetails() const { return m_sortDetails.size() != 0; };
   const std::vector<SORT_METHOD_DETAILS> &GetSortDetails() const { return m_sortDetails; };
+
+  /*! \brief Specify whether this list should be sorted with folders separate from files
+   By default we sort with folders listed (and sorted separately) except for those sort modes
+   which should be explicitly sorted with folders interleaved with files (eg SORT_METHOD_FILES).
+   With this set the folder state will be ignored, allowing folders and files to sort interleaved.
+   \param sort whether to ignore the folder state.
+   */
+  void SetSortIgnoreFolders(bool sort) { m_sortIgnoreFolders = sort; };
   bool GetReplaceListing() const { return m_replaceListing; };
   void SetReplaceListing(bool replace);
   void SetContent(const CStdString &content) { m_content = content; };
@@ -532,6 +546,7 @@ private:
   bool m_fastLookup;
   SORT_METHOD m_sortMethod;
   SORT_ORDER m_sortOrder;
+  bool m_sortIgnoreFolders;
   CACHE_TYPE m_cacheToDisc;
   bool m_replaceListing;
   CStdString m_content;

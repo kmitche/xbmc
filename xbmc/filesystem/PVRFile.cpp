@@ -21,13 +21,16 @@
 
 #include "PVRFile.h"
 #include "Util.h"
+#include "cores/dvdplayer/DVDInputStreams/DVDInputStream.h"
 #include "pvr/PVRManager.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
-#include "pvr/recordings/PVRRecording.h"
+#include "pvr/recordings/PVRRecordings.h"
+#include "pvr/addons/PVRClients.h"
 #include "utils/log.h"
 
-using namespace XFILE;
 using namespace std;
+using namespace XFILE;
+using namespace PVR;
 
 CPVRFile::CPVRFile()
 {
@@ -45,47 +48,38 @@ bool CPVRFile::Open(const CURL& url)
 
   CStdString strURL = url.Get();
 
-  if (strURL.Left(18) == "pvr://channels/tv/")
+  if (strURL.Left(18) == "pvr://channels/tv/" || strURL.Left(21) == "pvr://channels/radio/")
   {
-    const CPVRChannel *tag = CPVRManager::GetChannelGroups()->GetByPath(strURL);
+    const CPVRChannel *tag = g_PVRChannelGroups->GetByPath(strURL);
     if (tag)
     {
-      if (!CPVRManager::Get()->OpenLiveStream(tag))
+      CPVRChannel *newTag = new CPVRChannel(*tag);
+      if (!g_PVRManager.OpenLiveStream(*newTag))
+      {
+        delete newTag;
         return false;
+      }
 
       m_isPlayRecording = false;
-      CLog::Log(LOGDEBUG, "%s - TV Channel has started on filename %s", __FUNCTION__, strURL.c_str());
+      CLog::Log(LOGDEBUG, "PVRFile - %s - playback has started on filename %s", __FUNCTION__, strURL.c_str());
     }
     else
     {
-      CLog::Log(LOGERROR, "PVRFile - TV Channel not found with filename %s", strURL.c_str());
-      return false;
-    }
-  }
-  else if (strURL.Left(21) == "pvr://channels/radio/")
-  {
-    const CPVRChannel *tag = CPVRManager::GetChannelGroups()->GetByPath(strURL);
-    if (tag)
-    {
-      if (!CPVRManager::Get()->OpenLiveStream(tag))
-        return false;
-
-      m_isPlayRecording = false;
-      CLog::Log(LOGDEBUG, "%s - Radio Channel has started on filename %s", __FUNCTION__, strURL.c_str());
-    }
-    else
-    {
-      CLog::Log(LOGERROR, "PVRFile - Radio Channel not found with filename %s", strURL.c_str());
+      CLog::Log(LOGERROR, "PVRFile - %s - channel not found with filename %s", __FUNCTION__, strURL.c_str());
       return false;
     }
   }
   else if (strURL.Left(17) == "pvr://recordings/")
   {
-    CPVRRecording *tag = CPVRManager::GetRecordings()->GetByPath(strURL);
+    const CPVRRecording *tag = g_PVRRecordings->GetByPath(strURL);
     if (tag)
     {
-      if (!CPVRManager::Get()->OpenRecordedStream(tag))
+      CPVRRecording *newTag = new CPVRRecording(*tag);
+      if (!g_PVRManager.OpenRecordedStream(*newTag))
+      {
+        delete newTag;
         return false;
+      }
 
       m_isPlayRecording = true;
       CLog::Log(LOGDEBUG, "%s - Recording has started on filename %s", __FUNCTION__, strURL.c_str());
@@ -107,57 +101,37 @@ bool CPVRFile::Open(const CURL& url)
 
 void CPVRFile::Close()
 {
-  CPVRManager::Get()->CloseStream();
+  g_PVRManager.CloseStream();
 }
 
 unsigned int CPVRFile::Read(void* buffer, int64_t size)
 {
-  return CPVRManager::Get()->ReadStream((BYTE*)buffer, size);
+  return g_PVRClients->ReadStream((BYTE*)buffer, size);
 }
 
 int64_t CPVRFile::GetLength()
 {
-  return CPVRManager::Get()->LengthStream();
+  return g_PVRClients->LengthStream();
 }
 
 int64_t CPVRFile::Seek(int64_t pos, int whence)
 {
-  if (whence == SEEK_POSSIBLE)
-  {
-    int64_t ret = CPVRManager::Get()->SeekStream(pos, whence);
-
-    if (ret >= 0)
-    {
-      return ret;
-    }
-    else
-    {
-      if (CPVRManager::Get()->LengthStream() && CPVRManager::Get()->SeekStream(0, SEEK_CUR) >= 0)
-        return 1;
-      else
-        return 0;
-    }
-  }
-  else
-  {
-    return CPVRManager::Get()->SeekStream(pos, whence);
-  }
-  return 0;
+  return g_PVRClients->SeekStream(pos, whence);
 }
 
 int64_t CPVRFile::GetPosition()
 {
-  return CPVRManager::Get()->GetStreamPosition();
+  return g_PVRClients->GetStreamPosition();
 }
 
 int CPVRFile::GetTotalTime()
 {
-  return CPVRManager::Get()->GetTotalTime();
+  return g_PVRManager.GetTotalTime();
 }
 
 int CPVRFile::GetStartTime()
 {
-  return CPVRManager::Get()->GetStartTime();
+  return g_PVRManager.GetStartTime();
 }
 
 bool CPVRFile::NextChannel(bool preview/* = false*/)
@@ -174,7 +148,7 @@ bool CPVRFile::NextChannel(bool preview/* = false*/)
    * increased by one in a case if next channel is encrypted or we
    * on the beginning or end of the channel list!
    */
-  if (CPVRManager::Get()->ChannelUp(&newchannel, preview))
+  if (g_PVRManager.ChannelUp(&newchannel, preview))
   {
     m_playingItem = newchannel;
     return true;
@@ -199,7 +173,7 @@ bool CPVRFile::PrevChannel(bool preview/* = false*/)
    * increased by one in a case if next channel is encrypted or we
    * on the beginning or end of the channel list!
    */
-  if (CPVRManager::Get()->ChannelDown(&newchannel, preview))
+  if (g_PVRManager.ChannelDown(&newchannel, preview))
   {
     m_playingItem = newchannel;
     return true;
@@ -221,7 +195,7 @@ bool CPVRFile::SelectChannel(unsigned int channel)
     return true;
   }
 
-  if (CPVRManager::Get()->ChannelSwitch(channel))
+  if (g_PVRManager.ChannelSwitch(channel))
   {
     m_playingItem = channel;
     return true;
@@ -234,7 +208,7 @@ bool CPVRFile::SelectChannel(unsigned int channel)
 
 bool CPVRFile::UpdateItem(CFileItem& item)
 {
-  return CPVRManager::Get()->UpdateItem(item);
+  return g_PVRManager.UpdateItem(item);
 }
 
 CStdString CPVRFile::TranslatePVRFilename(const CStdString& pathFile)
@@ -243,7 +217,7 @@ CStdString CPVRFile::TranslatePVRFilename(const CStdString& pathFile)
 
   if (FileName.substr(0, 14) == "pvr://channels")
   {
-    const CPVRChannel *tag = CPVRManager::GetChannelGroups()->GetByPath(FileName);
+    const CPVRChannel *tag = g_PVRChannelGroups->GetByPath(FileName);
     if (tag)
     {
       CStdString stream = tag->StreamURL();
@@ -253,9 +227,9 @@ CStdString CPVRFile::TranslatePVRFilename(const CStdString& pathFile)
         {
           // pvr://stream
           // This function was added to retrieve the stream URL for this item
-          // Is is used for the MediaPortal PVR addon
+          // Is is used for the MediaPortal (ffmpeg) PVR addon
           // see PVRManager.cpp
-          return CPVRManager::Get()->GetLiveStreamURL(tag);
+          return g_PVRClients->GetStreamURL(*tag);
         }
         else
         {
@@ -274,17 +248,17 @@ bool CPVRFile::CanRecord()
     return false;
   }
 
-  return CPVRManager::Get()->CanRecordInstantly();
+  return g_PVRClients->CanRecordInstantly();
 }
 
 bool CPVRFile::IsRecording()
 {
-  return CPVRManager::Get()->IsRecordingOnPlayingChannel();
+  return g_PVRClients->IsRecordingOnPlayingChannel();
 }
 
 bool CPVRFile::Record(bool bOnOff)
 {
-  return CPVRManager::Get()->StartRecordingOnPlayingChannel(bOnOff);
+  return g_PVRManager.StartRecordingOnPlayingChannel(bOnOff);
 }
 
 bool CPVRFile::Delete(const CURL& url)
@@ -294,7 +268,7 @@ bool CPVRFile::Delete(const CURL& url)
   if (path.Left(11) == "recordings/" && path[path.size()-1] != '/')
   {
     CStdString strURL = url.Get();
-    CPVRRecording *tag = CPVRManager::GetRecordings()->GetByPath(strURL);
+    CPVRRecording *tag = g_PVRRecordings->GetByPath(strURL);
     if (tag)
       return tag->Delete();
   }
@@ -313,9 +287,22 @@ bool CPVRFile::Rename(const CURL& url, const CURL& urlnew)
   if (path.Left(11) == "recordings/" && path[path.size()-1] != '/')
   {
     CStdString strURL = url.Get();
-    CPVRRecording *tag = CPVRManager::GetRecordings()->GetByPath(strURL);
+    CPVRRecording *tag = g_PVRRecordings->GetByPath(strURL);
     if (tag)
       return tag->Rename(newname);
   }
   return false;
+}
+
+int CPVRFile::IoControl(EIoControl request, void *param)
+{
+  if (request == IOCTRL_SEEK_POSSIBLE)
+  {
+    if (g_PVRClients->LengthStream() && g_PVRClients->SeekStream(0, SEEK_CUR) >= 0)
+      return 1;
+    else
+      return 0;
+  }
+
+  return -1;
 }

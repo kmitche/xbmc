@@ -24,14 +24,27 @@
 #include "dialogs/GUIDialogKeyboard.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/GUIWindowManager.h"
+#include "guilib/LocalizeStrings.h"
 #include "pvr/PVRManager.h"
 #include "pvr/recordings/PVRRecordings.h"
+#include "pvr/timers/PVRTimers.h"
 #include "pvr/windows/GUIWindowPVR.h"
+#include "utils/log.h"
+#include "threads/SingleLock.h"
+
+using namespace PVR;
 
 CGUIWindowPVRRecordings::CGUIWindowPVRRecordings(CGUIWindowPVR *parent) :
   CGUIWindowPVRCommon(parent, PVR_WINDOW_RECORDINGS, CONTROL_BTNRECORDINGS, CONTROL_LIST_RECORDINGS)
 {
   m_strSelectedPath = "pvr://recordings/";
+}
+
+void CGUIWindowPVRRecordings::ResetObservers(void)
+{
+  CSingleLock lock(m_critSection);
+  g_PVRRecordings->RegisterObserver(this);
+  g_PVRTimers->RegisterObserver(this);
 }
 
 void CGUIWindowPVRRecordings::GetContextButtons(int itemNumber, CContextButtons &buttons) const
@@ -97,12 +110,22 @@ void CGUIWindowPVRRecordings::OnWindowUnload(void)
 
 void CGUIWindowPVRRecordings::UpdateData(void)
 {
+  CSingleLock lock(m_critSection);
   if (m_bIsFocusing)
     return;
 
   CLog::Log(LOGDEBUG, "CGUIWindowPVRRecordings - %s - update window '%s'. set view to %d", __FUNCTION__, GetName(), m_iControlList);
   m_bIsFocusing = true;
   m_bUpdateRequired = false;
+
+  g_PVRRecordings->RegisterObserver(this);
+  g_PVRTimers->RegisterObserver(this);
+
+  /* lock the graphics context while updating */
+  CSingleLock graphicsLock(g_graphicsContext);
+
+  m_iSelected = m_parent->m_viewControl.GetSelectedItem();
+  m_parent->m_viewControl.Clear();
   m_parent->m_vecItems->Clear();
   m_parent->m_viewControl.SetCurrentView(m_iControlList);
   m_parent->m_vecItems->m_strPath = "pvr://recordings/";
@@ -115,6 +138,24 @@ void CGUIWindowPVRRecordings::UpdateData(void)
   m_bIsFocusing = false;
 }
 
+void CGUIWindowPVRRecordings::Notify(const Observable &obs, const CStdString& msg)
+{
+  if (msg.Equals("recordings") || msg.Equals("timers"))
+  {
+    if (IsVisible())
+      SetInvalid();
+    else
+      m_bUpdateRequired = true;
+  }
+  else if (msg.Equals("recordings-reset") || msg.Equals("timers-reset"))
+  {
+    if (IsVisible())
+      UpdateData();
+    else
+      m_bUpdateRequired = true;
+  }
+}
+
 bool CGUIWindowPVRRecordings::OnClickButton(CGUIMessage &message)
 {
   bool bReturn = false;
@@ -122,8 +163,7 @@ bool CGUIWindowPVRRecordings::OnClickButton(CGUIMessage &message)
   if (IsSelectedButton(message))
   {
     bReturn = true;
-    CPVRManager::Get()->TriggerRecordingsUpdate();
-    UpdateData();
+    g_PVRManager.TriggerRecordingsUpdate();
   }
 
   return bReturn;
@@ -166,7 +206,7 @@ bool CGUIWindowPVRRecordings::OnContextButtonDelete(CFileItem *item, CONTEXT_BUT
 
   if (button == CONTEXT_BUTTON_DELETE)
   {
-    bReturn = true;
+    bReturn = false;
 
     CGUIDialogYesNo* pDialog = (CGUIDialogYesNo*)g_windowManager.GetWindow(WINDOW_DIALOG_YES_NO);
     if (!pDialog)
@@ -180,11 +220,7 @@ bool CGUIWindowPVRRecordings::OnContextButtonDelete(CFileItem *item, CONTEXT_BUT
     if (!pDialog->IsConfirmed())
       return bReturn;
 
-    if (CPVRManager::GetRecordings()->DeleteRecording(*item))
-    {
-      CPVRManager::GetRecordings()->Update();
-      UpdateData();
-    }
+    bReturn = g_PVRRecordings->DeleteRecording(*item);
   }
 
   return bReturn;
@@ -228,7 +264,7 @@ bool CGUIWindowPVRRecordings::OnContextButtonRename(CFileItem *item, CONTEXT_BUT
     CStdString strNewName = recording->m_strTitle;
     if (CGUIDialogKeyboard::ShowAndGetInput(strNewName, g_localizeStrings.Get(19041), false))
     {
-      if (CPVRManager::GetRecordings()->RenameRecording(*item, strNewName))
+      if (g_PVRRecordings->RenameRecording(*item, strNewName))
         UpdateData();
     }
   }

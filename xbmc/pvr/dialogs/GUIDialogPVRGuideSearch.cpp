@@ -33,6 +33,7 @@
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 
 using namespace std;
+using namespace PVR;
 
 #define CONTROL_EDIT_SEARCH       9
 #define CONTROL_BTN_INC_DESC      10
@@ -108,7 +109,7 @@ bool CGUIDialogPVRGuideSearch::OnMessage(CGUIMessage& message)
         if (pSpin)
         {
           CFileItemList channelslist_tv;
-          const CPVRChannelGroup *group = CPVRManager::GetChannelGroups()->GetById(false, m_searchfilter->m_iChannelGroup);
+          const CPVRChannelGroup *group = g_PVRChannelGroups->GetById(false, m_searchfilter->m_iChannelGroup);
           if (group)
             group->GetMembers(&channelslist_tv);
 
@@ -321,7 +322,7 @@ void CGUIDialogPVRGuideSearch::Update()
   if (pSpin)
   {
     CFileItemList channelslist_tv;
-    const CPVRChannelGroup *group = CPVRManager::GetChannelGroups()->GetById(false, m_searchfilter->m_iChannelGroup);
+    const CPVRChannelGroup *group = g_PVRChannelGroups->GetById(false, m_searchfilter->m_iChannelGroup);
     if (group)
       group->GetMembers(&channelslist_tv);
 
@@ -345,7 +346,7 @@ void CGUIDialogPVRGuideSearch::Update()
   if (pSpin)
   {
     CFileItemList grouplist;
-    CPVRManager::GetChannelGroups()->GetTV()->GetGroupList(&grouplist);
+    g_PVRChannelGroups->GetTV()->GetGroupList(&grouplist);
 
     pSpin->Clear();
     pSpin->AddLabel(g_localizeStrings.Get(593), -1);
@@ -362,18 +363,18 @@ void CGUIDialogPVRGuideSearch::Update()
   {
     pSpin->Clear();
     pSpin->AddLabel(g_localizeStrings.Get(593), -1);
-    pSpin->AddLabel(g_localizeStrings.Get(19500), EVCONTENTMASK_MOVIEDRAMA);
-    pSpin->AddLabel(g_localizeStrings.Get(19516), EVCONTENTMASK_NEWSCURRENTAFFAIRS);
-    pSpin->AddLabel(g_localizeStrings.Get(19532), EVCONTENTMASK_SHOW);
-    pSpin->AddLabel(g_localizeStrings.Get(19548), EVCONTENTMASK_SPORTS);
-    pSpin->AddLabel(g_localizeStrings.Get(19564), EVCONTENTMASK_CHILDRENYOUTH);
-    pSpin->AddLabel(g_localizeStrings.Get(19580), EVCONTENTMASK_MUSICBALLETDANCE);
-    pSpin->AddLabel(g_localizeStrings.Get(19596), EVCONTENTMASK_ARTSCULTURE);
-    pSpin->AddLabel(g_localizeStrings.Get(19612), EVCONTENTMASK_SOCIALPOLITICALECONOMICS);
-    pSpin->AddLabel(g_localizeStrings.Get(19628), EVCONTENTMASK_EDUCATIONALSCIENCE);
-    pSpin->AddLabel(g_localizeStrings.Get(19644), EVCONTENTMASK_LEISUREHOBBIES);
-    pSpin->AddLabel(g_localizeStrings.Get(19660), EVCONTENTMASK_SPECIAL);
-    pSpin->AddLabel(g_localizeStrings.Get(19499), EVCONTENTMASK_USERDEFINED);
+    pSpin->AddLabel(g_localizeStrings.Get(19500), EPG_EVENT_CONTENTMASK_MOVIEDRAMA);
+    pSpin->AddLabel(g_localizeStrings.Get(19516), EPG_EVENT_CONTENTMASK_NEWSCURRENTAFFAIRS);
+    pSpin->AddLabel(g_localizeStrings.Get(19532), EPG_EVENT_CONTENTMASK_SHOW);
+    pSpin->AddLabel(g_localizeStrings.Get(19548), EPG_EVENT_CONTENTMASK_SPORTS);
+    pSpin->AddLabel(g_localizeStrings.Get(19564), EPG_EVENT_CONTENTMASK_CHILDRENYOUTH);
+    pSpin->AddLabel(g_localizeStrings.Get(19580), EPG_EVENT_CONTENTMASK_MUSICBALLETDANCE);
+    pSpin->AddLabel(g_localizeStrings.Get(19596), EPG_EVENT_CONTENTMASK_ARTSCULTURE);
+    pSpin->AddLabel(g_localizeStrings.Get(19612), EPG_EVENT_CONTENTMASK_SOCIALPOLITICALECONOMICS);
+    pSpin->AddLabel(g_localizeStrings.Get(19628), EPG_EVENT_CONTENTMASK_EDUCATIONALSCIENCE);
+    pSpin->AddLabel(g_localizeStrings.Get(19644), EPG_EVENT_CONTENTMASK_LEISUREHOBBIES);
+    pSpin->AddLabel(g_localizeStrings.Get(19660), EPG_EVENT_CONTENTMASK_SPECIAL);
+    pSpin->AddLabel(g_localizeStrings.Get(19499), EPG_EVENT_CONTENTMASK_USERDEFINED);
     pSpin->SetValue(m_searchfilter->m_iGenreType);
   }
 }

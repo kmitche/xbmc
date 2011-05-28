@@ -49,7 +49,7 @@
 #include "threads/SingleLock.h"
 #include "utils/log.h"
 #include "utils/TimeUtils.h"
-#include "DateTime.h"
+#include "XBDateTime.h"
 #include "input/ButtonTranslator.h"
 
 #include "pvr/PVRManager.h"
@@ -57,6 +57,7 @@
 
 #include <stdio.h>
 
+using namespace PVR;
 
 #define BLUE_BAR                          0
 #define LABEL_ROW1                       10
@@ -425,11 +426,11 @@ bool CGUIWindowFullScreen::OnAction(const CAction &action)
       {
         CPVRChannel channel;
         int iChannelNumber = -1;
-        CPVRManager::Get()->GetCurrentChannel(&channel);
+        g_PVRManager.GetCurrentChannel(&channel);
 
         if (action.GetID() == REMOTE_0)
         {
-          iChannelNumber = CPVRManager::Get()->GetPreviousChannel();
+          iChannelNumber = g_PVRManager.GetPreviousChannel();
         }
         else
         {
@@ -635,8 +636,9 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
         fontPath += g_guiSettings.GetString("subtitles.font");
 
         // We scale based on PAL4x3 - this at least ensures all sizing is constant across resolutions.
-        CGUIFont *subFont = g_fontManager.LoadTTF("__subtitle__", fontPath, color[g_guiSettings.GetInt("subtitles.color")], 0, g_guiSettings.GetInt("subtitles.height"), g_guiSettings.GetInt("subtitles.style"), false, 1.0f, 1.0f, RES_PAL_4x3, true);
-        CGUIFont *borderFont = g_fontManager.LoadTTF("__subtitleborder__", fontPath, 0xFF000000, 0, g_guiSettings.GetInt("subtitles.height"), g_guiSettings.GetInt("subtitles.style"), true, 1.0f, 1.0f, RES_PAL_4x3, true);
+        RESOLUTION_INFO pal(720, 576, 0);
+        CGUIFont *subFont = g_fontManager.LoadTTF("__subtitle__", fontPath, color[g_guiSettings.GetInt("subtitles.color")], 0, g_guiSettings.GetInt("subtitles.height"), g_guiSettings.GetInt("subtitles.style"), false, 1.0f, 1.0f, &pal, true);
+        CGUIFont *borderFont = g_fontManager.LoadTTF("__subtitleborder__", fontPath, 0xFF000000, 0, g_guiSettings.GetInt("subtitles.height"), g_guiSettings.GetInt("subtitles.style"), true, 1.0f, 1.0f, &pal, true);
         if (!subFont || !borderFont)
           CLog::Log(LOGERROR, "CGUIWindowFullScreen::OnMessage(WINDOW_INIT) - Unable to load subtitle font");
         else
@@ -701,14 +703,14 @@ bool CGUIWindowFullScreen::OnMessage(CGUIMessage& message)
         CStdString strLabel = msg.GetLabel();
         if (msg.GetParam1() != 0)
         {
-          const CPVRChannelGroups *groups = CPVRManager::GetChannelGroups()->Get(CPVRManager::Get()->IsPlayingRadio());
+          const CPVRChannelGroups *groups = g_PVRChannelGroups->Get(g_PVRManager.IsPlayingRadio());
           CPVRChannelGroup *selectedGroup = (CPVRChannelGroup *) groups->GetByName(strLabel);
 
           // Switch to the first channel of the new group if the new group ID is
           // different from the current one.
-          if (selectedGroup && *selectedGroup != *CPVRManager::Get()->GetPlayingGroup(selectedGroup->IsRadio()))
+          if (selectedGroup && *selectedGroup != *g_PVRManager.GetPlayingGroup(selectedGroup->IsRadio()))
           {
-            CPVRManager::Get()->SetPlayingGroup(selectedGroup);
+            g_PVRManager.SetPlayingGroup(selectedGroup);
             OnAction(CAction(ACTION_CHANNEL_SWITCH, (float) groups->GetFirstChannelForGroupID(selectedGroup->GroupID())));
           }
 
@@ -980,7 +982,7 @@ void CGUIWindowFullScreen::RenderTTFSubtitles()
       subtitleText.Replace("</u", "");
 
       RESOLUTION res = g_graphicsContext.GetVideoResolution();
-      g_graphicsContext.SetRenderingResolution(res, false);
+      g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
 
       float maxWidth = (float) g_settings.m_ResInfo[res].Overscan.right - g_settings.m_ResInfo[res].Overscan.left;
       m_subsLayout->Update(subtitleText, maxWidth * 0.9f, false, true); // true to force LTR reading order (most Hebrew subs are this format)
@@ -1111,11 +1113,11 @@ void CGUIWindowFullScreen::FillInTVGroups()
   CGUIMessage msgReset(GUI_MSG_LABEL_RESET, GetID(), CONTROL_GROUP_CHOOSER);
   g_windowManager.SendMessage(msgReset);
 
-  const CPVRChannelGroups *groups = CPVRManager::GetChannelGroups()->Get(CPVRManager::Get()->IsPlayingRadio());
+  const CPVRChannelGroups *groups = g_PVRChannelGroups->Get(g_PVRManager.IsPlayingRadio());
 
   int iGroup        = 0;
   int iCurrentGroup = 0;
-  const CPVRChannelGroup *currentGroup = CPVRManager::Get()->GetPlayingGroup(false);
+  const CPVRChannelGroup *currentGroup = g_PVRManager.GetPlayingGroup(false);
   for (int i = 0; i < (int) groups->size(); ++i)
   {
     if (*groups->at(i) == *currentGroup)

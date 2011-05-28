@@ -69,9 +69,7 @@ namespace ADDON
 #include "network/WebServer.h"
 #endif
 
-#ifdef HAS_SDL
-#include <SDL/SDL_mutex.h>
-#endif
+#include "threads/XBMC_mutex.h"
 
 class CKaraokeLyricsManager;
 class CApplicationMessenger;
@@ -105,9 +103,9 @@ public:
 
   void StartServices();
   void StopServices();
-  void StartWebServer();
+  bool StartWebServer();
   void StopWebServer();
-  void StartJSONRPCServer();
+  bool StartJSONRPCServer();
   void StopJSONRPCServer(bool bWait);
   void StartUPnP();
   void StopUPnP(bool bWait);
@@ -117,7 +115,7 @@ public:
   void StopUPnPServer();
   void StartPVRManager();
   void StopPVRManager();
-  void StartEventServer();
+  bool StartEventServer();
   bool StopEventServer(bool bWait, bool promptuser);
   void RefreshEventServer();
   void StartDbusServer();
@@ -126,7 +124,7 @@ public:
   void StopZeroconf();
   void DimLCDOnPlayback(bool dim);
   bool IsCurrentThread() const;
-  void Stop();
+  void Stop(int exitCode);
   void RestartApp();
   void UnloadSkin(bool forReload = false);
   bool LoadUserWindows();
@@ -189,6 +187,10 @@ public:
   double GetTotalTime() const;
   double GetTime() const;
   float GetPercentage() const;
+
+  // Get the percentage of data currently cached/buffered (aq/vq + FileCache) from the input stream if applicable.
+  float GetCachePercentage() const;
+
   void SeekPercentage(float percent);
   void SeekTime( double dTime = 0.0 );
   void ResetPlayTime();
@@ -303,6 +305,9 @@ protected:
   bool m_skinReloading; // if true we disallow LoadSkin until ReloadSkin is called
 
   friend class CApplicationMessenger;
+#if defined(__APPLE__) && defined(__arm__)
+  friend class CWinEventsIOS;
+#endif
   // screensaver
   bool m_bScreenSave;
   ADDON::AddonPtr m_screenSaver;
@@ -352,7 +357,7 @@ protected:
   
   CGUITextLayout *m_debugLayout;
 
-#ifdef HAS_SDL
+#if defined(HAS_SDL) || defined(HAS_XBMC_MUTEX)
   int        m_frameCount;
   SDL_mutex* m_frameMutex;
   SDL_cond*  m_frameCond;

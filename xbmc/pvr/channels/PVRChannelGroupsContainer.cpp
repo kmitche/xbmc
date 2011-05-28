@@ -20,15 +20,21 @@
  */
 
 #include "PVRChannelGroupsContainer.h"
+#include "URL.h"
 #include "dialogs/GUIDialogOK.h"
+#include "guilib/LocalizeStrings.h"
 #include "utils/URIUtils.h"
 #include "utils/log.h"
+#include "pvr/PVRManager.h"
 
-CPVRChannelGroupsContainer::CPVRChannelGroupsContainer(void)
+using namespace PVR;
+
+CPVRChannelGroupsContainer::CPVRChannelGroupsContainer(void) :
+    m_groupsRadio(new CPVRChannelGroups(true)),
+    m_groupsTV(new CPVRChannelGroups(false)),
+    m_bUpdateChannelsOnly(false),
+    m_bIsUpdating(false)
 {
-
-  m_groupsRadio = new CPVRChannelGroups(true);
-  m_groupsTV    = new CPVRChannelGroups(false);
 }
 
 CPVRChannelGroupsContainer::~CPVRChannelGroupsContainer(void)
@@ -37,10 +43,24 @@ CPVRChannelGroupsContainer::~CPVRChannelGroupsContainer(void)
   delete m_groupsTV;
 }
 
-bool CPVRChannelGroupsContainer::Update(void)
+bool CPVRChannelGroupsContainer::Update(bool bChannelsOnly /* = false */)
 {
-  return m_groupsRadio->Update() &&
-         m_groupsTV->Update();
+  CSingleLock lock(m_critSection);
+  if (m_bIsUpdating)
+    return false;
+  m_bIsUpdating = true;
+  m_bUpdateChannelsOnly = bChannelsOnly;
+  lock.Leave();
+
+  CLog::Log(LOGDEBUG, "CPVRChannelGroupsContainer - %s - updating %s", __FUNCTION__, bChannelsOnly ? "channels" : "channel groups");
+  bool bReturn = m_groupsRadio->Update(bChannelsOnly) &&
+       m_groupsTV->Update(bChannelsOnly);
+
+  lock.Enter();
+  m_bIsUpdating = false;
+  lock.Leave();
+
+  return bReturn;
 }
 
 bool CPVRChannelGroupsContainer::Load(void)
@@ -57,14 +77,14 @@ void CPVRChannelGroupsContainer::Unload(void)
   m_groupsTV->Clear();
 }
 
-const CPVRChannelGroups *CPVRChannelGroupsContainer::Get(bool bRadio) const
+CPVRChannelGroups *CPVRChannelGroupsContainer::Get(bool bRadio) const
 {
   return bRadio ? m_groupsRadio : m_groupsTV;
 }
 
-const CPVRChannelGroup *CPVRChannelGroupsContainer::GetGroupAll(bool bRadio) const
+CPVRChannelGroupInternal *CPVRChannelGroupsContainer::GetGroupAll(bool bRadio) const
 {
-  const CPVRChannelGroup *group = NULL;
+  CPVRChannelGroupInternal *group = NULL;
   const CPVRChannelGroups *groups = Get(bRadio);
   if (groups)
     group = groups->GetGroupAll();
@@ -90,6 +110,16 @@ const CPVRChannel *CPVRChannelGroupsContainer::GetChannelById(int iChannelId) co
     channel = m_groupsRadio->GetGroupAll()->GetByChannelID(iChannelId);
 
   return channel;
+}
+
+const CPVRChannel *CPVRChannelGroupsContainer::GetChannelByEpgId(int iEpgId) const
+{
+	const CPVRChannel *channel = m_groupsTV->GetGroupAll()->GetByChannelEpgID(iEpgId);
+
+	if (!channel)
+		channel = m_groupsRadio->GetGroupAll()->GetByChannelEpgID(iEpgId);
+
+	return channel;
 }
 
 bool CPVRChannelGroupsContainer::GetGroupsDirectory(const CStdString &strBase, CFileItemList *results, bool bRadio)
@@ -124,9 +154,10 @@ const CPVRChannel *CPVRChannelGroupsContainer::GetByPath(const CStdString &strPa
   CStdString strCheckPath;
   for (unsigned int bRadio = 0; bRadio <= 1; bRadio++)
   {
-    for (unsigned int iGroupPtr = 0; iGroupPtr < Get(bRadio)->size(); iGroupPtr++)
+    const CPVRChannelGroups *groups = Get(bRadio == 1);
+    for (unsigned int iGroupPtr = 0; iGroupPtr < groups->size(); iGroupPtr++)
     {
-      const CPVRChannelGroup *group = Get(bRadio)->at(iGroupPtr);
+      const CPVRChannelGroup *group = groups->at(iGroupPtr);
       strCheckPath.Format("channels/%s/%s/", group->IsRadio() ? "radio" : "tv", group->GroupName().c_str());
 
       if (strFileName.Left(strCheckPath.length()) == strCheckPath)
@@ -211,11 +242,13 @@ int CPVRChannelGroupsContainer::GetNumChannelsFromAll()
 const CPVRChannel *CPVRChannelGroupsContainer::GetByUniqueID(int iClientChannelNumber, int iClientID)
 {
   const CPVRChannel *channel = NULL;
+  const CPVRChannelGroup* channelgroup = GetGroupAllTV();
 
-  channel = GetGroupAllTV()->GetByClient(iClientChannelNumber, iClientID);
+  if (channelgroup == NULL)
+    channelgroup = GetGroupAllRadio();
 
-  if (channel == NULL)
-    channel = GetGroupAllRadio()->GetByClient(iClientChannelNumber, iClientID);
+  if (channelgroup != NULL)
+    channel = channelgroup->GetByClient(iClientChannelNumber, iClientID);
 
   return channel;
 }
@@ -223,11 +256,25 @@ const CPVRChannel *CPVRChannelGroupsContainer::GetByUniqueID(int iClientChannelN
 const CPVRChannel *CPVRChannelGroupsContainer::GetByChannelIDFromAll(int iChannelID)
 {
   const CPVRChannel *channel = NULL;
+  const CPVRChannelGroup* channelgroup = GetGroupAllTV();
 
-  channel = GetGroupAllTV()->GetByChannelID(iChannelID);
+  if (channelgroup == NULL)
+    channelgroup = GetGroupAllRadio();
+
+  if (channelgroup != NULL)
+    channel = channelgroup->GetByChannelID(iChannelID);
+
+  return channel;
+}
+
+const CPVRChannel *CPVRChannelGroupsContainer::GetByClientFromAll(unsigned int iClientId, unsigned int iChannelUid)
+{
+  const CPVRChannel *channel = NULL;
+
+  channel = GetGroupAllTV()->GetByClient(iChannelUid, iClientId);
 
   if (channel == NULL)
-    channel = GetGroupAllRadio()->GetByChannelID(iChannelID);
+    channel = GetGroupAllRadio()->GetByClient(iChannelUid, iClientId);
 
   return channel;
 }
@@ -235,11 +282,13 @@ const CPVRChannel *CPVRChannelGroupsContainer::GetByChannelIDFromAll(int iChanne
 const CPVRChannel *CPVRChannelGroupsContainer::GetByUniqueIDFromAll(int iUniqueID)
 {
   const CPVRChannel *channel;
+  const CPVRChannelGroup* channelgroup = GetGroupAllTV();
 
-  channel = GetGroupAllTV()->GetByUniqueID(iUniqueID);
+  if (channelgroup == NULL)
+    channelgroup = GetGroupAllRadio();
 
-  if (channel == NULL)
-    channel = GetGroupAllRadio()->GetByUniqueID(iUniqueID);
+  if (channelgroup != NULL)
+    channel = channelgroup->GetByUniqueID(iUniqueID);
 
   return NULL;
 }
@@ -249,8 +298,24 @@ void CPVRChannelGroupsContainer::SearchMissingChannelIcons(void)
   CLog::Log(LOGINFO, "PVRChannelGroupsContainer - %s - starting channel icon search", __FUNCTION__);
 
   // TODO: Add Process dialog here
-  ((CPVRChannelGroup *) GetGroupAllTV())->SearchAndSetChannelIcons(true);
-  ((CPVRChannelGroup *) GetGroupAllRadio())->SearchAndSetChannelIcons(true);
+  CPVRChannelGroup* channelgrouptv  = (CPVRChannelGroup *) GetGroupAllTV();
+  CPVRChannelGroup* channelgroupradio  =(CPVRChannelGroup *) GetGroupAllRadio();
+
+  if (channelgrouptv != NULL)
+    channelgrouptv->SearchAndSetChannelIcons(true);
+  if (channelgroupradio != NULL)
+    channelgroupradio->SearchAndSetChannelIcons(true);
 
   CGUIDialogOK::ShowAndGetInput(19103,0,20177,0);
+}
+
+const CPVRChannel *CPVRChannelGroupsContainer::GetLastPlayedChannel(void) const
+{
+  const CPVRChannel *lastChannel = GetGroupAllTV()->GetLastPlayedChannel();
+
+  const CPVRChannel *lastRadioChannel = GetGroupAllRadio()->GetLastPlayedChannel();
+  if (!lastChannel || (lastRadioChannel && lastChannel->LastWatched() < lastRadioChannel->LastWatched()))
+    lastChannel = lastRadioChannel;
+
+  return lastChannel;
 }

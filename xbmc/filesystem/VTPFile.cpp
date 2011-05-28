@@ -25,6 +25,7 @@
 #include "utils/URIUtils.h"
 #include "URL.h"
 #include "utils/log.h"
+#include "video/VideoInfoTag.h"
 
 #ifdef _LINUX
 #define SD_BOTH SHUT_RDWR
@@ -140,10 +141,6 @@ unsigned int CVTPFile::Read(void* buffer, int64_t size)
 int64_t CVTPFile::Seek(int64_t pos, int whence)
 {
   CLog::Log(LOGDEBUG, "CVTPFile::Seek - seek to pos %"PRId64", whence %d", pos, whence);
-
-  if(whence == SEEK_POSSIBLE)
-    return 0;
-
   return -1;
 }
 
@@ -221,4 +218,12 @@ bool CVTPFile::SelectChannel(unsigned int channel)
     return true;
   else
     return false;
+}
+
+int CVTPFile::IoControl(EIoControl request, void* param)
+{
+  if(request == IOCTRL_SEEK_POSSIBLE)
+    return 0;
+
+  return -1;
 }

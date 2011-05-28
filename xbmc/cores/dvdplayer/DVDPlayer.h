@@ -155,6 +155,8 @@ public:
   virtual bool SeekScene(bool bPlus = true);
   virtual void SeekPercentage(float iPercent);
   virtual float GetPercentage();
+  virtual float GetCachePercentage();
+
   virtual void SetVolume(long nVolume)                          { m_dvdPlayerAudio.SetVolume(nVolume); }
   virtual void SetDynamicRangeCompression(long drc)             { m_dvdPlayerAudio.SetDynamicRangeCompression(drc); }
   virtual void GetAudioInfo(CStdString& strAudioInfo);
@@ -220,11 +222,12 @@ public:
   enum ECacheState
   { CACHESTATE_DONE = 0
   , CACHESTATE_FULL     // player is filling up the demux queue
+  , CACHESTATE_PVR      // player is waiting for some data in each buffer
   , CACHESTATE_INIT     // player is waiting for first packet of each stream
   , CACHESTATE_PLAY     // player is waiting for players to not be stalled
   };
 
-  virtual bool IsCaching() const { return m_caching == CACHESTATE_FULL; }
+  virtual bool IsCaching() const { return m_caching == CACHESTATE_FULL || m_caching == CACHESTATE_PVR; }
   virtual int GetCacheLevel() const ;
 
   virtual int OnDVDNavResult(void* pData, int iMessage);
@@ -251,6 +254,8 @@ protected:
   void ProcessVideoData(CDemuxStream* pStream, DemuxPacket* pPacket);
   void ProcessSubData(CDemuxStream* pStream, DemuxPacket* pPacket);
   void ProcessTeletextData(CDemuxStream* pStream, DemuxPacket* pPacket);
+
+  bool ShowPVRChannelInfo();
 
   int  AddSubtitleFile(const std::string& filename, const std::string& subfilename = "", CDemuxStream::EFlags flags = CDemuxStream::FLAG_NONE);
 
@@ -364,6 +369,9 @@ protected:
       recording     = false;
       demux_video   = "";
       demux_audio   = "";
+      file_length   = 0;
+      file_position = 0;
+      file_buffered = 0;
     }
 
     double timestamp;         // last time of update
@@ -384,6 +392,10 @@ protected:
 
     std::string demux_video;
     std::string demux_audio;
+
+    __int64 file_length;
+    __int64 file_position;
+    __int64 file_buffered;
   } m_State;
   CCriticalSection m_StateSection;
 

@@ -49,7 +49,7 @@
 				<width>430</width>
 				<height>30</height>
 				<font>font12_title</font>
-				<label>$LOCALIZE[19029] - $INFO[VideoPlayer.ChannelName]</label>
+				<label>$LOCALIZE[19222] - $INFO[VideoPlayer.ChannelName]</label>
 				<align>center</align>
 				<aligny>center</aligny>
 				<textcolor>white</textcolor>
@@ -140,7 +140,7 @@
 						<width>20</width>
 						<height>20</height>
 						<texture>PVR-HasTimer.png</texture>
-						<visible>ListItem.HasTimer</visible>
+						<visible>ListItem.HasTimer + !ListItem.IsRecording</visible>
 					</control>
 				</itemlayout>
 				<focusedlayout height="60" width="500">
@@ -226,7 +226,7 @@
 						<width>20</width>
 						<height>20</height>
 						<texture>PVR-HasTimer.png</texture>
-						<visible>ListItem.HasTimer</visible>
+						<visible>ListItem.HasTimer + !ListItem.IsRecording</visible>
 					</control>
 				</focusedlayout>
 			</control>

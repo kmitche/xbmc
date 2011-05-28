@@ -22,64 +22,70 @@
  */
 
 #include "GUIWindowPVRCommon.h"
-#include "guilib/GUIEPGGridContainer.h"
+#include "epg/GUIEPGGridContainer.h"
 #include "threads/CriticalSection.h"
 
-class CGUIWindowPVRCommon;
-class CGUIWindowPVRChannels;
-class CGUIWindowPVRGuide;
-class CGUIWindowPVRRecordings;
-class CGUIWindowPVRSearch;
-class CGUIWindowPVRTimers;
-
-class CGUIWindowPVR : public CGUIMediaWindow
+namespace PVR
 {
-  friend class CGUIWindowPVRCommon;
-  friend class CGUIWindowPVRChannels;
-  friend class CGUIWindowPVRGuide;
-  friend class CGUIWindowPVRRecordings;
-  friend class CGUIWindowPVRSearch;
-  friend class CGUIWindowPVRTimers;
+  class CGUIWindowPVRCommon;
+  class CGUIWindowPVRChannels;
+  class CGUIWindowPVRGuide;
+  class CGUIWindowPVRRecordings;
+  class CGUIWindowPVRSearch;
+  class CGUIWindowPVRTimers;
 
-public:
-  CGUIWindowPVR(void);
-  virtual ~CGUIWindowPVR(void);
+  class CGUIWindowPVR : public CGUIMediaWindow
+  {
+    friend class CGUIWindowPVRCommon;
+    friend class CGUIWindowPVRChannels;
+    friend class CGUIWindowPVRGuide;
+    friend class CGUIWindowPVRRecordings;
+    friend class CGUIWindowPVRSearch;
+    friend class CGUIWindowPVRTimers;
 
-  virtual CGUIWindowPVRCommon *GetActiveView(void) const;
-  virtual void SetActiveView(CGUIWindowPVRCommon *window);
-  virtual void GetContextButtons(int itemNumber, CContextButtons &buttons);
-  virtual CGUIWindowPVRCommon *GetSavedView(void) const;
-  virtual bool OnAction(const CAction &action);
-  virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button);
-  virtual void OnInitWindow(void);
-  virtual bool OnMessage(CGUIMessage& message);
-  virtual void OnWindowLoaded(void);
-  virtual void OnWindowUnload(void);
-  virtual void UpdateWindow(PVRWindow window);
+  public:
+    CGUIWindowPVR(void);
+    virtual ~CGUIWindowPVR(void);
 
-  CGUIEPGGridContainer *m_guideGrid;
+    virtual CGUIWindowPVRCommon *GetActiveView(void) const;
+    virtual void SetActiveView(CGUIWindowPVRCommon *window);
+    virtual void GetContextButtons(int itemNumber, CContextButtons &buttons);
+    virtual CGUIWindowPVRCommon *GetSavedView(void) const;
+    virtual bool OnAction(const CAction &action);
+    virtual bool OnContextButton(int itemNumber, CONTEXT_BUTTON button);
+    virtual void OnInitWindow(void);
+    virtual bool OnMessage(CGUIMessage& message);
+    virtual void OnWindowLoaded(void);
+    virtual void OnWindowUnload(void);
+    virtual void Reset(void);
 
-protected:
-  virtual void SetLabel(int iControl, const CStdString &strLabel);
-  virtual void SetLabel(int iControl, int iLabel);
-  virtual void UpdateButtons(void);
+    void UnlockWindow();
 
-private:
-  virtual bool OnMessageFocus(CGUIMessage &message);
-  virtual bool OnMessageClick(CGUIMessage &message);
+    EPG::CGUIEPGGridContainer *m_guideGrid;
 
-  virtual void CreateViews(void);
+  protected:
+    virtual void SetLabel(int iControl, const CStdString &strLabel);
+    virtual void SetLabel(int iControl, int iLabel);
+    virtual void UpdateButtons(void);
 
-  CGUIWindowPVRCommon *    m_currentSubwindow;
-  CGUIWindowPVRCommon *    m_savedSubwindow;
+  private:
+    virtual bool OnMessageFocus(CGUIMessage &message);
+    virtual bool OnMessageClick(CGUIMessage &message);
 
-  CGUIWindowPVRChannels *  m_windowChannelsTV;
-  CGUIWindowPVRChannels *  m_windowChannelsRadio;
-  CGUIWindowPVRGuide    *  m_windowGuide;
-  CGUIWindowPVRRecordings *m_windowRecordings;
-  CGUIWindowPVRSearch *    m_windowSearch;
-  CGUIWindowPVRTimers *    m_windowTimers;
+    virtual void CreateViews(void);
 
-  bool                     m_bViewsCreated;
-  CCriticalSection         m_critSection;
-};
+    CGUIWindowPVRCommon *    m_currentSubwindow;
+    CGUIWindowPVRCommon *    m_savedSubwindow;
+
+    CGUIWindowPVRChannels *  m_windowChannelsTV;
+    CGUIWindowPVRChannels *  m_windowChannelsRadio;
+    CGUIWindowPVRGuide    *  m_windowGuide;
+    CGUIWindowPVRRecordings *m_windowRecordings;
+    CGUIWindowPVRSearch *    m_windowSearch;
+    CGUIWindowPVRTimers *    m_windowTimers;
+
+    bool                     m_bViewsCreated;
+    CCriticalSection         m_critSection;
+    bool                     m_bDialogOKActive;
+  };
+}

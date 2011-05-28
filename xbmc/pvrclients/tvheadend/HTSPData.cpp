@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2010 Team XBMC
+ *      Copyright (C) 2005-2011 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -22,58 +22,54 @@
 #include "HTSPData.h"
 
 extern "C" {
+#include "cmyth/include/refmem/atomic.h"
 #include "libhts/htsmsg.h"
 #include "libhts/htsmsg_binary.h"
 }
 
 #define CMD_LOCK cMutexLock CmdLock((cMutex*)&m_Mutex)
 
-cHTSPData::cHTSPData()
+CHTSPData::CHTSPData() :
+    m_bSendNotifications(false)
 {
+  m_session = new CHTSPConnection();
 }
 
-cHTSPData::~cHTSPData()
+CHTSPData::~CHTSPData()
 {
   Close();
+  delete m_session;
 }
 
-bool cHTSPData::Open(CStdString hostname, int port, CStdString user, CStdString pass, long timeout)
+bool CHTSPData::Open()
 {
-  if(!m_session.Connect(hostname, port))
-    return false;
-
-  if(m_session.GetProtocol() < 2)
+  if(!m_session->Connect())
   {
-    XBMC->Log(LOG_ERROR, "%s - Incompatible protocol version %d", __FUNCTION__, m_session.GetProtocol());
+    /* failed to connect */
     return false;
   }
-
-  if(!user.IsEmpty())
-    m_session.Auth(user, pass);
 
   SetDescription("HTSP Data Listener");
   Start();
 
-  m_started.Wait(timeout);
+  m_started.Wait(g_iConnectTimeout * 1000);
+
   return Running();
 }
 
-void cHTSPData::Close()
+void CHTSPData::Close()
 {
-  Cancel(3);
-  m_session.Abort();
-  m_session.Close();
+  m_session->Close();
+  Cancel(1);
 }
 
-bool cHTSPData::CheckConnection()
+htsmsg_t* CHTSPData::ReadResult(htsmsg_t *m)
 {
-  return m_session.IsConnected();
-}
+  if (!m_session->IsConnected())
+    return NULL;
 
-htsmsg_t* cHTSPData::ReadResult(htsmsg_t* m)
-{
   m_Mutex.Lock();
-  unsigned    seq (m_session.AddSequence());
+  uint32_t seq = mvp_atomic_inc(&g_iPacketSequence);
 
   SMessage &message(m_queue[seq]);
   message.event = new cCondWait();
@@ -81,16 +77,16 @@ htsmsg_t* cHTSPData::ReadResult(htsmsg_t* m)
 
   m_Mutex.Unlock();
   htsmsg_add_u32(m, "seq", seq);
-  if(!m_session.SendMessage(m))
+  if(!m_session->SendMessage(m))
   {
     m_queue.erase(seq);
     return NULL;
   }
 
-  if(!message.event->Wait(2000))
+  if(!message.event->Wait(g_iResponseTimeout * 1000))
   {
-    XBMC->Log(LOG_ERROR, "%s - Timeout waiting for response", __FUNCTION__);
-    m_session.Close();
+    XBMC->Log(LOG_ERROR, "%s - request timed out after %d seconds", __FUNCTION__, g_iResponseTimeout);
+    m_session->Close();
   }
   m_Mutex.Lock();
 
@@ -103,7 +99,7 @@ htsmsg_t* cHTSPData::ReadResult(htsmsg_t* m)
   return m;
 }
 
-bool cHTSPData::GetDriveSpace(long long *total, long long *used)
+bool CHTSPData::GetDriveSpace(long long *total, long long *used)
 {
   htsmsg_t *msg = htsmsg_create_map();
   htsmsg_add_str(msg, "method", "getDiskSpace");
@@ -126,10 +122,8 @@ bool cHTSPData::GetDriveSpace(long long *total, long long *used)
   return true;
 }
 
-bool cHTSPData::GetTime(time_t *localTime, int *gmtOffset)
+bool CHTSPData::GetBackendTime(time_t *utcTime, int *gmtOffset)
 {
-  XBMC->Log(LOG_DEBUG, "%s", __FUNCTION__);
-
   htsmsg_t *msg = htsmsg_create_map();
   htsmsg_add_str(msg, "method", "getSysTime");
   if ((msg = ReadResult(msg)) == NULL)
@@ -147,66 +141,57 @@ bool cHTSPData::GetTime(time_t *localTime, int *gmtOffset)
     return false;
 
   XBMC->Log(LOG_DEBUG, "%s - tvheadend reported time=%u, timezone=%d, correction=%d"
-      , __FUNCTION__, secs, offset, g_iEpgOffsetCorrection * 60);
+      , __FUNCTION__, secs, offset);
 
-  /* XBMC needs the timezone difference in seconds from GMT */
-  offset = (offset - (g_iEpgOffsetCorrection * 60)) * 60;
+  *utcTime = secs;
+  *gmtOffset = offset;
 
-  *localTime = secs + offset;
-  *gmtOffset = -offset;
   return true;
 }
 
-int cHTSPData::GetNumChannels()
+unsigned int CHTSPData::GetNumChannels()
 {
   return GetChannels().size();
 }
 
-PVR_ERROR cHTSPData::RequestChannelList(PVRHANDLE handle, int radio)
+PVR_ERROR CHTSPData::GetChannels(PVR_HANDLE handle, bool bRadio)
 {
-  if (!CheckConnection())
-    return PVR_ERROR_SERVER_ERROR;
-
   SChannels channels = GetChannels();
   for(SChannels::iterator it = channels.begin(); it != channels.end(); ++it)
   {
     SChannel& channel = it->second;
+    if(bRadio != channel.radio)
+      continue;
 
     PVR_CHANNEL tag;
-    memset(&tag, 0 , sizeof(tag));
-    tag.uid           = channel.id;
-    tag.number        = channel.num;
-    tag.name          = channel.name.c_str();
-    tag.callsign      = channel.name.c_str();
-    tag.radio         = channel.radio;
-    tag.encryption    = channel.caid;
-    tag.iconpath      = channel.icon.c_str();
-    tag.input_format  = "";
-    tag.stream_url    = "";
-    tag.bouquet       = 0;
+    memset(&tag, 0 , sizeof(PVR_CHANNEL));
 
-    if(((bool)radio) == tag.radio)
-    {
-      PVR->TransferChannelEntry(handle, &tag);
-    }
+    tag.iUniqueId         = channel.id;
+    tag.bIsRadio          = channel.radio;
+    tag.iChannelNumber    = channel.num;
+    tag.strChannelName    = channel.name.c_str();
+    tag.strInputFormat    = ""; // unused
+    tag.strStreamURL      = ""; // unused
+    tag.iEncryptionSystem = channel.caid;
+    tag.strIconPath       = channel.icon.c_str();
+    tag.bIsHidden         = false;
+
+    PVR->TransferChannelEntry(handle, &tag);
   }
 
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR cHTSPData::RequestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &channel, time_t start, time_t end)
+PVR_ERROR CHTSPData::GetEpg(PVR_HANDLE handle, const PVR_CHANNEL &channel, time_t iStart, time_t iEnd)
 {
-  if (!CheckConnection())
-    return PVR_ERROR_SERVER_ERROR;
-
   SChannels channels = GetChannels();
 
-  if (channels.find(channel.uid) != channels.end())
+  if (channels.find(channel.iUniqueId) != channels.end())
   {
     time_t stop;
 
     SEvent event;
-    event.id = channels[channel.uid].event;
+    event.id = channels[channel.iUniqueId].event;
     if (event.id == 0)
       return PVR_ERROR_NO_ERROR;
 
@@ -215,18 +200,28 @@ PVR_ERROR cHTSPData::RequestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &c
       bool success = GetEvent(event, event.id);
       if (success)
       {
-        PVR_PROGINFO broadcast;
-        memset(&broadcast, 0, sizeof(PVR_PROGINFO));
+        EPG_TAG broadcast;
+        memset(&broadcast, 0, sizeof(EPG_TAG));
 
-        broadcast.channum         = event.chan_id >= 0 ? event.chan_id : channel.number;
-        broadcast.uid             = event.id;
-        broadcast.title           = event.title.c_str();
-        broadcast.subtitle        = event.title.c_str();
-        broadcast.description     = event.descs.c_str();
-        broadcast.starttime       = event.start;
-        broadcast.endtime         = event.stop;
-        broadcast.genre_type      = (event.content & 0x0F) << 4;
-        broadcast.genre_sub_type  = event.content & 0xF0;
+        broadcast.iUniqueBroadcastId = event.id;
+        broadcast.strTitle           = event.title.c_str();
+        broadcast.iChannelNumber     = event.chan_id >= 0 ? event.chan_id : channel.iUniqueId;
+        broadcast.startTime          = event.start;
+        broadcast.endTime            = event.stop;
+        broadcast.strPlotOutline     = ""; // unused
+        broadcast.strPlot            = event.descs.c_str();
+        broadcast.strIconPath        = ""; // unused
+        broadcast.iGenreType         = (event.content & 0x0F) << 4;
+        broadcast.iGenreSubType      = event.content & 0xF0;
+        broadcast.firstAired         = 0;  // unused
+        broadcast.iParentalRating    = 0;  // unused
+        broadcast.iStarRating        = 0;  // unused
+        broadcast.bNotify            = false;
+        broadcast.iSeriesNumber      = 0;  // unused
+        broadcast.iEpisodeNumber     = 0;  // unused
+        broadcast.iEpisodePartNumber = 0;  // unused
+        broadcast.strEpisodeName     = ""; // unused
+
         PVR->TransferEpgEntry(handle, &broadcast);
 
         event.id = event.next;
@@ -235,7 +230,7 @@ PVR_ERROR cHTSPData::RequestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &c
       else
         break;
 
-    } while(end > stop);
+    } while(iEnd > stop);
 
     return PVR_ERROR_NO_ERROR;
   }
@@ -243,12 +238,8 @@ PVR_ERROR cHTSPData::RequestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &c
   return PVR_ERROR_NO_ERROR;
 }
 
-SRecordings cHTSPData::GetDVREntries(bool recorded, bool scheduled)
+SRecordings CHTSPData::GetDVREntries(bool recorded, bool scheduled)
 {
-  time_t localTime;
-  int gmtOffset;
-  GetTime(&localTime, &gmtOffset);
-
   CMD_LOCK;
   SRecordings recordings;
 
@@ -256,7 +247,7 @@ SRecordings cHTSPData::GetDVREntries(bool recorded, bool scheduled)
   {
     SRecording recording = it->second;
 
-    if ((recorded && (recording.state == ST_COMPLETED || recording.state == ST_ABORTED)) ||
+    if ((recorded && (recording.state == ST_COMPLETED || recording.state == ST_ABORTED || recording.state == ST_RECORDING)) ||
         (scheduled && (recording.state == ST_SCHEDULED || recording.state == ST_RECORDING)))
       recordings[recording.id] = recording;
   }
@@ -264,56 +255,60 @@ SRecordings cHTSPData::GetDVREntries(bool recorded, bool scheduled)
   return recordings;
 }
 
-int cHTSPData::GetNumRecordings()
+unsigned int CHTSPData::GetNumRecordings()
 {
   SRecordings recordings = GetDVREntries(true, false);
   return recordings.size();
 }
 
-PVR_ERROR cHTSPData::RequestRecordingsList(PVRHANDLE handle)
+PVR_ERROR CHTSPData::GetRecordings(PVR_HANDLE handle)
 {
-  time_t localTime;
-  int gmtOffset;
-  GetTime(&localTime, &gmtOffset);
-
+  EnableNotifications(true);
   SRecordings recordings = GetDVREntries(true, false);
 
   for(SRecordings::const_iterator it = recordings.begin(); it != recordings.end(); ++it)
   {
     SRecording recording = it->second;
 
-    PVR_RECORDINGINFO tag;
-    tag.index           = recording.id;
-    tag.directory       = "/";
-    tag.subtitle        = "";
-    tag.channel_name    = "";
-    tag.recording_time  = recording.start + gmtOffset;
-    tag.duration        = recording.stop - recording.start;
-    tag.description     = recording.description.c_str();
-    tag.title           = recording.title.c_str();
+    CStdString strStreamURL = "http://";
+    std::string strChannelName = "";
 
-    CStdString streamURL = "http://";
+    /* lock */
     {
       CMD_LOCK;
       SChannels::const_iterator itr = m_channels.find(recording.channel);
       if (itr != m_channels.end())
-        tag.channel_name = itr->second.name.c_str();
-      else
-        tag.channel_name = "";
+        strChannelName = itr->second.name.c_str();
 
-      if (g_szUsername != "")
+      if (g_strUsername != "")
       {
-        streamURL += g_szUsername;
-        if (g_szPassword != "")
+        strStreamURL += g_strUsername;
+        if (g_strPassword != "")
         {
-          streamURL += ":";
-          streamURL += g_szPassword;
+          strStreamURL += ":";
+          strStreamURL += g_strPassword;
         }
-        streamURL += "@";
+        strStreamURL += "@";
       }
-      streamURL.Format("%s%s:%i/dvrfile/%i", streamURL.c_str(), g_szHostname.c_str(), g_iPortHTTP, recording.id);
+      strStreamURL.Format("%s%s:%i/dvrfile/%i", strStreamURL.c_str(), g_strHostname.c_str(), g_iPortHTTP, recording.id);
     }
-    tag.stream_url      = streamURL.c_str();
+
+    PVR_RECORDING tag;
+    memset(&tag, 0, sizeof(PVR_RECORDING));
+
+    tag.iClientIndex   = recording.id;
+    tag.strTitle       = recording.title.c_str();
+    tag.strStreamURL   = strStreamURL.c_str();
+    tag.strDirectory   = "/";
+    tag.strPlotOutline = "";
+    tag.strPlot        = recording.description.c_str();
+    tag.strChannelName = strChannelName.c_str();
+    tag.recordingTime  = recording.start;
+    tag.iDuration      = recording.stop - recording.start;
+    tag.iPriority      = 0;
+    tag.iLifetime      = 0;
+    tag.iGenreType     = 0;
+    tag.iGenreSubType  = 0;
 
     PVR->TransferRecordingEntry(handle, &tag);
   }
@@ -321,13 +316,13 @@ PVR_ERROR cHTSPData::RequestRecordingsList(PVRHANDLE handle)
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR cHTSPData::DeleteRecording(const PVR_RECORDINGINFO &recinfo)
+PVR_ERROR CHTSPData::DeleteRecording(const PVR_RECORDING &recording)
 {
   XBMC->Log(LOG_DEBUG, "%s", __FUNCTION__);
 
   htsmsg_t *msg = htsmsg_create_map();
   htsmsg_add_str(msg, "method", "deleteDvrEntry");
-  htsmsg_add_u32(msg, "id", recinfo.index);
+  htsmsg_add_u32(msg, "id", recording.iClientIndex);
   if ((msg = ReadResult(msg)) == NULL)
   {
     XBMC->Log(LOG_DEBUG, "%s - Failed to get deleteDvrEntry", __FUNCTION__);
@@ -344,37 +339,94 @@ PVR_ERROR cHTSPData::DeleteRecording(const PVR_RECORDINGINFO &recinfo)
   return success > 0 ? PVR_ERROR_NO_ERROR : PVR_ERROR_NOT_DELETED;
 }
 
-int cHTSPData::GetNumTimers()
+unsigned int CHTSPData::GetNumTimers()
 {
   SRecordings recordings = GetDVREntries(false, true);
   return recordings.size();
 }
 
-PVR_ERROR cHTSPData::RequestTimerList(PVRHANDLE handle)
+unsigned int CHTSPData::GetNumChannelGroups(void)
 {
-  time_t localTime;
-  int gmtOffset;
-  GetTime(&localTime, &gmtOffset);
+  return m_tags.size();
+}
 
+PVR_ERROR CHTSPData::GetChannelGroups(PVR_HANDLE handle)
+{
+  for(unsigned int iTagPtr = 0; iTagPtr < m_tags.size(); iTagPtr++)
+  {
+    PVR_CHANNEL_GROUP tag;
+    memset(&tag, 0 , sizeof(PVR_CHANNEL_GROUP));
+
+    tag.bIsRadio     = false;
+    tag.strGroupName = m_tags[iTagPtr].name.c_str();
+
+    PVR->TransferChannelGroup(handle, &tag);
+  }
+
+  return PVR_ERROR_NO_ERROR;
+}
+
+PVR_ERROR CHTSPData::GetChannelGroupMembers(PVR_HANDLE handle, const PVR_CHANNEL_GROUP &group)
+{
+  XBMC->Log(LOG_DEBUG, "%s - group '%s'", __FUNCTION__, group.strGroupName);
+
+  for(unsigned int iTagPtr = 0; iTagPtr < m_tags.size(); iTagPtr++)
+  {
+    if (m_tags[iTagPtr].name != group.strGroupName)
+      continue;
+
+    SChannels channels = GetChannels(m_tags[iTagPtr].id);
+
+    for(SChannels::iterator it = channels.begin(); it != channels.end(); ++it)
+    {
+      SChannel& channel = it->second;
+
+      PVR_CHANNEL_GROUP_MEMBER tag;
+      memset(&tag,0 , sizeof(PVR_CHANNEL_GROUP_MEMBER));
+
+      tag.strGroupName     = group.strGroupName;
+      tag.iChannelUniqueId = channel.id;
+      tag.iChannelNumber   = channel.num;
+
+      XBMC->Log(LOG_DEBUG, "%s - add channel %s (%d) to group '%s' channel number %d",
+          __FUNCTION__, channel.name.c_str(), tag.iChannelUniqueId, group.strGroupName, channel.num);
+
+      PVR->TransferChannelGroupMember(handle, &tag);
+    }
+  }
+
+  return PVR_ERROR_NO_ERROR;
+}
+
+PVR_ERROR CHTSPData::GetTimers(PVR_HANDLE handle)
+{
   SRecordings recordings = GetDVREntries(false, true);
 
   for(SRecordings::const_iterator it = recordings.begin(); it != recordings.end(); ++it)
   {
     SRecording recording = it->second;
 
-    PVR_TIMERINFO tag;
-    tag.index       = recording.id;
-    tag.channelUid  = recording.channel;
-    tag.starttime   = recording.start;
-    tag.endtime     = recording.stop;
-    tag.active      = recording.state == ST_SCHEDULED || recording.state == ST_RECORDING;
-    tag.recording   = recording.state == ST_RECORDING;
-    tag.title       = recording.title.c_str();
-    tag.directory   = "/";
-    tag.priority    = 0;
-    tag.lifetime    = tag.endtime - tag.starttime;
-    tag.repeat      = false;
-    tag.repeatflags = 0;
+    PVR_TIMER tag;
+    memset(&tag, 0, sizeof(PVR_TIMER));
+
+    tag.iClientIndex      = recording.id;
+    tag.iClientChannelUid = recording.channel;
+    tag.startTime         = recording.start;
+    tag.endTime           = recording.stop;
+    tag.strTitle          = recording.title.c_str();
+    tag.strDirectory      = "/";   // unused
+    tag.strSummary        = recording.description.c_str();
+    tag.state             = (PVR_TIMER_STATE) recording.state;
+    tag.iPriority         = 0;     // unused
+    tag.iLifetime         = 0;     // unused
+    tag.bIsRepeating      = false; // unused
+    tag.firstDay          = 0;     // unused
+    tag.iWeekdays         = 0;     // unused
+    tag.iEpgUid           = 0;     // unused
+    tag.iMarginStart      = 0;     // unused
+    tag.iMarginEnd        = 0;     // unused
+    tag.iGenreType        = 0;     // unused
+    tag.iGenreSubType     = 0;     // unused
 
     PVR->TransferTimerEntry(handle, &tag);
   }
@@ -382,16 +434,23 @@ PVR_ERROR cHTSPData::RequestTimerList(PVRHANDLE handle)
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR cHTSPData::DeleteTimer(const PVR_TIMERINFO &timerinfo, bool force)
+PVR_ERROR CHTSPData::DeleteTimer(const PVR_TIMER &timer, bool bForce)
 {
   XBMC->Log(LOG_DEBUG, "%s", __FUNCTION__);
 
   htsmsg_t *msg = htsmsg_create_map();
-  htsmsg_add_str(msg, "method", "deleteDvrEntry");
-  htsmsg_add_u32(msg, "id", timerinfo.index);
+  htsmsg_add_str(msg, "method", "cancelDvrEntry");
+  htsmsg_add_u32(msg, "id", timer.iClientIndex);
   if ((msg = ReadResult(msg)) == NULL)
   {
-    XBMC->Log(LOG_DEBUG, "%s - Failed to get deleteDvrEntry", __FUNCTION__);
+    XBMC->Log(LOG_DEBUG, "%s - Failed to get cancelDvrEntry", __FUNCTION__);
+    return PVR_ERROR_SERVER_ERROR;
+  }
+
+  const char *strError = NULL;
+  if ((strError = htsmsg_get_str(msg, "error")))
+  {
+    XBMC->Log(LOG_DEBUG, "%s - Error deleting timer: '%s'", __FUNCTION__, strError);
     return PVR_ERROR_SERVER_ERROR;
   }
 
@@ -405,20 +464,27 @@ PVR_ERROR cHTSPData::DeleteTimer(const PVR_TIMERINFO &timerinfo, bool force)
   return success > 0 ? PVR_ERROR_NO_ERROR : PVR_ERROR_NOT_DELETED;
 }
 
-PVR_ERROR cHTSPData::AddTimer(const PVR_TIMERINFO &timerinfo)
+PVR_ERROR CHTSPData::AddTimer(const PVR_TIMER &timer)
 {
-  XBMC->Log(LOG_DEBUG, "%s - channelNumber=%d channelUid=%d title=%s epgid=%d", __FUNCTION__, timerinfo.channelUid, timerinfo.channelUid, timerinfo.title, timerinfo.epgid);
+  XBMC->Log(LOG_DEBUG, "%s - channelUid=%d title=%s epgid=%d", __FUNCTION__, timer.iClientChannelUid, timer.strTitle, timer.iEpgUid);
+
+  time_t startTime = timer.startTime;
+  if (startTime <= 0)
+  {
+    int iGmtOffset;
+    GetBackendTime(&startTime, &iGmtOffset);
+  }
 
   htsmsg_t *msg = htsmsg_create_map();
-  htsmsg_add_str(msg, "method", "addDvrEntry");
-  htsmsg_add_u32(msg, "eventId", timerinfo.epgid);
-  htsmsg_add_str(msg, "title", timerinfo.title);
-  htsmsg_add_u32(msg, "start", timerinfo.starttime);
-  htsmsg_add_u32(msg, "stop", timerinfo.endtime);
-  htsmsg_add_u32(msg, "channelId", timerinfo.channelUid);
-  htsmsg_add_u32(msg, "priority", timerinfo.priority);
-  htsmsg_add_str(msg, "description", timerinfo.description);
-  htsmsg_add_str(msg, "creator", "XBMC");
+  htsmsg_add_str(msg, "method",      "addDvrEntry");
+  htsmsg_add_u32(msg, "eventId",     -1); // XXX tvheadend doesn't correct epg tags with wrong start and end times, so we'll use xbmc's values
+  htsmsg_add_str(msg, "title",       timer.strTitle);
+  htsmsg_add_u32(msg, "start",       startTime);
+  htsmsg_add_u32(msg, "stop",        timer.endTime);
+  htsmsg_add_u32(msg, "channelId",   timer.iClientChannelUid);
+  htsmsg_add_u32(msg, "priority",    timer.iPriority);
+  htsmsg_add_str(msg, "description", timer.strSummary);
+  htsmsg_add_str(msg, "creator",     "XBMC");
 
   if ((msg = ReadResult(msg)) == NULL)
   {
@@ -443,16 +509,16 @@ PVR_ERROR cHTSPData::AddTimer(const PVR_TIMERINFO &timerinfo)
   return success > 0 ? PVR_ERROR_NO_ERROR : PVR_ERROR_NOT_DELETED;
 }
 
-PVR_ERROR cHTSPData::UpdateTimer(const PVR_TIMERINFO &timerinfo)
+PVR_ERROR CHTSPData::UpdateTimer(const PVR_TIMER &timer)
 {
-  XBMC->Log(LOG_DEBUG, "%s - id=%d", __FUNCTION__, timerinfo.index);
+  XBMC->Log(LOG_DEBUG, "%s - channelUid=%d title=%s epgid=%d", __FUNCTION__, timer.iClientChannelUid, timer.strTitle, timer.iEpgUid);
 
   htsmsg_t *msg = htsmsg_create_map();
   htsmsg_add_str(msg, "method", "updateDvrEntry");
-  htsmsg_add_u32(msg, "id", timerinfo.index);
-  htsmsg_add_str(msg, "title", timerinfo.title);
-  htsmsg_add_u32(msg, "start", timerinfo.starttime);
-  htsmsg_add_u32(msg, "stop", timerinfo.endtime);
+  htsmsg_add_u32(msg, "id",     timer.iClientIndex);
+  htsmsg_add_str(msg, "title",  timer.strTitle);
+  htsmsg_add_u32(msg, "start",  timer.startTime);
+  htsmsg_add_u32(msg, "stop",   timer.endTime);
   
   if ((msg = ReadResult(msg)) == NULL)
   {
@@ -470,14 +536,14 @@ PVR_ERROR cHTSPData::UpdateTimer(const PVR_TIMERINFO &timerinfo)
   return success > 0 ? PVR_ERROR_NO_ERROR : PVR_ERROR_NOT_SAVED;
 }
 
-PVR_ERROR cHTSPData::RenameRecording(const PVR_RECORDINGINFO &recinfo, const char* newname)
+PVR_ERROR CHTSPData::RenameRecording(const PVR_RECORDING &recording, const char *strNewName)
 {
-  XBMC->Log(LOG_DEBUG, "%s - id=%d", __FUNCTION__, recinfo.index);
+  XBMC->Log(LOG_DEBUG, "%s - id=%d", __FUNCTION__, recording.iClientIndex);
 
   htsmsg_t *msg = htsmsg_create_map();
   htsmsg_add_str(msg, "method", "updateDvrEntry");
-  htsmsg_add_u32(msg, "id", recinfo.index);
-  htsmsg_add_str(msg, "title", newname);
+  htsmsg_add_u32(msg, "id",     recording.iClientIndex);
+  htsmsg_add_str(msg, "title",  recording.strTitle);
   
   if ((msg = ReadResult(msg)) == NULL)
   {
@@ -496,22 +562,26 @@ PVR_ERROR cHTSPData::RenameRecording(const PVR_RECORDINGINFO &recinfo, const cha
 }
 
 
-void cHTSPData::Action()
+void CHTSPData::Action()
 {
-  XBMC->Log(LOG_DEBUG, "%s - Starting", __FUNCTION__);
+  XBMC->Log(LOG_DEBUG, "%s - starting", __FUNCTION__);
 
   htsmsg_t* msg;
-  if(!m_session.SendEnableAsync())
+  if(!SendEnableAsync())
   {
     XBMC->Log(LOG_ERROR, "%s - couldn't send EnableAsync().", __FUNCTION__);
     m_started.Signal();
     return;
   }
 
-  while (Running())
+  while (IsConnected() && Running())
   {
-    if((msg = m_session.ReadMessage()) == NULL)
-      break;
+    if((msg = m_session->ReadMessage(250)) == NULL)
+    {
+      if (!IsConnected() && Running())
+        m_session->Connect();
+      continue;
+    }
 
     uint32_t seq;
     if(htsmsg_get_u32(msg, "seq", &seq) == 0)
@@ -535,25 +605,25 @@ void cHTSPData::Action()
 
     CMD_LOCK;
     if     (strstr(method, "channelAdd"))
-      cHTSPSession::ParseChannelUpdate(msg, m_channels);
+      CHTSPConnection::ParseChannelUpdate(msg, m_channels);
     else if(strstr(method, "channelUpdate"))
-      cHTSPSession::ParseChannelUpdate(msg, m_channels);
+      CHTSPConnection::ParseChannelUpdate(msg, m_channels);
     else if(strstr(method, "channelDelete"))
-      cHTSPSession::ParseChannelRemove(msg, m_channels);
+      CHTSPConnection::ParseChannelRemove(msg, m_channels);
     else if(strstr(method, "tagAdd"))
-      cHTSPSession::ParseTagUpdate(msg, m_tags);
+      CHTSPConnection::ParseTagUpdate(msg, m_tags);
     else if(strstr(method, "tagUpdate"))
-      cHTSPSession::ParseTagUpdate(msg, m_tags);
+      CHTSPConnection::ParseTagUpdate(msg, m_tags);
     else if(strstr(method, "tagDelete"))
-      cHTSPSession::ParseTagRemove(msg, m_tags);
+      CHTSPConnection::ParseTagRemove(msg, m_tags);
     else if(strstr(method, "initialSyncCompleted"))
       m_started.Signal();
     else if(strstr(method, "dvrEntryAdd"))
-      cHTSPSession::ParseDVREntryUpdate(msg, m_recordings);
+      CHTSPConnection::ParseDVREntryUpdate(msg, m_recordings, SendNotifications());
     else if(strstr(method, "dvrEntryUpdate"))
-      cHTSPSession::ParseDVREntryUpdate(msg, m_recordings);
+      CHTSPConnection::ParseDVREntryUpdate(msg, m_recordings, SendNotifications());
     else if(strstr(method, "dvrEntryDelete"))
-      cHTSPSession::ParseDVREntryDelete(msg, m_recordings);
+      CHTSPConnection::ParseDVREntryDelete(msg, m_recordings, SendNotifications());
     else
       XBMC->Log(LOG_DEBUG, "%s - Unmapped action recieved '%s'", __FUNCTION__, method);
 
@@ -561,15 +631,15 @@ void cHTSPData::Action()
   }
 
   m_started.Signal();
-  XBMC->Log(LOG_DEBUG, "%s - Exiting", __FUNCTION__);
+  XBMC->Log(LOG_DEBUG, "%s - exiting", __FUNCTION__);
 }
 
-SChannels cHTSPData::GetChannels()
+SChannels CHTSPData::GetChannels()
 {
   return GetChannels(0);
 }
 
-SChannels cHTSPData::GetChannels(int tag)
+SChannels CHTSPData::GetChannels(int tag)
 {
   CMD_LOCK;
   if(tag == 0)
@@ -584,7 +654,7 @@ SChannels cHTSPData::GetChannels(int tag)
   return GetChannels(it->second);
 }
 
-SChannels cHTSPData::GetChannels(STag& tag)
+SChannels CHTSPData::GetChannels(STag& tag)
 {
   CMD_LOCK;
   SChannels channels;
@@ -603,13 +673,13 @@ SChannels cHTSPData::GetChannels(STag& tag)
   return channels;
 }
 
-STags cHTSPData::GetTags()
+STags CHTSPData::GetTags()
 {
   CMD_LOCK;
   return m_tags;
 }
 
-bool cHTSPData::GetEvent(SEvent& event, uint32_t id)
+bool CHTSPData::GetEvent(SEvent& event, uint32_t id)
 {
   if(id == 0)
   {
@@ -629,12 +699,22 @@ bool cHTSPData::GetEvent(SEvent& event, uint32_t id)
   htsmsg_add_u32(msg, "eventId", id);
   if((msg = ReadResult(msg)) == NULL)
   {
-    XBMC->Log(LOG_DEBUG, "%s - failed to get event %u", __FUNCTION__, id);
+    XBMC->Log(LOG_DEBUG, "%s - failed to get event %d", __FUNCTION__, id);
     return false;
   }
-  if(!cHTSPSession::ParseEvent(msg, id, event))
-    return false;
 
-  m_events[id] = event;
-  return true;
+  if (m_session->ParseEvent(msg, id, event))
+  {
+    m_events[id] = event;
+    return true;
+  }
+
+  return false;
+}
+
+bool CHTSPData::SendEnableAsync()
+{
+  htsmsg_t *m = htsmsg_create_map();
+  htsmsg_add_str(m, "method", "enableAsyncMetadata");
+  return m_session->ReadSuccess(m, true, "enableAsyncMetadata failed");
 }

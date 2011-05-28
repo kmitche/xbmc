@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2005-2010 Team XBMC
+ *      Copyright (C) 2005-2011 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -20,44 +20,156 @@
  */
 
 #include "Observer.h"
+#include "threads/SingleLock.h"
+#include "utils/JobManager.h"
 
-Observable::Observable()
+using namespace std;
+using namespace ANNOUNCEMENT;
+
+class ObservableMessageJob : public CJob
 {
-  erase(begin(), end());
+private:
+  Observable              m_observable;
+  std::vector<Observer *> m_observers;
+  CStdString              m_strMessage;
+public:
+  ObservableMessageJob(const Observable &obs, const CStdString &strMessage);
+  virtual ~ObservableMessageJob() {}
+  virtual const char *GetType() const { return "observable-message-job"; }
+
+  virtual bool DoWork();
+};
+
+Observer::~Observer(void)
+{
+  StopObserving();
 }
 
-Observable::~Observable()
+void Observer::StopObserving(void)
 {
-  erase(begin(), end());
+  CSingleLock lock(m_obsCritSection);
+  for (unsigned int iObsPtr = 0; iObsPtr < m_observables.size(); iObsPtr++)
+    m_observables.at(iObsPtr)->UnregisterObserver(this);
+  m_observables.clear();
 }
 
-void Observable::AddObserver(Observer *o)
+bool Observer::IsObserving(const Observable &obs) const
 {
-  push_back(o);
-}
-
-void Observable::RemoveObserver(Observer *o)
-{
-  for (unsigned int ptr = 0; ptr < size(); ptr++)
+  bool bReturn(false);
+  CSingleLock lock(m_obsCritSection);
+  for (unsigned int iObsPtr = 0; iObsPtr < m_observables.size(); iObsPtr++)
   {
-    if (at(ptr) == o)
+    if (m_observables.at(iObsPtr) == &obs)
     {
-      erase(begin() + ptr);
+      bReturn = true;
+      break;
+    }
+  }
+
+  return bReturn;
+}
+
+void Observer::RegisterObservable(Observable *obs)
+{
+  CSingleLock lock(m_obsCritSection);
+  if (!IsObserving(*obs))
+    m_observables.push_back(obs);
+}
+
+void Observer::UnregisterObservable(Observable *obs)
+{
+  CSingleLock lock(m_obsCritSection);
+  for (unsigned int iObsPtr = 0; iObsPtr < m_observables.size(); iObsPtr++)
+  {
+    if (m_observables.at(iObsPtr) == obs)
+    {
+      m_observables.erase(m_observables.begin() + iObsPtr);
       break;
     }
   }
 }
 
-void Observable::NotifyObservers(const CStdString& msg)
+Observable::Observable() :
+    m_bObservableChanged(false),
+    m_bAsyncAllowed(true)
 {
+  CAnnouncementManager::AddAnnouncer(this);
+}
+
+Observable::~Observable()
+{
+  CAnnouncementManager::RemoveAnnouncer(this);
+  StopObserver();
+}
+
+Observable &Observable::operator=(const Observable &observable)
+{
+  CSingleLock lock(m_obsCritSection);
+
+  m_bObservableChanged = observable.m_bObservableChanged;
+  for (unsigned int iObsPtr = 0; iObsPtr < m_observers.size(); iObsPtr++)
+    m_observers.push_back(observable.m_observers.at(iObsPtr));
+
+  return *this;
+}
+
+void Observable::StopObserver(void)
+{
+  CSingleLock lock(m_obsCritSection);
+  for (unsigned int iObsPtr = 0; iObsPtr < m_observers.size(); iObsPtr++)
+    m_observers.at(iObsPtr)->UnregisterObservable(this);
+  m_observers.clear();
+}
+
+bool Observable::IsObserving(const Observer &obs) const
+{
+  bool bReturn(false);
+  CSingleLock lock(m_obsCritSection);
+  for (unsigned int iObsPtr = 0; iObsPtr < m_observers.size(); iObsPtr++)
+  {
+    if (m_observers.at(iObsPtr) == &obs)
+    {
+      bReturn = true;
+      break;
+    }
+  }
+
+  return bReturn;
+}
+
+void Observable::RegisterObserver(Observer *obs)
+{
+  CSingleLock lock(m_obsCritSection);
+  if (!IsObserving(*obs))
+  {
+    m_observers.push_back(obs);
+    obs->RegisterObservable(this);
+  }
+}
+
+void Observable::UnregisterObserver(Observer *obs)
+{
+  CSingleLock lock(m_obsCritSection);
+  for (unsigned int ptr = 0; ptr < m_observers.size(); ptr++)
+  {
+    if (m_observers.at(ptr) == obs)
+    {
+      obs->UnregisterObservable(this);
+      m_observers.erase(m_observers.begin() + ptr);
+      break;
+    }
+  }
+}
+
+void Observable::NotifyObservers(const CStdString& strMessage /* = "" */, bool bAsync /* = false */)
+{
+  CSingleLock lock(m_obsCritSection);
   if (m_bObservableChanged)
   {
-    for(unsigned int ptr = 0; ptr < size(); ptr++)
-    {
-      Observer *obs = at(ptr);
-      if (obs)
-        at(ptr)->Notify(*this, msg);
-    }
+    if (bAsync && m_bAsyncAllowed)
+      CJobManager::GetInstance().AddJob(new ObservableMessageJob(*this, strMessage), NULL);
+    else
+      SendMessage(this, &m_observers, strMessage);
 
     m_bObservableChanged = false;
   }
@@ -65,5 +177,39 @@ void Observable::NotifyObservers(const CStdString& msg)
 
 void Observable::SetChanged(bool SetTo)
 {
+  CSingleLock lock(m_obsCritSection);
   m_bObservableChanged = SetTo;
+}
+
+void Observable::Announce(EAnnouncementFlag flag, const char *sender, const char *message, const CVariant &data)
+{
+  if (flag == System && !strcmp(sender, "xbmc") && !strcmp(message, "ApplicationStop"))
+  {
+    CSingleLock lock(m_obsCritSection);
+    m_bAsyncAllowed = false;
+  }
+}
+
+void Observable::SendMessage(Observable *obs, const vector<Observer *> *observers, const CStdString &strMessage)
+{
+  for(unsigned int ptr = 0; ptr < observers->size(); ptr++)
+  {
+    Observer *observer = observers->at(ptr);
+    if (observer)
+      observer->Notify(*obs, strMessage);
+  }
+}
+
+ObservableMessageJob::ObservableMessageJob(const Observable &obs, const CStdString &strMessage)
+{
+  m_strMessage = strMessage;
+  m_observable = obs;
+  m_observers  = obs.m_observers;
+}
+
+bool ObservableMessageJob::DoWork()
+{
+  Observable::SendMessage(&m_observable, &m_observers, m_strMessage);
+
+  return true;
 }

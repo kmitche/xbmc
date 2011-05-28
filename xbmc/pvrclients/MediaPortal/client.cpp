@@ -44,14 +44,14 @@ std::string g_szRadioGroup         = DEFAULT_RADIOGROUP;   ///< Import only radi
 bool        g_bDirectTSFileRead    = DEFAULT_DIRECT_TS_FR; ///< Open the Live-TV timeshift buffer directly (skip RTSP streaming)
 
 /* Client member variables */
-ADDON_STATUS           m_CurStatus    = STATUS_UNKNOWN;
+ADDON_STATUS           m_CurStatus    = ADDON_STATUS_UNKNOWN;
 cPVRClientMediaPortal *g_client       = NULL;
 bool                   g_bCreated     = false;
 int                    g_iClientID    = -1;
 std::string            g_szUserPath   = "";
 std::string            g_szClientPath = "";
-cHelper_libXBMC_addon *XBMC           = NULL;
-cHelper_libXBMC_pvr   *PVR            = NULL;
+CHelper_libXBMC_addon *XBMC           = NULL;
+CHelper_libXBMC_pvr   *PVR            = NULL;
 
 extern "C" {
 
@@ -63,28 +63,28 @@ extern "C" {
 // Called after loading of the dll, all steps to become Client functional
 // must be performed here.
 //-----------------------------------------------------------------------------
-ADDON_STATUS Create(void* hdl, void* props)
+ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
   if (!hdl || !props)
-    return STATUS_UNKNOWN;
+    return ADDON_STATUS_UNKNOWN;
 
-  PVR_PROPS* pvrprops = (PVR_PROPS*)props;
+  PVR_PROPERTIES* pvrprops = (PVR_PROPERTIES*)props;
 
-  XBMC = new cHelper_libXBMC_addon;
+  XBMC = new CHelper_libXBMC_addon;
   if (!XBMC->RegisterMe(hdl))
-    return STATUS_UNKNOWN;
+    return ADDON_STATUS_UNKNOWN;
 
-  PVR = new cHelper_libXBMC_pvr;
+  PVR = new CHelper_libXBMC_pvr;
   if (!PVR->RegisterMe(hdl))
-    return STATUS_UNKNOWN;
+    return ADDON_STATUS_UNKNOWN;
 
   XBMC->Log(LOG_DEBUG, "Creating MediaPortal PVR-Client (ffmpeg rtsp version)");
 
-  m_CurStatus    = STATUS_UNKNOWN;
+  m_CurStatus    = ADDON_STATUS_UNKNOWN;
   g_client       = new cPVRClientMediaPortal();
-  g_iClientID    = pvrprops->clientID;
-  g_szUserPath   = pvrprops->userpath;
-  g_szClientPath = pvrprops->clientpath;
+  g_iClientID    = pvrprops->iClienId;
+  g_szUserPath   = pvrprops->strUserPath;
+  g_szClientPath = pvrprops->strClientPath;
 
   /* Read setting "host" from settings.xml */
   char buffer[1024];
@@ -192,11 +192,11 @@ ADDON_STATUS Create(void* hdl, void* props)
   /* Create connection to MediaPortal XBMC TV client */
   if (!g_client->Connect())
   {
-    m_CurStatus = STATUS_LOST_CONNECTION;
+    m_CurStatus = ADDON_STATUS_LOST_CONNECTION;
   }
   else
   {
-    m_CurStatus = STATUS_OK;
+    m_CurStatus = ADDON_STATUS_OK;
   }
 
   g_bCreated = true;
@@ -208,7 +208,7 @@ ADDON_STATUS Create(void* hdl, void* props)
 // Used during destruction of the client, all steps to do clean and safe Create
 // again must be done.
 //-----------------------------------------------------------------------------
-void Destroy()
+void ADDON_Destroy()
 {
   if ((g_bCreated) && (g_client))
   {
@@ -227,26 +227,25 @@ void Destroy()
     delete_null(XBMC);
   }
 
-  m_CurStatus = STATUS_UNKNOWN;
+  m_CurStatus = ADDON_STATUS_UNKNOWN;
 }
 
 //-- GetStatus ----------------------------------------------------------------
 // Report the current Add-On Status to XBMC
 //-----------------------------------------------------------------------------
-ADDON_STATUS GetStatus()
+ADDON_STATUS ADDON_GetStatus()
 {
   return m_CurStatus;
 }
-
 //-- HasSettings --------------------------------------------------------------
 // Report "true", yes this AddOn have settings
 //-----------------------------------------------------------------------------
-bool HasSettings()
+bool ADDON_HasSettings()
 {
   return true;
 }
 
-unsigned int GetSettings(StructSetting ***sSet)
+unsigned int ADDON_GetSettings(ADDON_StructSetting ***sSet)
 {
   return 0;
 }
@@ -255,7 +254,7 @@ unsigned int GetSettings(StructSetting ***sSet)
 // Called everytime a setting is changed by the user and to inform AddOn about
 // new setting and to do required stuff to apply it.
 //-----------------------------------------------------------------------------
-ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
+ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
 {
   string str = settingName;
 
@@ -263,7 +262,7 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
   // disabled. In that case the addon is not loaded, so we should not try
   // to change its settings.
   if (!g_bCreated)
-    return STATUS_OK;
+    return ADDON_STATUS_OK;
 
   if (str == "host")
   {
@@ -272,7 +271,7 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
     tmp_sHostname = g_szHostname;
     g_szHostname = (const char*) settingValue;
     if (tmp_sHostname != g_szHostname)
-      return STATUS_NEED_RESTART;
+      return ADDON_STATUS_NEED_RESTART;
   }
   else if (str == "port")
   {
@@ -280,7 +279,7 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
     if (g_iPort != *(int*) settingValue)
     {
       g_iPort = *(int*) settingValue;
-      return STATUS_NEED_RESTART;
+      return ADDON_STATUS_NEED_RESTART;
     }
   }
   else if (str == "ftaonly")
@@ -333,15 +332,15 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
     XBMC->Log(LOG_INFO, "Changed setting 'recordingsdir' from %s to %s", g_szRecordingsDir.c_str(), (const char*) settingValue);
     g_szRecordingsDir = (const char*) settingValue;
   }
-  return STATUS_OK;
+  return ADDON_STATUS_OK;
 }
 
-void Stop()
+void ADDON_Stop()
 {
-  Destroy();
+  ADDON_Destroy();
 }
 
-void FreeSettings()
+void ADDON_FreeSettings()
 {
 
 }
@@ -350,31 +349,29 @@ void FreeSettings()
  * PVR Client AddOn specific public library functions
  ***********************************************************/
 
-//-- GetProperties ------------------------------------------------------------
+//-- GetAddonCapabilities ------------------------------------------------------------
 // Tell XBMC our requirements
 //-----------------------------------------------------------------------------
-PVR_ERROR GetProperties(PVR_SERVERPROPS* props)
+PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES *pCapabilities)
 {
   XBMC->Log(LOG_DEBUG, "->GetProperties()");
 
-  props->SupportChannelLogo        = false;
-  props->SupportTimeShift          = false;
-  props->SupportEPG                = true;
-  props->SupportRecordings         = true;
-  props->SupportTimers             = true;
-  props->SupportTV                 = true;
-  props->SupportRadio              = g_bRadioEnabled;
-  props->SupportChannelSettings    = true;
-  props->SupportDirector           = false;
-  props->SupportBouquets           = false;
-  props->HandleInputStream         = true;
-  props->HandleDemuxing            = false;
-  props->SupportChannelScan        = false;
+  pCapabilities->bSupportsTimeshift          = false;
+  pCapabilities->bSupportsEPG                = true;
+  pCapabilities->bSupportsRecordings         = true;
+  pCapabilities->bSupportsTimers             = true;
+  pCapabilities->bSupportsTV                 = true;
+  pCapabilities->bSupportsRadio              = g_bRadioEnabled;
+  pCapabilities->bSupportsChannelSettings    = true;
+  pCapabilities->bSupportsChannelGroups      = true;
+  pCapabilities->bHandlesInputStream         = true;
+  pCapabilities->bHandlesDemuxing            = false;
+  pCapabilities->bSupportsChannelScan        = false;
 
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR GetStreamProperties(PVR_STREAMPROPS* props)
+PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES *pProperties)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
@@ -382,7 +379,7 @@ PVR_ERROR GetStreamProperties(PVR_STREAMPROPS* props)
 //-- GetBackendName -----------------------------------------------------------
 // Return the Name of the Backend
 //-----------------------------------------------------------------------------
-const char * GetBackendName()
+const char * GetBackendName(void)
 {
   return g_client->GetBackendName();
 }
@@ -390,7 +387,7 @@ const char * GetBackendName()
 //-- GetBackendVersion --------------------------------------------------------
 // Return the Version of the Backend as String
 //-----------------------------------------------------------------------------
-const char * GetBackendVersion()
+const char * GetBackendVersion(void)
 {
   return g_client->GetBackendVersion();
 }
@@ -398,7 +395,7 @@ const char * GetBackendVersion()
 //-- GetConnectionString ------------------------------------------------------
 // Return a String with connection info, if available
 //-----------------------------------------------------------------------------
-const char * GetConnectionString()
+const char * GetConnectionString(void)
 {
   return g_client->GetConnectionString();
 }
@@ -406,9 +403,9 @@ const char * GetConnectionString()
 //-- GetDriveSpace ------------------------------------------------------------
 // Return the Total and Free Drive space on the PVR Backend
 //-----------------------------------------------------------------------------
-PVR_ERROR GetDriveSpace(long long *total, long long *used)
+PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
 {
-  return g_client->GetDriveSpace(total, used);
+  return g_client->GetDriveSpace(iTotal, iUsed);
 }
 
 PVR_ERROR GetBackendTime(time_t *localTime, int *gmtOffset)
@@ -421,7 +418,7 @@ PVR_ERROR DialogChannelScan()
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-PVR_ERROR MenuHook(const PVR_MENUHOOK &menuhook)
+PVR_ERROR CallMenuHook(const PVR_MENUHOOK &menuhook)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
@@ -430,50 +427,31 @@ PVR_ERROR MenuHook(const PVR_MENUHOOK &menuhook)
 /*******************************************/
 /** PVR EPG Functions                     **/
 
-PVR_ERROR RequestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &channel, time_t start, time_t end)
+PVR_ERROR GetEPGForChannel(PVR_HANDLE handle, const PVR_CHANNEL &channel, time_t iStart, time_t iEnd)
 {
-  return g_client->RequestEPGForChannel(channel, handle, start, end);
-}
-
-
-/*******************************************/
-/** PVR Bouquets Functions                **/
-
-int GetNumBouquets()
-{
-  return 0;
-}
-
-PVR_ERROR RequestBouquetsList(PVRHANDLE handle, int radio)
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
+  return g_client->GetEpg(handle, channel, iStart, iEnd);
 }
 
 
 /*******************************************/
 /** PVR Channel Functions                 **/
 
-int GetNumChannels()
+int GetChannelsAmount()
 {
   return g_client->GetNumChannels();
 }
 
-PVR_ERROR RequestChannelList(PVRHANDLE handle, int radio)
+PVR_ERROR GetChannels(PVR_HANDLE handle, bool bRadio)
 {
-  return g_client->RequestChannelList(handle, radio);
+  return g_client->GetChannels(handle, bRadio);
 }
 
-PVR_ERROR DeleteChannel(unsigned int number)
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
-}
-
-PVR_ERROR RenameChannel(unsigned int number, const char *newname)
+PVR_ERROR DeleteChannel(const PVR_CHANNEL &channel)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-PVR_ERROR MoveChannel(unsigned int number, unsigned int newnumber)
+PVR_ERROR RenameChannel(const PVR_CHANNEL &channel)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
@@ -490,88 +468,74 @@ PVR_ERROR DialogAddChannel(const PVR_CHANNEL &channelinfo)
 
 
 /*******************************************/
+/** PVR Channel group Functions           **/
+
+int GetChannelGroupsAmount(void)
+{
+  return g_client->GetChannelGroupsAmount();
+}
+
+PVR_ERROR GetChannelGroups(PVR_HANDLE handle, bool bRadio)
+{
+  return g_client->GetChannelGroups(handle, bRadio);
+}
+
+PVR_ERROR GetChannelGroupMembers(PVR_HANDLE handle, const PVR_CHANNEL_GROUP &group)
+{
+  return g_client->GetChannelGroupMembers(handle, group);
+}
+
+
+/*******************************************/
 /** PVR Recording Functions               **/
 
-int GetNumRecordings(void)
+int GetRecordingsAmount(void)
 {
   return g_client->GetNumRecordings();
 }
 
-PVR_ERROR RequestRecordingsList(PVRHANDLE handle)
+PVR_ERROR GetRecordings(PVR_HANDLE handle)
 {
-  return g_client->RequestRecordingsList(handle);
+  return g_client->GetRecordings(handle);
 }
 
-PVR_ERROR DeleteRecording(const PVR_RECORDINGINFO &recinfo)
+PVR_ERROR DeleteRecording(const PVR_RECORDING &recording)
 {
-  return g_client->DeleteRecording(recinfo);
+  return g_client->DeleteRecording(recording);
 }
 
-PVR_ERROR RenameRecording(const PVR_RECORDINGINFO &recinfo, const char *newname)
+PVR_ERROR RenameRecording(const PVR_RECORDING &recording)
 {
-  return g_client->RenameRecording(recinfo, newname);
+  return g_client->RenameRecording(recording);
 }
 
-
-/*******************************************/
-/** PVR Recording cut marks Functions     **/
-
-bool HaveCutmarks()
-{
-  return false;
-}
-
-PVR_ERROR RequestCutMarksList(PVRHANDLE handle)
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
-}
-
-PVR_ERROR AddCutMark(const PVR_CUT_MARK &cutmark)
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
-}
-
-PVR_ERROR DeleteCutMark(const PVR_CUT_MARK &cutmark)
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
-}
-
-PVR_ERROR StartCut()
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
-}
 
 /*******************************************/
 /** PVR Timer Functions                   **/
 
-int GetNumTimers(void)
+int GetTimersAmount(void)
 {
   return g_client->GetNumTimers();
 }
 
-PVR_ERROR RequestTimerList(PVRHANDLE handle)
+PVR_ERROR GetTimers(PVR_HANDLE handle)
 {
-  return g_client->RequestTimerList(handle);
+  return g_client->GetTimers(handle);
 }
 
-PVR_ERROR AddTimer(const PVR_TIMERINFO &timerinfo)
+PVR_ERROR AddTimer(const PVR_TIMER &timer)
 {
-  return g_client->AddTimer(timerinfo);
+  return g_client->AddTimer(timer);
 }
 
-PVR_ERROR DeleteTimer(const PVR_TIMERINFO &timerinfo, bool force)
+PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete)
 {
-  return g_client->DeleteTimer(timerinfo, force);
+  return g_client->DeleteTimer(timer, bForceDelete);
 }
 
-PVR_ERROR RenameTimer(const PVR_TIMERINFO &timerinfo, const char *newname)
+PVR_ERROR UpdateTimer(const PVR_TIMER &timer)
 {
-  return g_client->RenameTimer(timerinfo, newname);
-}
-
-PVR_ERROR UpdateTimer(const PVR_TIMERINFO &timerinfo)
-{
-  return g_client->UpdateTimer(timerinfo);
+  return g_client->UpdateTimer(timer);
 }
 
 
@@ -588,9 +552,9 @@ void CloseLiveStream()
   return g_client->CloseLiveStream();
 }
 
-int ReadLiveStream(unsigned char* buf, int buf_size)
+int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize)
 {
-  return g_client->ReadLiveStream(buf, buf_size);
+  return g_client->ReadLiveStream(pBuffer, iBufferSize);
 }
 
 int GetCurrentClientChannel()
@@ -603,17 +567,17 @@ bool SwitchChannel(const PVR_CHANNEL &channelinfo)
   return g_client->SwitchChannel(channelinfo);
 }
 
-PVR_ERROR SignalQuality(PVR_SIGNALQUALITY &qualityinfo)
+PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 {
-  return g_client->SignalQuality(qualityinfo);
+  return g_client->SignalStatus(signalStatus);
 }
 
 /*******************************************/
 /** PVR Recording Stream Functions        **/
 
-bool OpenRecordedStream(const PVR_RECORDINGINFO &recinfo)
+bool OpenRecordedStream(const PVR_RECORDING &recording)
 {
-  return g_client->OpenRecordedStream(recinfo);
+  return g_client->OpenRecordedStream(recording);
 }
 
 void CloseRecordedStream(void)
@@ -621,35 +585,29 @@ void CloseRecordedStream(void)
   return g_client->CloseRecordedStream();
 }
 
-int ReadRecordedStream(unsigned char* buf, int buf_size)
+int ReadRecordedStream(unsigned char *pBuffer, unsigned int iBufferSize)
 {
-  return g_client->ReadRecordedStream(buf, buf_size);
+  return g_client->ReadRecordedStream(pBuffer, iBufferSize);
 }
 
-const char * GetLiveStreamURL(const PVR_CHANNEL &channelinfo)
+const char * GetLiveStreamURL(const PVR_CHANNEL &channel)
 {
-  return g_client->GetLiveStreamURL(channelinfo);
+  return g_client->GetLiveStreamURL(channel);
 }
 
 /** UNUSED API FUNCTIONS */
-DemuxPacket* DemuxRead() { return NULL; }
-void DemuxAbort() {}
-void DemuxReset() {}
-void DemuxFlush() {}
+PVR_ERROR MoveChannel(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
+DemuxPacket* DemuxRead(void) { return NULL; }
+void DemuxAbort(void) {}
+void DemuxReset(void) {}
+void DemuxFlush(void) {}
 
-long long SeekRecordedStream(long long pos, int whence) { return -1; }
+long long SeekRecordedStream(long long iPosition, int iWhence) { return -1; }
 long long PositionRecordedStream(void) { return -1; }
 long long LengthRecordedStream(void) { return -1; }
 
 long long SeekLiveStream(long long pos, int whence) { return -1; }
 long long PositionLiveStream(void) { return -1; }
 long long LengthLiveStream(void) { return -1 ; }
-
-/*******************************************/
-/** PVR Secondary Stream Functions        **/
-bool SwapLiveTVSecondaryStream() { return false; }
-bool OpenSecondaryStream(const PVR_CHANNEL &channelinfo) { return false; }
-void CloseSecondaryStream() {}
-int ReadSecondaryStream(unsigned char* buf, int buf_size) { return -1; }
 
 } //end extern "C"

@@ -26,11 +26,8 @@
 #include "PlatformDefs.h"
 #include "IAudioRenderer.h"
 #include "threads/Event.h"
-#include "threads/LockFree.h"
 
-class DllAvUtil;
-struct AVFifoBuffer;
-
+class IOSAudioRingBuffer;
 class CIOSAudioRenderer : public IAudioRenderer
   {
   public:
@@ -40,6 +37,7 @@ class CIOSAudioRenderer : public IAudioRenderer
     virtual float GetDelay();
     virtual bool Initialize(IAudioCallback* pCallback, const CStdString& device, int iChannels, enum PCMChannels *channelMap, unsigned int uiSamplesPerSec, unsigned int uiBitsPerSample, bool bResample, bool bIsMusic=false, bool bPassthrough = false);
     virtual bool Deinitialize();
+    virtual void Flush();
     virtual unsigned int AddPackets(const void* data, unsigned int len);
     virtual unsigned int GetSpace();
     virtual float GetCacheTime();
@@ -80,7 +78,7 @@ class CIOSAudioRenderer : public IAudioRenderer
     int m_BitsPerChannel;
     int m_ChannelsPerFrame;
 
-    AVFifoBuffer *m_Buffer;
+    IOSAudioRingBuffer *m_Buffer;
     unsigned int m_BytesPerSec;
     unsigned int m_BufferLen; ///< must always be num_chunks * chunk_size
     unsigned int m_NumChunks;
@@ -95,7 +93,6 @@ class CIOSAudioRenderer : public IAudioRenderer
     unsigned int m_Channels;
     bool m_Passthrough;
 
-    DllAvUtil *m_dllAvUtil;
   };
 
 #endif

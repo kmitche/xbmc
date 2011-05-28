@@ -20,18 +20,62 @@
  */
 
 #include "guilib/LocalizeStrings.h"
-#include "../addons/include/xbmc_pvr_types.h"
 #include "EpgInfoTag.h"
 #include "EpgContainer.h"
 #include "EpgDatabase.h"
 #include "utils/log.h"
 
 using namespace std;
+using namespace EPG;
 
-CEpgInfoTag::CEpgInfoTag(int iUniqueBroadcastId)
+CEpgInfoTag::CEpgInfoTag(int iUniqueBroadcastId) :
+    m_bNotify(false),
+    m_bChanged(false),
+    m_iBroadcastId(-1),
+    m_iGenreType(0),
+    m_iGenreSubType(0),
+    m_iParentalRating(0),
+    m_iStarRating(0),
+    m_iSeriesNumber(0),
+    m_iEpisodeNumber(0),
+    m_iEpisodePart(0),
+    m_iUniqueBroadcastID(iUniqueBroadcastId),
+    m_strTitle(""),
+    m_strPlotOutline(""),
+    m_strPlot(""),
+    m_strGenre(""),
+    m_strEpisodeName(""),
+    m_strIconPath(""),
+    m_strFileNameAndPath(""),
+    m_nextEvent(NULL),
+    m_previousEvent(NULL),
+    m_Epg(NULL)
 {
-  Reset();
-  m_iUniqueBroadcastID = iUniqueBroadcastId;
+}
+
+CEpgInfoTag::CEpgInfoTag(void) :
+    m_bNotify(false),
+    m_bChanged(false),
+    m_iBroadcastId(-1),
+    m_iGenreType(0),
+    m_iGenreSubType(0),
+    m_iParentalRating(0),
+    m_iStarRating(0),
+    m_iSeriesNumber(0),
+    m_iEpisodeNumber(0),
+    m_iEpisodePart(0),
+    m_iUniqueBroadcastID(-1),
+    m_strTitle(""),
+    m_strPlotOutline(""),
+    m_strPlot(""),
+    m_strGenre(""),
+    m_strEpisodeName(""),
+    m_strIconPath(""),
+    m_strFileNameAndPath(""),
+    m_nextEvent(NULL),
+    m_previousEvent(NULL),
+    m_Epg(NULL)
+{
 }
 
 CEpgInfoTag::~CEpgInfoTag()
@@ -41,27 +85,36 @@ CEpgInfoTag::~CEpgInfoTag()
   m_previousEvent = NULL;
 }
 
-void CEpgInfoTag::Reset()
+bool CEpgInfoTag::operator ==(const CEpgInfoTag& right) const
 {
-  m_iBroadcastId        = -1;
-  m_strTitle            = "";
-  m_strGenre            = "";
-  m_strPlotOutline      = "";
-  m_strPlot             = "";
-  m_iGenreType          = 0;
-  m_iGenreSubType       = 0;
-  m_strFileNameAndPath  = "";
-  m_strIconPath         = "";
-  m_Epg                 = NULL;
-  m_iParentalRating     = 0;
-  m_iStarRating         = 0;
-  m_bNotify             = false;
-  m_iSeriesNum          = 0;
-  m_iEpisodeNum         = 0;
-  m_iEpisodePart        = 0;
-  m_strEpisodeName      = "";
-  m_bChanged            = false;
-  m_iUniqueBroadcastID  = -1;
+  if (this == &right) return true;
+
+  return (m_iBroadcastId       == right.m_iBroadcastId &&
+          m_strTitle           == right.m_strTitle &&
+          m_strPlotOutline     == right.m_strPlotOutline &&
+          m_strPlot            == right.m_strPlot &&
+          m_strGenre           == right.m_strGenre &&
+          m_startTime          == right.m_startTime &&
+          m_endTime            == right.m_endTime &&
+          m_strIconPath        == right.m_strIconPath &&
+          m_strFileNameAndPath == right.m_strFileNameAndPath &&
+          m_iGenreType         == right.m_iGenreType &&
+          m_iGenreSubType      == right.m_iGenreSubType &&
+          m_firstAired         == right.m_firstAired &&
+          m_iParentalRating    == right.m_iParentalRating &&
+          m_iStarRating        == right.m_iStarRating &&
+          m_bNotify            == right.m_bNotify &&
+          m_iSeriesNumber      == right.m_iSeriesNumber &&
+          m_iEpisodeNumber     == right.m_iEpisodeNumber &&
+          m_iEpisodePart       == right.m_iEpisodePart &&
+          m_iUniqueBroadcastID == right.m_iUniqueBroadcastID);
+}
+
+bool CEpgInfoTag::operator !=(const CEpgInfoTag& right) const
+{
+  if (this == &right) return false;
+
+  return !(*this == right);
 }
 
 int CEpgInfoTag::GetDuration() const
@@ -72,6 +125,13 @@ int CEpgInfoTag::GetDuration() const
   return end - start > 0 ? end - start : 3600;
 }
 
+const CStdString &CEpgInfoTag::Title(void) const
+{
+  return (m_strTitle.IsEmpty()) ?
+      g_localizeStrings.Get(19055) :
+      m_strTitle;
+}
+
 const CEpgInfoTag *CEpgInfoTag::GetNextEvent() const
 {
   return m_nextEvent;
@@ -80,54 +140,6 @@ const CEpgInfoTag *CEpgInfoTag::GetNextEvent() const
 const CEpgInfoTag *CEpgInfoTag::GetPreviousEvent() const
 {
   return m_previousEvent;
-}
-
-const CStdString &CEpgInfoTag::ConvertGenreIdToString(int iID, int iSubID) const
-{
-  unsigned int iLabelId = 19499;
-  switch (iID)
-  {
-    case EVCONTENTMASK_MOVIEDRAMA:
-      iLabelId = (iSubID <= 8) ? 19500 + iSubID : 19500;
-      break;
-    case EVCONTENTMASK_NEWSCURRENTAFFAIRS:
-      iLabelId = (iSubID <= 4) ? 19516 + iSubID : 19516;
-      break;
-    case EVCONTENTMASK_SHOW:
-      iLabelId = (iSubID <= 3) ? 19532 + iSubID : 19532;
-      break;
-    case EVCONTENTMASK_SPORTS:
-      iLabelId = (iSubID <= 11) ? 19548 + iSubID : 19548;
-      break;
-    case EVCONTENTMASK_CHILDRENYOUTH:
-      iLabelId = (iSubID <= 5) ? 19564 + iSubID : 19564;
-      break;
-    case EVCONTENTMASK_MUSICBALLETDANCE:
-      iLabelId = (iSubID <= 6) ? 19580 + iSubID : 19580;
-      break;
-    case EVCONTENTMASK_ARTSCULTURE:
-      iLabelId = (iSubID <= 11) ? 19596 + iSubID : 19596;
-      break;
-    case EVCONTENTMASK_SOCIALPOLITICALECONOMICS:
-      iLabelId = (iSubID <= 3) ? 19612 + iSubID : 19612;
-      break;
-    case EVCONTENTMASK_EDUCATIONALSCIENCE:
-      iLabelId = (iSubID <= 7) ? 19628 + iSubID : 19628;
-      break;
-    case EVCONTENTMASK_LEISUREHOBBIES:
-      iLabelId = (iSubID <= 7) ? 19644 + iSubID : 19644;
-      break;
-    case EVCONTENTMASK_SPECIAL:
-      iLabelId = (iSubID <= 3) ? 19660 + iSubID : 19660;
-      break;
-    case EVCONTENTMASK_USERDEFINED:
-      iLabelId = (iSubID <= 3) ? 19676 + iSubID : 19676;
-      break;
-    default:
-      break;
-  }
-
-  return g_localizeStrings.Get(iLabelId);
 }
 
 void CEpgInfoTag::SetUniqueBroadcastID(int iUniqueBroadcastID)
@@ -150,7 +162,15 @@ void CEpgInfoTag::SetBroadcastId(int iId)
   }
 }
 
-void CEpgInfoTag::SetStart(const CDateTime &start)
+const CDateTime &CEpgInfoTag::StartAsLocalTime(void) const
+{
+  static CDateTime tmp;
+  tmp.SetFromUTCDateTime(m_startTime);
+
+  return tmp;
+}
+
+void CEpgInfoTag::SetStartFromUTC(const CDateTime &start)
 {
   if (m_startTime != start)
   {
@@ -160,7 +180,21 @@ void CEpgInfoTag::SetStart(const CDateTime &start)
   }
 }
 
-void CEpgInfoTag::SetEnd(const CDateTime &end)
+void CEpgInfoTag::SetStartFromLocalTime(const CDateTime &start)
+{
+  CDateTime tmp = start.GetAsUTCDateTime();
+  SetStartFromUTC(tmp);
+}
+
+const CDateTime &CEpgInfoTag::EndAsLocalTime(void) const
+{
+  static CDateTime tmp;
+  tmp.SetFromUTCDateTime(m_endTime);
+
+  return tmp;
+}
+
+void CEpgInfoTag::SetEndFromUTC(const CDateTime &end)
 {
   if (m_endTime != end)
   {
@@ -168,6 +202,12 @@ void CEpgInfoTag::SetEnd(const CDateTime &end)
     m_bChanged = true;
     UpdatePath();
   }
+}
+
+void CEpgInfoTag::SetEndFromLocalTime(const CDateTime &end)
+{
+  CDateTime tmp = end.GetAsUTCDateTime();
+  SetEndFromUTC(tmp);
 }
 
 void CEpgInfoTag::SetTitle(const CStdString &strTitle)
@@ -206,13 +246,21 @@ void CEpgInfoTag::SetGenre(int iID, int iSubID)
   {
     m_iGenreType    = iID;
     m_iGenreSubType = iSubID;
-    m_strGenre      = ConvertGenreIdToString(iID, iSubID);
+    m_strGenre      = CEpg::ConvertGenreIdToString(iID, iSubID);
     m_bChanged = true;
     UpdatePath();
   }
 }
 
-void CEpgInfoTag::SetFirstAired(const CDateTime &firstAired)
+const CDateTime &CEpgInfoTag::FirstAiredAsLocalTime(void) const
+{
+  static CDateTime tmp;
+  tmp.SetFromUTCDateTime(m_firstAired);
+
+  return tmp;
+}
+
+void CEpgInfoTag::SetFirstAiredFromUTC(const CDateTime &firstAired)
 {
   if (m_firstAired != firstAired)
   {
@@ -220,6 +268,12 @@ void CEpgInfoTag::SetFirstAired(const CDateTime &firstAired)
     m_bChanged = true;
     UpdatePath();
   }
+}
+
+void CEpgInfoTag::SetFirstAiredFromLocalTime(const CDateTime &firstAired)
+{
+  CDateTime tmp = firstAired.GetAsUTCDateTime();
+  SetStartFromUTC(tmp);
 }
 
 void CEpgInfoTag::SetParentalRating(int iParentalRating)
@@ -254,9 +308,9 @@ void CEpgInfoTag::SetNotify(bool bNotify)
 
 void CEpgInfoTag::SetSeriesNum(int iSeriesNum)
 {
-  if (m_iSeriesNum != iSeriesNum)
+  if (m_iSeriesNumber != iSeriesNum)
   {
-    m_iSeriesNum = iSeriesNum;
+    m_iSeriesNumber = iSeriesNum;
     m_bChanged = true;
     UpdatePath();
   }
@@ -264,9 +318,9 @@ void CEpgInfoTag::SetSeriesNum(int iSeriesNum)
 
 void CEpgInfoTag::SetEpisodeNum(int iEpisodeNum)
 {
-  if (m_iEpisodeNum != iEpisodeNum)
+  if (m_iEpisodeNumber != iEpisodeNum)
   {
-    m_iEpisodeNum = iEpisodeNum;
+    m_iEpisodeNumber = iEpisodeNum;
     m_bChanged = true;
     UpdatePath();
   }
@@ -326,9 +380,9 @@ bool CEpgInfoTag::Update(const CEpgInfoTag &tag)
       m_iParentalRating    != tag.m_iParentalRating ||
       m_iStarRating        != tag.m_iStarRating ||
       m_bNotify            != tag.m_bNotify ||
-      m_iEpisodeNum        != tag.m_iEpisodeNum ||
+      m_iEpisodeNumber     != tag.m_iEpisodeNumber ||
       m_iEpisodePart       != tag.m_iEpisodePart ||
-      m_iSeriesNum         != tag.m_iSeriesNum ||
+      m_iSeriesNumber      != tag.m_iSeriesNumber ||
       m_strEpisodeName     != tag.m_strEpisodeName ||
       m_iUniqueBroadcastID != tag.m_iUniqueBroadcastID
   );
@@ -343,13 +397,14 @@ bool CEpgInfoTag::Update(const CEpgInfoTag &tag)
     m_endTime            = tag.m_endTime;
     m_iGenreType         = tag.m_iGenreType;
     m_iGenreSubType      = tag.m_iGenreSubType;
+    m_strGenre           = CEpg::ConvertGenreIdToString(tag.m_iGenreType, tag.m_iGenreSubType);
     m_firstAired         = tag.m_firstAired;
     m_iParentalRating    = tag.m_iParentalRating;
     m_iStarRating        = tag.m_iStarRating;
     m_bNotify            = tag.m_bNotify;
-    m_iEpisodeNum        = tag.m_iEpisodeNum;
+    m_iEpisodeNumber     = tag.m_iEpisodeNumber;
     m_iEpisodePart       = tag.m_iEpisodePart;
-    m_iSeriesNum         = tag.m_iSeriesNum;
+    m_iSeriesNumber      = tag.m_iSeriesNumber;
     m_strEpisodeName     = tag.m_strEpisodeName;
     m_iUniqueBroadcastID = tag.m_iUniqueBroadcastID;
 
@@ -362,7 +417,7 @@ bool CEpgInfoTag::Update(const CEpgInfoTag &tag)
 
 bool CEpgInfoTag::IsActive(void) const
 {
-  CDateTime now = CDateTime::GetCurrentDateTime();
+  CDateTime now = CDateTime::GetCurrentDateTime().GetAsUTCDateTime();
   return (m_startTime <= now && m_endTime > now);
 }
 

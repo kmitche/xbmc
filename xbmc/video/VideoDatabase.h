@@ -354,16 +354,21 @@ public:
   bool HasMusicVideoInfo(const CStdString& strFilenameAndPath);
 
   void GetFilePathById(int idMovie, CStdString &filePath, VIDEODB_CONTENT_TYPE iType);
-  bool GetGenreById(int idGenre, CStdString& strGenre);
-  bool GetCountryById(int idCountry, CStdString& strCountry);
-  bool GetSetById(int idSet, CStdString& strSet);
+  CStdString GetGenreById(int id);
+  CStdString GetCountryById(int id);
+  CStdString GetSetById(int id);
+  CStdString GetPersonById(int id);
+  CStdString GetStudioById(int id);
+  CStdString GetTvShowTitleById(int id);
+  CStdString GetMusicVideoAlbumById(int id);
   int GetTvShowForEpisode(int idEpisode);
 
+  bool LoadVideoInfo(const CStdString& strFilenameAndPath, CVideoInfoTag& details);
   void GetMovieInfo(const CStdString& strFilenameAndPath, CVideoInfoTag& details, int idMovie = -1);
   void GetTvShowInfo(const CStdString& strPath, CVideoInfoTag& details, int idTvShow = -1);
   bool GetEpisodeInfo(const CStdString& strFilenameAndPath, CVideoInfoTag& details, int idEpisode = -1);
   void GetMusicVideoInfo(const CStdString& strFilenameAndPath, CVideoInfoTag& details, int idMVideo=-1);
-  bool GetStreamDetailsForFileId(CStreamDetails& details, int idFile) const;
+  void GetSetInfo(int idSet, CVideoInfoTag& details);
 
   int GetPathId(const CStdString& strPath);
   int GetTvShowId(const CStdString& strPath);
@@ -517,10 +522,10 @@ public:
   bool GetSeasonsNav(const CStdString& strBaseDir, CFileItemList& items, int idActor=-1, int idDirector=-1, int idGenre=-1, int idYear=-1, int idShow=-1);
   bool GetEpisodesNav(const CStdString& strBaseDir, CFileItemList& items, int idGenre=-1, int idYear=-1, int idActor=-1, int idDirector=-1, int idShow=-1, int idSeason=-1);
   bool GetMusicVideosNav(const CStdString& strBaseDir, CFileItemList& items, int idGenre=-1, int idYear=-1, int idArtist=-1, int idDirector=-1, int idStudio=-1, int idAlbum=-1);
-
-  bool GetRecentlyAddedMoviesNav(const CStdString& strBaseDir, CFileItemList& items);
-  bool GetRecentlyAddedEpisodesNav(const CStdString& strBaseDir, CFileItemList& items);
-  bool GetRecentlyAddedMusicVideosNav(const CStdString& strBaseDir, CFileItemList& items);
+  
+  bool GetRecentlyAddedMoviesNav(const CStdString& strBaseDir, CFileItemList& items, unsigned int limit=0);
+  bool GetRecentlyAddedEpisodesNav(const CStdString& strBaseDir, CFileItemList& items, unsigned int limit=0);
+  bool GetRecentlyAddedMusicVideosNav(const CStdString& strBaseDir, CFileItemList& items, unsigned int limit=0);
 
   bool HasContent();
   bool HasContent(VIDEODB_CONTENT_TYPE type);
@@ -610,14 +615,14 @@ protected:
   int AddMusicVideo(const CStdString& strFilenameAndPath);
 
   // link functions - these two do all the work
-  void AddLinkToActor(const char *table, int actorID, const char *secondField, int secondID, const CStdString &role);
+  void AddLinkToActor(const char *table, int actorID, const char *secondField, int secondID, const CStdString &role, int order);
   void AddToLinkTable(const char *table, const char *firstField, int firstID, const char *secondField, int secondID);
 
   void AddSetToMovie(int idMovie, int idSet);
 
-  void AddActorToMovie(int idMovie, int idActor, const CStdString& strRole);
-  void AddActorToTvShow(int idTvShow, int idActor, const CStdString& strRole);
-  void AddActorToEpisode(int idEpisode, int idActor, const CStdString& strRole);
+  void AddActorToMovie(int idMovie, int idActor, const CStdString& strRole, int order);
+  void AddActorToTvShow(int idTvShow, int idActor, const CStdString& strRole, int order);
+  void AddActorToEpisode(int idEpisode, int idActor, const CStdString& strRole, int order);
   void AddArtistToMusicVideo(int lMVideo, int idArtist);
 
   void AddDirectorToMovie(int idMovie, int idDirector);
@@ -651,10 +656,16 @@ protected:
 
   void GetDetailsFromDB(std::auto_ptr<dbiplus::Dataset> &pDS, int min, int max, const SDbTableOffsets *offsets, CVideoInfoTag &details, int idxOffset = 2);
   CStdString GetValueString(const CVideoInfoTag &details, int min, int max, const SDbTableOffsets *offsets) const;
+  bool GetStreamDetails(CVideoInfoTag& tag) const;
 
 private:
   virtual bool CreateTables();
   virtual bool UpdateOldVersion(int version);
+
+  /*! \brief (Re)Create the generic database views for movies, tvshows,
+     episodes and music videos
+   */
+  void CreateViews();
 
   /*! \brief Run a query on the main dataset and return the number of rows
    If no rows are found we close the dataset and return 0.
@@ -672,7 +683,8 @@ private:
    */
   void UpdateBasePath(const char *table, const char *id, int column, bool shows = false);
 
-  virtual int GetMinVersion() const { return 46; };
+  virtual int GetMinVersion() const { return 51; };
+  virtual int GetExportVersion() const { return 1; };
   const char *GetBaseDBName() const { return "MyVideos"; };
 
   void ConstructPath(CStdString& strDest, const CStdString& strPath, const CStdString& strFileName);

@@ -19,21 +19,8 @@
  *
  */
 
-#include "system.h"
-#if (defined USE_EXTERNAL_PYTHON)
-#if (defined HAVE_LIBPYTHON2_6)
-#include <python2.6/Python.h>
-#elif (defined HAVE_LIBPYTHON2_5)
-#include <python2.5/Python.h>
-#elif (defined HAVE_LIBPYTHON2_4)
-#include <python2.4/Python.h>
-#else
-#error "Could not determine version of Python to use."
-#endif
-#else
-#include "python/Include/Python.h"
-#endif
-#include "../XBPythonDll.h"
+#include <Python.h>
+
 
 #include "filesystem/File.h"
 #include "pyutil.h"
@@ -170,13 +157,44 @@ extern "C" {
       return Py_BuildValue((char*)"b", bResult);
       
     }  
+
+    PyDoc_STRVAR(exists__doc__,
+      "exists(path)\n"
+      "\n"
+      "path        : file or folder"
+      "\n"
+      "example:\n"
+      "  success = xbmcvfs.exists(path)\n");
+   
+    // check for a file or folder existance, mimics Pythons os.path.exists()
+    PyObject* vfs_exists(File *self, PyObject *args, PyObject *kwds)
+    {
+      PyObject *f_line;
+      if (!PyArg_ParseTuple(
+        args,
+        (char*)"O",
+        &f_line))
+      {
+        return NULL;
+      }
+      CStdString strSource;
+      if (!PyXBMCGetUnicodeString(strSource, f_line, 1)) return NULL;
      
+      bool bResult;
+     
+      CPyThreadState pyState;
+      bResult = self->pFile->Exists(strSource, false);
+      pyState.Restore();
+
+      return Py_BuildValue((char*)"b", bResult);
+    }      
     
     // define c functions to be used in python here
     PyMethodDef xbmcvfsMethods[] = {
       {(char*)"copy", (PyCFunction)vfs_copy, METH_VARARGS, copy__doc__},
       {(char*)"delete", (PyCFunction)vfs_delete, METH_VARARGS, delete__doc__},
       {(char*)"rename", (PyCFunction)vfs_rename, METH_VARARGS, rename__doc__},
+      {(char*)"exists", (PyCFunction)vfs_exists, METH_VARARGS, exists__doc__},
       {NULL, NULL, 0, NULL}
     };
     

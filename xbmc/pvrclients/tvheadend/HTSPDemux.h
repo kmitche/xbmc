@@ -1,7 +1,7 @@
 #pragma once
 
 /*
- *      Copyright (C) 2005-2010 Team XBMC
+ *      Copyright (C) 2005-2011 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -22,41 +22,43 @@
  */
 
 #include "client.h"
-#include "HTSPSession.h"
+#include "HTSPConnection.h"
 
-class cHTSPDemux
+class CHTSPDemux
 {
 public:
-  cHTSPDemux();
-  ~cHTSPDemux();
+  CHTSPDemux();
+  ~CHTSPDemux();
 
   bool Open(const PVR_CHANNEL &channelinfo);
   void Close();
-  bool GetStreamProperties(PVR_STREAMPROPS* props);
+  bool GetStreamProperties(PVR_STREAM_PROPERTIES* props);
   void Abort();
   DemuxPacket* Read();
   bool SwitchChannel(const PVR_CHANNEL &channelinfo);
   int CurrentChannel() { return m_channel; }
-  bool GetSignalStatus(PVR_SIGNALQUALITY &qualityinfo);
+  bool GetSignalStatus(PVR_SIGNAL_STATUS &qualityinfo);
 
 protected:
   void SubscriptionStart (htsmsg_t *m);
   void SubscriptionStop  (htsmsg_t *m);
   void SubscriptionStatus(htsmsg_t *m);
-
-  htsmsg_t* ReadStream();
+  bool SendSubscribe  (int subscription, int channel);
+  bool SendUnsubscribe(int subscription);
+  DemuxPacket *ParseMuxPacket(htsmsg_t *m);
 
 private:
-  unsigned        m_subs;
-  cHTSPSession    m_session;
-  int             m_channel;
-  int             m_tag;
-  int             m_StatusCount;
-  int             m_SkipIFrame;
-  CStdString      m_Status;
-  PVR_STREAMPROPS m_Streams;
-  SChannels       m_channels;
-  SQueueStatus    m_QueueStatus;
-  SQuality        m_Quality;
-  SSourceInfo     m_SourceInfo;
+  CHTSPConnection      *m_session;
+  bool                  m_bGotFirstIframe;
+  bool                  m_bIsRadio;
+  unsigned              m_subs;
+  int                   m_channel;
+  int                   m_tag;
+  int                   m_StatusCount;
+  std::string           m_Status;
+  PVR_STREAM_PROPERTIES m_Streams;
+  SChannels             m_channels;
+  SQueueStatus          m_QueueStatus;
+  SQuality              m_Quality;
+  SSourceInfo           m_SourceInfo;
 };

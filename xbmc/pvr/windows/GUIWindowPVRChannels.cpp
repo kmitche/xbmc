@@ -30,9 +30,15 @@
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 #include "pvr/dialogs/GUIDialogPVRGroupManager.h"
 #include "pvr/windows/GUIWindowPVR.h"
+#include "pvr/addons/PVRClients.h"
+#include "pvr/timers/PVRTimers.h"
 #include "settings/GUISettings.h"
 #include "settings/Settings.h"
 #include "storage/MediaManager.h"
+#include "utils/log.h"
+#include "threads/SingleLock.h"
+
+using namespace PVR;
 
 CGUIWindowPVRChannels::CGUIWindowPVRChannels(CGUIWindowPVR *parent, bool bRadio) :
   CGUIWindowPVRCommon(parent,
@@ -43,6 +49,12 @@ CGUIWindowPVRChannels::CGUIWindowPVRChannels(CGUIWindowPVR *parent, bool bRadio)
   m_bRadio              = bRadio;
   m_selectedGroup       = NULL;
   m_bShowHiddenChannels = false;
+}
+
+void CGUIWindowPVRChannels::ResetObservers(void)
+{
+  CSingleLock lock(m_critSection);
+  g_PVRTimers->RegisterObserver(this);
 }
 
 void CGUIWindowPVRChannels::GetContextButtons(int itemNumber, CContextButtons &buttons) const
@@ -68,10 +80,10 @@ void CGUIWindowPVRChannels::GetContextButtons(int itemNumber, CContextButtons &b
     if (m_parent->m_vecItems->Size() > 1 && !m_bShowHiddenChannels)
       buttons.Add(CONTEXT_BUTTON_MOVE, 116);                                          /* move channel up or down */
 
-    if (m_bShowHiddenChannels || CPVRManager::GetChannelGroups()->GetGroupAll(false)->GetNumHiddenChannels() > 0)
+    if (m_bShowHiddenChannels || g_PVRChannelGroups->GetGroupAllTV()->GetNumHiddenChannels() > 0)
       buttons.Add(CONTEXT_BUTTON_SHOW_HIDDEN, m_bShowHiddenChannels ? 19050 : 19051); /* show hidden/visible channels */
 
-    if (CPVRManager::Get()->HasMenuHooks(pItem->GetPVRChannelInfoTag()->ClientID()))
+    if (g_PVRClients->HasMenuHooks(pItem->GetPVRChannelInfoTag()->ClientID()))
       buttons.Add(CONTEXT_BUTTON_MENU_HOOKS, 19195);                                  /* PVR client specific action */
   }
 }
@@ -95,12 +107,8 @@ bool CGUIWindowPVRChannels::OnContextButton(int itemNumber, CONTEXT_BUTTON butto
 
 const CPVRChannelGroup *CGUIWindowPVRChannels::SelectedGroup(void)
 {
-  const CPVRChannelGroup *group = m_selectedGroup;
-
-  if (!group)
-    group = CPVRManager::Get()->GetPlayingGroup(m_bRadio);
-
-  SetSelectedGroup((CPVRChannelGroup *) group);
+  if (!m_selectedGroup)
+    SetSelectedGroup(g_PVRManager.GetPlayingGroup(m_bRadio));
 
   return m_selectedGroup;
 }
@@ -110,14 +118,35 @@ void CGUIWindowPVRChannels::SetSelectedGroup(CPVRChannelGroup *group)
   if (!group)
     return;
 
+  if (m_selectedGroup)
+    m_selectedGroup->UnregisterObserver(this);
   m_selectedGroup = group;
-  CPVRManager::Get()->SetPlayingGroup(m_selectedGroup);
+  m_selectedGroup->RegisterObserver(this);
+  g_PVRManager.SetPlayingGroup(m_selectedGroup);
 }
 
-const CPVRChannelGroup *CGUIWindowPVRChannels::SelectNextGroup(void)
+void CGUIWindowPVRChannels::Notify(const Observable &obs, const CStdString& msg)
+{
+  if (msg.Equals("channelgroup") || msg.Equals("timers-reset") || msg.Equals("timers"))
+  {
+    if (IsVisible())
+      SetInvalid();
+    else
+      m_bUpdateRequired = true;
+  }
+  else if (msg.Equals("channelgroup-reset"))
+  {
+    if (IsVisible())
+      UpdateData();
+    else
+      m_bUpdateRequired = true;
+  }
+}
+
+CPVRChannelGroup *CGUIWindowPVRChannels::SelectNextGroup(void)
 {
   const CPVRChannelGroup *currentGroup = SelectedGroup();
-  CPVRChannelGroup *nextGroup = (CPVRChannelGroup *) CPVRManager::GetChannelGroups()->Get(m_bRadio)->GetNextGroup(*currentGroup);
+  CPVRChannelGroup *nextGroup = g_PVRChannelGroups->Get(m_bRadio)->GetNextGroup(*currentGroup);
   if (nextGroup && *nextGroup != *currentGroup)
   {
     SetSelectedGroup(nextGroup);
@@ -129,6 +158,7 @@ const CPVRChannelGroup *CGUIWindowPVRChannels::SelectNextGroup(void)
 
 void CGUIWindowPVRChannels::UpdateData(void)
 {
+  CSingleLock lock(m_critSection);
   if (m_bIsFocusing)
     return;
 
@@ -136,6 +166,14 @@ void CGUIWindowPVRChannels::UpdateData(void)
       __FUNCTION__, GetName(), m_iControlList);
   m_bIsFocusing = true;
   m_bUpdateRequired = false;
+
+  g_PVRTimers->RegisterObserver(this);
+
+  /* lock the graphics context while updating */
+  CSingleLock graphicsLock(g_graphicsContext);
+
+  m_iSelected = m_parent->m_viewControl.GetSelectedItem();
+  m_parent->m_viewControl.Clear();
   m_parent->m_vecItems->Clear();
   m_parent->m_viewControl.SetCurrentView(m_iControlList);
 
@@ -156,6 +194,9 @@ void CGUIWindowPVRChannels::UpdateData(void)
     {
       /* show the visible channels instead */
       m_bShowHiddenChannels = false;
+      graphicsLock.Leave();
+      lock.Leave();
+
       UpdateData();
       return;
     }
@@ -269,7 +310,7 @@ bool CGUIWindowPVRChannels::OnContextButtonHide(CFileItem *item, CONTEXT_BUTTON 
     if (!pDialog->IsConfirmed())
       return bReturn;
 
-    ((CPVRChannelGroup *) CPVRManager::Get()->GetPlayingGroup(m_bRadio))->RemoveFromGroup(channel);
+    g_PVRManager.GetPlayingGroup(m_bRadio)->RemoveFromGroup(channel);
     UpdateData();
 
     bReturn = true;
@@ -308,7 +349,7 @@ bool CGUIWindowPVRChannels::OnContextButtonMove(CFileItem *item, CONTEXT_BUTTON 
 
     if (newIndex != channel->ChannelNumber())
     {
-      ((CPVRChannelGroup *) CPVRManager::Get()->GetPlayingGroup())->MoveChannel(channel->ChannelNumber(), newIndex);
+      g_PVRManager.GetPlayingGroup()->MoveChannel(channel->ChannelNumber(), newIndex);
       UpdateData();
     }
 

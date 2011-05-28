@@ -21,39 +21,47 @@
  */
 
 #include "PVRRecording.h"
+#include "XBDateTime.h"
 #include "threads/Thread.h"
-#include "DateTime.h"
+#include "utils/Observer.h"
 
-class CPVRRecordings : public std::vector<CPVRRecording *>
-                     , private CThread
+namespace PVR
 {
-private:
-  CCriticalSection  m_critSection;
-  virtual void Process();
-  virtual void UpdateFromClients(void);
+  class CPVRRecordings : public std::vector<CPVRRecording *>,
+                         public Observable
+  {
+  private:
+    CCriticalSection m_critSection;
+    bool             m_bIsUpdating;
 
-  virtual CStdString TrimSlashes(const CStdString &strOrig) const;
-  virtual const CStdString GetDirectoryFromPath(const CStdString &strPath, const CStdString &strBase) const;
-  virtual bool IsDirectoryMember(const CStdString &strDirectory, const CStdString &strEntryDirectory, bool bDirectMember = true) const;
-  virtual void GetContents(const CStdString &strDirectory, CFileItemList *results) const;
-  virtual void GetSubDirectories(const CStdString &strBase, CFileItemList *results, bool bAutoSkip = true) const;
+    virtual void UpdateFromClients(void);
+    virtual CStdString TrimSlashes(const CStdString &strOrig) const;
+    virtual const CStdString GetDirectoryFromPath(const CStdString &strPath, const CStdString &strBase) const;
+    virtual bool IsDirectoryMember(const CStdString &strDirectory, const CStdString &strEntryDirectory, bool bDirectMember = true) const;
+    virtual void GetContents(const CStdString &strDirectory, CFileItemList *results) const;
+    virtual void GetSubDirectories(const CStdString &strBase, CFileItemList *results, bool bAutoSkip = true) const;
 
-public:
-  CPVRRecordings(void) {};
-  virtual ~CPVRRecordings(void) { Clear(); };
+  public:
+    CPVRRecordings(void);
+    virtual ~CPVRRecordings(void) { Clear(); };
 
-  bool Load() { return Update(); }
-  void Unload();
-  void Clear();
-  void UpdateEntry(const CPVRRecording &tag);
-  bool Update(bool bAsync = false);
+    int Load();
+    void Unload();
+    void Clear();
+    void UpdateEntry(const CPVRRecording &tag);
+    void UpdateFromClient(const CPVRRecording &tag) { UpdateEntry(tag); }
 
-  int GetNumRecordings();
-  int GetRecordings(CFileItemList* results);
-  bool DeleteRecording(const CFileItem &item);
-  bool RenameRecording(CFileItem &item, CStdString &strNewName);
+    /**
+     * @brief refresh the recordings list from the clients.
+     */
+    void Update(void);
 
-  bool GetDirectory(const CStdString& strPath, CFileItemList &items);
-  CPVRRecording *GetByPath(CStdString &path);
-};
+    int GetNumRecordings();
+    int GetRecordings(CFileItemList* results);
+    bool DeleteRecording(const CFileItem &item);
+    bool RenameRecording(CFileItem &item, CStdString &strNewName);
 
+    bool GetDirectory(const CStdString& strPath, CFileItemList &items);
+    CPVRRecording *GetByPath(CStdString &path);
+  };
+}

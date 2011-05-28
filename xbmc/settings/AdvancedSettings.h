@@ -237,6 +237,7 @@ class CAdvancedSettings
     int m_iEpgLingerTime;           // minutes
     int m_iEpgUpdateCheckInterval;  // seconds
     int m_iEpgCleanupInterval;      // seconds
+    int m_iEpgActiveTagCheckInterval; // seconds
 
     // EDL Commercial Break
     bool m_bEdlMergeShortCommBreaks;
@@ -285,8 +286,10 @@ class CAdvancedSettings
     int m_bgInfoLoaderMaxThreads;
 
     /* PVR/TV related advanced settings */
-    bool m_bDisableEPGTimeCorrection;
-    int m_iUserDefinedEPGTimeCorrection;
+    int m_iPVRTimeCorrection;     /*!< @brief correct all times (epg tags, timer tags, recording tags) by this amount of minutes. defaults to 0. */
+    int m_iPVRInfoToggleInterval; /*!< @brief if there are more than 1 pvr gui info item available (e.g. multiple recordings active at the same time), use this toggle delay in milliseconds. defaults to 3000. */
+    bool m_bPVRShowEpgInfoOnEpgItemSelect; /*!< @brief when selecting an EPG fileitem, show the EPG info dialog if this setting is true. start playback on the selected channel if false */
+    int m_iPVRMinCacheLevel;      /*!< @brief cache up to this level in each buffer before resuming playback if the buffers run dry */
 
     bool m_measureRefreshrate; //when true the videoreferenceclock will measure the refreshrate when direct3d is used
                                //otherwise it will use the windows refreshrate

@@ -24,8 +24,12 @@
 #include "filesystem/PVRFile.h"
 #include "URL.h"
 #include "pvr/PVRManager.h"
+#include "pvr/channels/PVRChannel.h"
+#include "utils/log.h"
+#include "pvr/addons/PVRClients.h"
 
 using namespace XFILE;
+using namespace PVR;
 
 /************************************************************************
  * Description: Class constructor, initialize member variables
@@ -158,7 +162,11 @@ int CDVDInputStreamPVRManager::Read(BYTE* buf, int buf_size)
 
 __int64 CDVDInputStreamPVRManager::Seek(__int64 offset, int whence)
 {
-  if(!m_pFile) return -1;
+  if (!m_pFile)
+    return -1;
+
+  if (whence == SEEK_POSSIBLE)
+    return m_pFile->IoControl(IOCTRL_SEEK_POSSIBLE, NULL);
 
   if (m_pOtherStream)
   {
@@ -227,9 +235,9 @@ bool CDVDInputStreamPVRManager::SelectChannel(const CPVRChannel &channel)
   return false;
 }
 
-bool CDVDInputStreamPVRManager::GetSelectedChannel(const CPVRChannel *channel)
+bool CDVDInputStreamPVRManager::GetSelectedChannel(CPVRChannel *channel)
 {
-  return CPVRManager::Get()->GetCurrentChannel(channel);
+  return g_PVRManager.GetCurrentChannel(channel);
 }
 
 bool CDVDInputStreamPVRManager::UpdateItem(CFileItem& item)
@@ -282,5 +290,5 @@ CStdString CDVDInputStreamPVRManager::GetInputFormat()
   if (m_pOtherStream)
     return "";
   else
-    return CPVRManager::Get()->GetCurrentInputFormat();
+    return g_PVRClients->GetCurrentInputFormat();
 }

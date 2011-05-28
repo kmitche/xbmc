@@ -50,7 +50,7 @@
 #include "GUIListContainer.h"
 #include "GUIFixedListContainer.h"
 #include "GUIWrappingListContainer.h"
-#include "GUIEPGGridContainer.h"
+#include "epg/GUIEPGGridContainer.h"
 #include "GUIPanelContainer.h"
 #include "GUIMultiSelectText.h"
 #include "GUIListLabel.h"
@@ -65,6 +65,7 @@
 #include "utils/StringUtils.h"
 
 using namespace std;
+using namespace EPG;
 
 typedef struct
 {
@@ -1275,7 +1276,7 @@ CGUIControl* CGUIControlFactory::Create(int parentID, const CRect &rect, TiXmlEl
   {
     control = new CGUIEPGGridContainer(parentID, id, posX, posY, width, height, orientation, scrollTime, preloadItems, timeBlocks, rulerUnit);
     ((CGUIEPGGridContainer *)control)->LoadLayout(pControlNode);
-//    ((CGUIEPGGridContainer *)control)->LoadContent(pControlNode); ///
+    ((CGUIEPGGridContainer *)control)->SetRenderOffset(offset);
   }
   else if (type == CGUIControl::GUICONTAINER_FIXEDLIST)
   {

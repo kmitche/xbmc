@@ -46,15 +46,15 @@ long         m_noSignalStreamSize     = 0;
 long         m_noSignalStreamReadPos  = 0;
 bool         m_bPlayingNoSignal       = false;
 int          m_iCurrentChannel        = 1;
-ADDON_STATUS m_CurStatus              = STATUS_UNKNOWN;
+ADDON_STATUS m_CurStatus              = ADDON_STATUS_UNKNOWN;
 bool         g_bCreated               = false;
 int          g_iClientID              = -1;
 CStdString   g_szUserPath             = "";
 CStdString   g_szClientPath           = "";
 MythXml*     MythXmlApi               = NULL;
 MythSql*     p_mythsql                = NULL;
-cHelper_libXBMC_addon *XBMC           = NULL;
-cHelper_libXBMC_pvr   *PVR            = NULL;
+CHelper_libXBMC_addon *XBMC           = NULL;
+CHelper_libXBMC_pvr   *PVR            = NULL;
 
 
 extern "C" {
@@ -63,27 +63,27 @@ extern "C" {
  * Standard AddOn related public library functions
  ***********************************************************/
 
-ADDON_STATUS Create(void* hdl, void* props)
+ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
   if (!props)
-    return STATUS_UNKNOWN;
+    return ADDON_STATUS_UNKNOWN;
 
-  PVR_PROPS* pvrprops = (PVR_PROPS*)props;
+  PVR_PROPERTIES* pvrprops = (PVR_PROPERTIES*)props;
 
-  XBMC = new cHelper_libXBMC_addon;
+  XBMC = new CHelper_libXBMC_addon;
   if (!XBMC->RegisterMe(hdl))
-    return STATUS_UNKNOWN;
+    return ADDON_STATUS_UNKNOWN;
 
-  PVR = new cHelper_libXBMC_pvr;
+  PVR = new CHelper_libXBMC_pvr;
   if (!PVR->RegisterMe(hdl))
-    return STATUS_UNKNOWN;
+    return ADDON_STATUS_UNKNOWN;
 
   XBMC->Log(LOG_DEBUG, "Creating MythTV PVR-Client");
 
-  m_CurStatus    = STATUS_UNKNOWN;
-  g_iClientID    = pvrprops->clientID;
-  g_szUserPath   = pvrprops->userpath;
-  g_szClientPath = pvrprops->clientpath;
+  m_CurStatus    = ADDON_STATUS_UNKNOWN;
+  g_iClientID    = pvrprops->iClienId;
+  g_szUserPath   = pvrprops->strUserPath;
+  g_szClientPath = pvrprops->strClientPath;
 
   char * buffer; // Buffer for the CStdString properties;
   buffer = (char*) malloc(1024);
@@ -155,27 +155,27 @@ ADDON_STATUS Create(void* hdl, void* props)
   }
   free(buffer);
 
-  MythXmlApi = new MythXml(g_szHostname, g_iMythXmlPort, g_szUserName, g_szPassword, g_iPin, g_iMythXmlConnectTimeout);
-  MythXmlApi->Init();
+  MythXmlApi = new MythXml();
+  MythXmlApi->open(g_szHostname, g_iMythXmlPort, g_szUserName, g_szPassword, g_iPin, g_iMythXmlConnectTimeout);
 
   // TODO: Do we need to allow for configuration of the database name?
   // TODO: How can we get the schema version for the database?
   CStdString database = "mythconverg";
   p_mythsql = new MythSql(g_szHostname, g_szUserName, g_szPassword, database, 1254);
   if (!p_mythsql->Init())
-    m_CurStatus = STATUS_LOST_CONNECTION;
+    m_CurStatus = ADDON_STATUS_LOST_CONNECTION;
 
-  m_CurStatus = STATUS_OK;
+  m_CurStatus = ADDON_STATUS_OK;
 
   g_bCreated = true;
   return m_CurStatus;
 }
 
-void Destroy()
+void ADDON_Destroy()
 {
   if (g_bCreated)
   {
-    MythXmlApi->Cleanup();
+    MythXmlApi->cleanup();
     delete MythXmlApi;
     MythXmlApi = NULL;
 
@@ -184,25 +184,25 @@ void Destroy()
 
     g_bCreated = false;
   }
-  m_CurStatus = STATUS_UNKNOWN;
+  m_CurStatus = ADDON_STATUS_UNKNOWN;
 }
 
-ADDON_STATUS GetStatus()
+ADDON_STATUS ADDON_GetStatus()
 {
   return m_CurStatus;
 }
 
-bool HasSettings()
+bool ADDON_HasSettings()
 {
   return true;
 }
 
-unsigned int GetSettings(StructSetting ***sSet)
+unsigned int ADDON_GetSettings(ADDON_StructSetting ***sSet)
 {
   return 0;
 }
 
-ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
+ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
 {
   string str = settingName;
   if (str == "host")
@@ -212,7 +212,7 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
     tmp_sHostname = g_szHostname;
     g_szHostname = (const char*) settingValue;
     if (tmp_sHostname != g_szHostname)
-      return STATUS_NEED_RESTART;
+      return ADDON_STATUS_NEED_RESTART;
   }
   else if (str == "mythXMLPort")
   {
@@ -220,7 +220,7 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
     if (g_iMythXmlPort != *(int*) settingValue)
     {
 	  g_iMythXmlPort = *(int*) settingValue;
-      return STATUS_NEED_RESTART;
+      return ADDON_STATUS_NEED_RESTART;
     }
   }
   else if (str == "mythXMLTimeout")
@@ -230,7 +230,7 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
     {
 	  g_iMythXmlConnectTimeout = *(int*) settingValue;
 	  g_iMythXmlConnectTimeout *= 1000;
-      return STATUS_NEED_RESTART;
+      return ADDON_STATUS_NEED_RESTART;
     }
   }
   else if (str == "pin")
@@ -239,7 +239,7 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
     if (g_iPin != *(int*) settingValue)
     {
       g_iPin = *(int*) settingValue;
-      return STATUS_NEED_RESTART;
+      return ADDON_STATUS_NEED_RESTART;
     }
   }
   else if (str == "username")
@@ -249,7 +249,7 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
     tmp_sUserName = g_szUserName;
     g_szUserName = (const char*) settingValue;
     if (tmp_sUserName != g_szUserName)
-      return STATUS_NEED_RESTART;
+      return ADDON_STATUS_NEED_RESTART;
   }
   else if (str == "password")
   {
@@ -258,17 +258,17 @@ ADDON_STATUS SetSetting(const char *settingName, const void *settingValue)
     tmp_sPassword = g_szPassword;
     g_szPassword = (const char*) settingValue;
     if (tmp_sPassword != g_szPassword)
-      return STATUS_NEED_RESTART;
+      return ADDON_STATUS_NEED_RESTART;
   } 
-  return STATUS_OK;
+  return ADDON_STATUS_OK;
 }
 
-void Stop()
+void ADDON_Stop()
 {
   return;
 }
 
-void FreeSettings()
+void ADDON_FreeSettings()
 {
   return;
 }
@@ -278,26 +278,24 @@ void FreeSettings()
  * PVR Client AddOn specific public library functions
  ***********************************************************/
 
-PVR_ERROR GetProperties(PVR_SERVERPROPS* props)
+PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES *pCapabilities)
 {
-  props->SupportChannelLogo        = true;
-  props->SupportTimeShift          = false;
-  props->SupportEPG                = true;
-  props->SupportRecordings         = true;
-  props->SupportTimers             = true;
-  props->SupportTV                 = true;
-  props->SupportRadio              = false;  // TODO: Change to true when radio info pulled out of MythXML (assuming possible)
-  props->SupportChannelSettings    = false;
-  props->SupportDirector           = false;
-  props->SupportBouquets           = false;
-  props->HandleInputStream         = false;
-  props->HandleDemuxing            = false;
-  props->SupportChannelScan        = false;
+  pCapabilities->bSupportsTimeshift          = false;
+  pCapabilities->bSupportsEPG                = true;
+  pCapabilities->bSupportsRecordings         = false;
+  pCapabilities->bSupportsTimers             = false;
+  pCapabilities->bSupportsTV                 = true;
+  pCapabilities->bSupportsRadio              = false; // TODO: Change to true when radio info pulled out of MythXML (assuming possible)
+  pCapabilities->bSupportsChannelSettings    = false;
+  pCapabilities->bSupportsChannelGroups      = false;
+  pCapabilities->bHandlesInputStream         = false;
+  pCapabilities->bHandlesDemuxing            = false;
+  pCapabilities->bSupportsChannelScan        = false;
 
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR GetStreamProperties(PVR_STREAMPROPS* props)
+PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES* props)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
@@ -347,7 +345,7 @@ PVR_ERROR DialogChannelScan()
   return PVR_ERROR_NOT_POSSIBLE;
 }
 
-PVR_ERROR MenuHook(const PVR_MENUHOOK &menuhook)
+PVR_ERROR CallMenuHook(const PVR_MENUHOOK &menuhook)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
@@ -355,28 +353,13 @@ PVR_ERROR MenuHook(const PVR_MENUHOOK &menuhook)
 /*******************************************/
 /** PVR EPG Functions                     **/
 
-PVR_ERROR RequestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &channel, time_t start, time_t end)
+PVR_ERROR GetEPGForChannel(PVR_HANDLE handle, const PVR_CHANNEL &channel, time_t start, time_t end)
 {
   if (MythXmlApi == NULL)
     return PVR_ERROR_SERVER_ERROR;
 
-  return MythXmlApi->requestEPGForChannel(handle, channel, start, end);
+	return MythXmlApi->requestEPGForChannel(handle, channel, start, end);
 }
-
-
-/*******************************************/
-/** PVR Bouquets Functions                **/
-
-int GetNumBouquets()
-{
-  return 0;
-}
-
-PVR_ERROR RequestBouquetsList(PVRHANDLE handle, int radio)
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
-}
-
 
 /*******************************************/
 /** PVR Channel Functions                 **/
@@ -389,35 +372,35 @@ int GetNumChannels()
   return MythXmlApi->getNumChannels();
 }
 
-PVR_ERROR RequestChannelList(PVRHANDLE handle, int radio)
+PVR_ERROR GetChannels(PVR_HANDLE handle, bool bRadio)
 {
   if (MythXmlApi == NULL)
     return PVR_ERROR_SERVER_ERROR;
 
-  return MythXmlApi->requestChannelList(handle, radio);
+	return MythXmlApi->requestChannelList(handle, bRadio);
 }
 
-PVR_ERROR DeleteChannel(unsigned int number)
+PVR_ERROR DeleteChannel(const PVR_CHANNEL &channel)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-PVR_ERROR RenameChannel(unsigned int number, const char *newname)
+PVR_ERROR RenameChannel(const PVR_CHANNEL &channel)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-PVR_ERROR MoveChannel(unsigned int number, unsigned int newnumber)
+PVR_ERROR MoveChannel(const PVR_CHANNEL &channel)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-PVR_ERROR DialogChannelSettings(const PVR_CHANNEL &channelinfo)
+PVR_ERROR DialogChannelSettings(const PVR_CHANNEL &channel)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-PVR_ERROR DialogAddChannel(const PVR_CHANNEL &channelinfo)
+PVR_ERROR DialogAddChannel(const PVR_CHANNEL &channel)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
@@ -426,7 +409,7 @@ PVR_ERROR DialogAddChannel(const PVR_CHANNEL &channelinfo)
 /*******************************************/
 /** PVR Recording Functions               **/
 
-int GetNumRecordings(void)
+int GetRecordingsAmount(void)
 {
   if (MythXmlApi == NULL)
     return PVR_ERROR_SERVER_ERROR;
@@ -434,7 +417,7 @@ int GetNumRecordings(void)
   return MythXmlApi->getNumRecordings();
 }
 
-PVR_ERROR RequestRecordingsList(PVRHANDLE handle)
+PVR_ERROR GetRecordings(PVR_HANDLE handle)
 {
   if (MythXmlApi == NULL)
     return PVR_ERROR_SERVER_ERROR;
@@ -442,12 +425,12 @@ PVR_ERROR RequestRecordingsList(PVRHANDLE handle)
   return MythXmlApi->requestRecordingsList(handle);
 }
 
-PVR_ERROR DeleteRecording(const PVR_RECORDINGINFO &recinfo)
+PVR_ERROR DeleteRecording(const PVR_RECORDING &recinfo)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-PVR_ERROR RenameRecording(const PVR_RECORDINGINFO &recinfo, const char *newname)
+PVR_ERROR RenameRecording(const PVR_RECORDING &recinfo)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
@@ -461,31 +444,15 @@ bool HaveCutmarks()
   return false;
 }
 
-PVR_ERROR RequestCutMarksList(PVRHANDLE handle)
+PVR_ERROR RequestCutMarksList(PVR_HANDLE handle)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
-
-PVR_ERROR AddCutMark(const PVR_CUT_MARK &cutmark)
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
-}
-
-PVR_ERROR DeleteCutMark(const PVR_CUT_MARK &cutmark)
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
-}
-
-PVR_ERROR StartCut()
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
-}
-
 
 /*******************************************/
 /** PVR Timer Functions                   **/
 
-int GetNumTimers(void)
+int GetTimersAmount(void)
 {
   if (p_mythsql == NULL)
      return PVR_ERROR_SERVER_ERROR;
@@ -493,7 +460,7 @@ int GetNumTimers(void)
   return p_mythsql->GetNumberOfSchedules();
 }
 
-PVR_ERROR RequestTimerList(PVRHANDLE handle)
+PVR_ERROR GetTimers(PVR_HANDLE handle)
 {
   if (p_mythsql == NULL)
     return PVR_ERROR_SERVER_ERROR;
@@ -508,7 +475,7 @@ PVR_ERROR RequestTimerList(PVRHANDLE handle)
   // TODO: Remove m_ off the structure fieldnames.
   for (it = schedules.begin(); it != schedules.end(); ++it)
   {
-    PVR_TIMERINFO timer;
+    PVR_TIMER timer;
     memset(&timer, 0, sizeof(timer));
 
     const SSchedule& schedule = *it;
@@ -516,19 +483,18 @@ PVR_ERROR RequestTimerList(PVRHANDLE handle)
      * TODO: Remove the elements out of the MythTV schedule that don't really make sense for MythTV
      * and have the client here do the necessary mappings.
      */
-    timer.index         = schedule.m_recordid;
-    timer.active        = schedule.m_inactive ? 0 : 1;
-    timer.title         = schedule.m_title.c_str();
-    timer.directory     = schedule.m_storagegroup.c_str();
-    timer.channelNum    = schedule.m_channum;
-    timer.starttime     = schedule.m_starttime;
-    timer.endtime       = schedule.m_endtime;
-    timer.firstday      = schedule.m_firstday; // TODO: Not a direct mapping?
-    timer.recording     = schedule.m_recording; // TODO: Can't get via the MythSQL interface? Have to get via Myth Protocol?
-    timer.priority      = schedule.m_priority;
-    timer.lifetime      = schedule.m_lifetime; // TODO: Not a direct mapping
-    timer.repeat        = schedule.m_repeat; // TODO: Not a direct mapping
-    timer.repeatflags   = schedule.m_repeatflags; // TODO: Not a direct mapping
+    // timer.active        = schedule.m_inactive ? 0 : 1;
+    timer.strTitle      = schedule.m_title.c_str();
+    timer.strDirectory  = schedule.m_storagegroup.c_str();
+    timer.iClientChannelUid = schedule.m_channum;
+    timer.startTime     = schedule.m_starttime;
+    timer.endTime       = schedule.m_endtime;
+    timer.firstDay      = schedule.m_firstday; // TODO: Not a direct mapping?
+    // timer.recording     = schedule.m_recording; // TODO: Can't get via the MythSQL interface? Have to get via Myth Protocol?
+    timer.iPriority     = schedule.m_priority;
+    timer.iLifetime      = schedule.m_lifetime; // TODO: Not a direct mapping
+    //timer.repeat        = schedule.m_repeat; // TODO: Not a direct mapping
+    //timer.repeatflags   = schedule.m_repeatflags; // TODO: Not a direct mapping
 
     // TODO: How to convert schedule.m_type? MythTV concept of schedules doesn't fit this API very well.
 
@@ -537,22 +503,17 @@ PVR_ERROR RequestTimerList(PVRHANDLE handle)
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR AddTimer(const PVR_TIMERINFO &timerinfo)
+PVR_ERROR AddTimer(const PVR_TIMER &timer)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-PVR_ERROR DeleteTimer(const PVR_TIMERINFO &timerinfo, bool force)
+PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
-PVR_ERROR RenameTimer(const PVR_TIMERINFO &timerinfo, const char *newname)
-{
-  return PVR_ERROR_NOT_IMPLEMENTED;
-}
-
-PVR_ERROR UpdateTimer(const PVR_TIMERINFO &timerinfo)
+PVR_ERROR UpdateTimer(const PVR_TIMER &timer)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
@@ -561,17 +522,17 @@ PVR_ERROR UpdateTimer(const PVR_TIMERINFO &timerinfo)
 /*******************************************/
 /** PVR Live Stream Functions             **/
 
-bool OpenLiveStream(const PVR_CHANNEL &channelinfo)
+bool OpenLiveStream(const PVR_CHANNEL &channel)
 {
   return false;
 }
 
-void CloseLiveStream()
+void CloseLiveStream(void)
 {
   return;
 }
 
-int ReadLiveStream(unsigned char* buf, int buf_size)
+int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize)
 {
   return -1;
 }
@@ -586,40 +547,16 @@ bool SwitchChannel(const PVR_CHANNEL &channelinfo)
   return false;
 }
 
-PVR_ERROR SignalQuality(PVR_SIGNALQUALITY &qualityinfo)
+PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 
 /*******************************************/
-/** PVR Secondary Stream Functions        **/
-
-bool SwapLiveTVSecondaryStream()
-{
-  return false;
-}
-
-bool OpenSecondaryStream(const PVR_CHANNEL &channelinfo)
-{
-  return false;
-}
-
-void CloseSecondaryStream()
-{
-  return;
-}
-
-int ReadSecondaryStream(unsigned char* buf, int buf_size)
-{
-  return 0;
-}
-
-
-/*******************************************/
 /** PVR Recording Stream Functions        **/
 
-bool OpenRecordedStream(const PVR_RECORDINGINFO &recinfo)
+bool OpenRecordedStream(const PVR_RECORDING &recinfo)
 {
   return false;
 }
@@ -629,12 +566,12 @@ void CloseRecordedStream(void)
   return;
 }
 
-int ReadRecordedStream(unsigned char* buf, int buf_size)
+int ReadRecordedStream(unsigned char *pBuffer, unsigned int iBufferSize)
 {
   return 0;
 }
 
-long long SeekRecordedStream(long long pos, int whence)
+long long SeekRecordedStream(long long iPosition, int iWhence)
 {
   return -1;
 }
@@ -655,7 +592,7 @@ DemuxPacket* DemuxRead() { return NULL; }
 void DemuxAbort() {}
 void DemuxReset() {}
 void DemuxFlush() {}
-long long SeekLiveStream(long long pos, int whence) { return -1; }
+long long SeekLiveStream(long long iPosition, int iWhence) { return -1; }
 long long PositionLiveStream(void) { return -1; }
 long long LengthLiveStream(void) { return -1; }
 const char * GetLiveStreamURL(const PVR_CHANNEL &channelinfo) { return ""; }

@@ -23,7 +23,6 @@
 #include "video/VideoInfoTag.h"
 #include "pvr/channels/PVRChannel.h"
 #include "pvr/epg/PVREpg.h"
-#include "pvr/epg/PVREpgInfoTag.h"
 #include "pvr/timers/PVRTimerInfoTag.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/StringUtils.h"
@@ -31,6 +30,9 @@
 #include "FileItem.h"
 #include "URL.h"
 #include "utils/log.h"
+#include "video/VideoInfoTag.h"
+
+using namespace PVR;
 
 #define RETURN_IF_NULL(x,y) if ((x) == NULL) { CLog::Log(LOGWARNING, "%s, sort item is null", __FUNCTION__); return y; }
 
@@ -171,9 +173,9 @@ void SSortFileItem::ByDate(CFileItemPtr &item)
 
   CStdString label;
   if (item->IsEPG())
-    label.Format("%s %s", item->GetEPGInfoTag()->Start().GetAsDBDateTime().c_str(), item->GetLabel().c_str());
+    label.Format("%s %s", item->GetEPGInfoTag()->StartAsLocalTime().GetAsDBDateTime().c_str(), item->GetLabel().c_str());
   else if (item->IsPVRTimer())
-    label.Format("%s %s", item->GetPVRTimerInfoTag()->m_StartTime.GetAsDBDateTime().c_str(), item->GetLabel().c_str());
+    label.Format("%s %s", item->GetPVRTimerInfoTag()->StartAsLocalTime().GetAsLocalizedDateTime(false, false).c_str(), item->GetLabel().c_str());
   else
     label.Format("%s %s", item->m_dateTime.GetAsDBDateTime().c_str(), item->GetLabel().c_str());
 

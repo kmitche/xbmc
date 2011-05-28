@@ -22,7 +22,7 @@
 
 #include <map>
 
-#include "../StdString.h"
+#include "utils/StdString.h"
 
 class MythXmlParameters
 {
