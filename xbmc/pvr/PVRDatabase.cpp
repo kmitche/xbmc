@@ -154,7 +154,11 @@ bool CPVRDatabase::CreateTables()
           "iCropTop             integer, "
           "iCropBottom          integer, "
           "fSharpness           float, "
-          "fNoiseReduction      float"
+          "fNoiseReduction      float, "
+          "fCustomVerticalShift float, "
+          "bCustomNonLinStretch bool, "
+          "bPostProcess         bool, "
+          "iScalingMethod       integer"
         ");"
     );
 
@@ -191,6 +195,16 @@ bool CPVRDatabase::UpdateOldVersion(int iVersion)
 
       if (iVersion < 13)
         m_pDS->exec("ALTER TABLE channels ADD idEpg integer;");
+
+      if (iVersion < 14)
+        m_pDS->exec("ALTER TABLE channelsettings ADD fCustomVerticalShift float;");
+
+      if (iVersion < 15)
+      {
+        m_pDS->exec("ALTER TABLE channelsettings ADD bCustomNonLinStretch bool;");
+        m_pDS->exec("ALTER TABLE channelsettings ADD bPostProcess bool;");
+        m_pDS->exec("ALTER TABLE channelsettings ADD iScalingMethod integer;");
+      }
     }
   }
   catch (...)
@@ -398,9 +412,12 @@ bool CPVRDatabase::GetChannelSettings(const CPVRChannel &channel, CVideoSettings
         settings.m_Brightness           = m_pDS->fv("fBrightness").get_asFloat();
         settings.m_Contrast             = m_pDS->fv("fContrast").get_asFloat();
         settings.m_CustomPixelRatio     = m_pDS->fv("fPixelRatio").get_asFloat();
+        settings.m_CustomNonLinStretch  = m_pDS->fv("bCustomNonLinStretch").get_asBool();
         settings.m_NoiseReduction       = m_pDS->fv("fNoiseReduction").get_asFloat();
+        settings.m_PostProcess          = m_pDS->fv("bPostProcess").get_asBool();
         settings.m_Sharpness            = m_pDS->fv("fSharpness").get_asFloat();
         settings.m_CustomZoomAmount     = m_pDS->fv("fCustomZoomAmount").get_asFloat();
+        settings.m_CustomVerticalShift  = m_pDS->fv("fCustomVerticalShift").get_asFloat();
         settings.m_Gamma                = m_pDS->fv("fGamma").get_asFloat();
         settings.m_SubtitleDelay        = m_pDS->fv("fSubtitleDelay").get_asFloat();
         settings.m_SubtitleOn           = m_pDS->fv("bSubtitles").get_asBool();
@@ -414,7 +431,7 @@ bool CPVRDatabase::GetChannelSettings(const CPVRChannel &channel, CVideoSettings
         settings.m_InterlaceMethod      = (EINTERLACEMETHOD)m_pDS->fv("iInterlaceMethod").get_asInt();
         settings.m_VolumeAmplification  = m_pDS->fv("fVolumeAmplification").get_asFloat();
         settings.m_OutputToAllSpeakers  = m_pDS->fv("bOutputToAllSpeakers").get_asBool();
-        settings.m_SubtitleCached       = false;
+        settings.m_ScalingMethod        = (ESCALINGMETHOD)m_pDS->fv("iScalingMethod").get_asInt();
 
         bReturn = true;
       }
@@ -445,13 +462,14 @@ bool CPVRDatabase::PersistChannelSettings(const CPVRChannel &channel, const CVid
       "REPLACE INTO channelsettings "
         "(idChannel, iInterlaceMethod, iViewMode, fCustomZoomAmount, fPixelRatio, iAudioStream, iSubtitleStream, fSubtitleDelay, "
          "bSubtitles, fBrightness, fContrast, fGamma, fVolumeAmplification, fAudioDelay, bOutputToAllSpeakers, bCrop, iCropLeft, "
-         "iCropRight, iCropTop, iCropBottom, fSharpness, fNoiseReduction) VALUES "
-         "(%i, %i, %i, %f, %f, %i, %i, %f, %i, %f, %f, %f, %f, %f, %i, %i, %i, %i, %i, %i, %f, %f);",
+         "iCropRight, iCropTop, iCropBottom, fSharpness, fNoiseReduction, fCustomVerticalShift, bCustomNonLinStretch, bPostProcess, iScalingMethod) VALUES "
+         "(%i, %i, %i, %f, %f, %i, %i, %f, %i, %f, %f, %f, %f, %f, %i, %i, %i, %i, %i, %i, %f, %f, %f, %i, %i, %i);",
        channel.ChannelID(), settings.m_InterlaceMethod, settings.m_ViewMode, settings.m_CustomZoomAmount, settings.m_CustomPixelRatio,
-       settings.m_AudioStream, settings.m_SubtitleStream, settings.m_SubtitleDelay, settings.m_SubtitleOn,
+       settings.m_AudioStream, settings.m_SubtitleStream, settings.m_SubtitleDelay, settings.m_SubtitleOn ? 1 :0,
        settings.m_Brightness, settings.m_Contrast, settings.m_Gamma, settings.m_VolumeAmplification, settings.m_AudioDelay,
-       settings.m_OutputToAllSpeakers, settings.m_Crop, settings.m_CropLeft, settings.m_CropRight, settings.m_CropTop,
-       settings.m_CropBottom, settings.m_Sharpness, settings.m_NoiseReduction);
+       settings.m_OutputToAllSpeakers ? 1 : 0, settings.m_Crop ? 1 : 0, settings.m_CropLeft, settings.m_CropRight, settings.m_CropTop,
+       settings.m_CropBottom, settings.m_Sharpness, settings.m_NoiseReduction, settings.m_CustomVerticalShift,
+       settings.m_CustomNonLinStretch ? 1 : 0, settings.m_PostProcess ? 1 : 0, settings.m_ScalingMethod);
 
   return ExecuteQuery(strQuery);
 }

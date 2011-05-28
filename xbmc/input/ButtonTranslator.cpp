@@ -208,6 +208,21 @@ static const ActionMapping windows[] =
         {"videos"                   , WINDOW_VIDEO_NAV},
         {"tv"                       , WINDOW_PVR}, // backward compat
         {"pvr"                      , WINDOW_PVR},
+
+        {"pvrguideinfo"             , WINDOW_DIALOG_PVR_GUIDE_INFO},
+        {"pvrrecordinginfo"         , WINDOW_DIALOG_PVR_RECORDING_INFO},
+        {"pvrtimersetting"          , WINDOW_DIALOG_PVR_TIMER_SETTING},
+        {"pvrgroupmanager"          , WINDOW_DIALOG_PVR_GROUP_MANAGER},
+        {"pvrchannelmanager"        , WINDOW_DIALOG_PVR_CHANNEL_MANAGER},
+        {"pvrguidesearch"           , WINDOW_DIALOG_PVR_GUIDE_SEARCH},
+        {"pvrchannelscan"           , WINDOW_DIALOG_PVR_CHANNEL_SCAN},
+        {"pvrupdateprogress"        , WINDOW_DIALOG_PVR_UPDATE_PROGRESS},
+        {"pvrosdchannels"           , WINDOW_DIALOG_PVR_OSD_CHANNELS},
+        {"pvrosdguide"              , WINDOW_DIALOG_PVR_OSD_GUIDE},
+        {"pvrosddirector"           , WINDOW_DIALOG_PVR_OSD_DIRECTOR},
+        {"pvrosdcutter"             , WINDOW_DIALOG_PVR_OSD_CUTTER},
+        {"pvrosdteletext"           , WINDOW_DIALOG_OSD_TELETEXT},
+
         {"systeminfo"               , WINDOW_SYSTEM_INFORMATION},
         {"testpattern"              , WINDOW_TEST_PATTERN},
         {"screencalibration"        , WINDOW_SCREEN_CALIBRATION},
@@ -298,6 +313,29 @@ static const ActionMapping windows[] =
         {"startwindow"              , WINDOW_START},
         {"startup"                  , WINDOW_STARTUP_ANIM}};
 
+#ifdef WIN32
+static const ActionMapping appcommands[] =
+{
+  { "browser_back",        APPCOMMAND_BROWSER_BACKWARD },
+  { "browser_forward",     APPCOMMAND_BROWSER_FORWARD },
+  { "browser_refresh",     APPCOMMAND_BROWSER_REFRESH },
+  { "browser_stop",        APPCOMMAND_BROWSER_STOP },
+  { "browser_search",      APPCOMMAND_BROWSER_SEARCH },
+  { "browser_favorites",   APPCOMMAND_BROWSER_FAVORITES },
+  { "browser_home",        APPCOMMAND_BROWSER_HOME },
+  { "volume_mute",         APPCOMMAND_VOLUME_MUTE },
+  { "volume_down",         APPCOMMAND_VOLUME_DOWN },
+  { "volume_up",           APPCOMMAND_VOLUME_UP },
+  { "next_track",          APPCOMMAND_MEDIA_NEXTTRACK },
+  { "prev_track",          APPCOMMAND_MEDIA_PREVIOUSTRACK },
+  { "stop",                APPCOMMAND_MEDIA_STOP },
+  { "play_pause",          APPCOMMAND_MEDIA_PLAY_PAUSE },
+  { "launch_mail",         APPCOMMAND_LAUNCH_MAIL },
+  { "launch_media_select", APPCOMMAND_LAUNCH_MEDIA_SELECT },
+  { "launch_app1",         APPCOMMAND_LAUNCH_APP1 },
+  { "launch_app2",         APPCOMMAND_LAUNCH_APP2 }
+};
+#endif
 
 CButtonTranslator& CButtonTranslator::GetInstance()
 {
@@ -806,7 +844,7 @@ void CButtonTranslator::MapWindowActions(TiXmlNode *pWindow, int windowID)
   }
   TiXmlNode* pDevice;
 
-  const char* types[] = {"gamepad", "remote", "keyboard", "universalremote", NULL};
+  const char* types[] = {"gamepad", "remote", "universalremote", "keyboard", "appcommand", NULL};
   for (int i = 0; types[i]; ++i)
   {
     CStdString type(types[i]);
@@ -825,6 +863,8 @@ void CButtonTranslator::MapWindowActions(TiXmlNode *pWindow, int windowID)
             buttonCode = TranslateUniversalRemoteString(pButton->Value());
         else if (type == "keyboard")
             buttonCode = TranslateKeyboardButton(pButton);
+        else if (type == "appcommand")
+            buttonCode = TranslateAppCommand(pButton->Value());
 
         if (buttonCode && pButton->FirstChild())
           MapAction(buttonCode, pButton->FirstChild()->Value(), map);
@@ -1057,32 +1097,7 @@ uint32_t CButtonTranslator::TranslateKeyboardString(const char *szButton)
   // The lookup failed i.e. the key name wasn't found
   else
   {
-    CStdString strKey = szButton;
-    strKey.ToLower();
-
-    // Multimedia keys
-    if (strKey.Equals("browser_back"))        buttonCode = XBMCK_BROWSER_BACK;
-    else if (strKey.Equals("browser_forward"))     buttonCode = XBMCK_BROWSER_FORWARD;
-    else if (strKey.Equals("browser_refresh"))     buttonCode = XBMCK_BROWSER_REFRESH;
-    else if (strKey.Equals("browser_stop"))        buttonCode = XBMCK_BROWSER_STOP;
-    else if (strKey.Equals("browser_search"))      buttonCode = XBMCK_BROWSER_SEARCH;
-    else if (strKey.Equals("browser_favorites"))   buttonCode = XBMCK_BROWSER_FAVORITES;
-    else if (strKey.Equals("browser_home"))        buttonCode = XBMCK_BROWSER_HOME;
-    else if (strKey.Equals("volume_mute"))         buttonCode = XBMCK_VOLUME_MUTE;
-    else if (strKey.Equals("volume_down"))         buttonCode = XBMCK_VOLUME_DOWN;
-    else if (strKey.Equals("volume_up"))           buttonCode = XBMCK_VOLUME_UP;
-    else if (strKey.Equals("next_track"))          buttonCode = XBMCK_MEDIA_NEXT_TRACK;
-    else if (strKey.Equals("prev_track"))          buttonCode = XBMCK_MEDIA_PREV_TRACK;
-    else if (strKey.Equals("stop"))                buttonCode = XBMCK_MEDIA_STOP;
-    else if (strKey.Equals("play_pause"))          buttonCode = XBMCK_MEDIA_PLAY_PAUSE;
-    else if (strKey.Equals("launch_mail"))         buttonCode = XBMCK_LAUNCH_MAIL;
-    else if (strKey.Equals("launch_media_select")) buttonCode = XBMCK_LAUNCH_MEDIA_SELECT;
-    else if (strKey.Equals("launch_app1_pc_icon")) buttonCode = XBMCK_LAUNCH_APP1;
-    else if (strKey.Equals("launch_app2_pc_icon")) buttonCode = XBMCK_LAUNCH_APP2;
-    else if (strKey.Equals("launch_file_browser")) buttonCode = 0xB8;
-    else if (strKey.Equals("launch_media_center")) buttonCode = 0xB9;
-    else
-      CLog::Log(LOGERROR, "Keyboard Translator: Can't find button %s", strKey.c_str());
+    CLog::Log(LOGERROR, "Keyboard Translator: Can't find button %s", szButton);
   }
 
   buttonCode |= KEY_VKEY;
@@ -1136,6 +1151,22 @@ uint32_t CButtonTranslator::TranslateKeyboardButton(TiXmlElement *pButton)
   }
 
   return button_id;
+}
+
+uint32_t CButtonTranslator::TranslateAppCommand(const char *szButton)
+{
+#ifdef WIN32
+  CStdString strAppCommand = szButton;
+  strAppCommand.ToLower();
+
+  for (int i = 0; i < sizeof(appcommands)/sizeof(appcommands[0]); i++)
+    if (strAppCommand.Equals(appcommands[i].name))
+      return appcommands[i].action | KEY_APPCOMMAND;
+
+  CLog::Log(LOGERROR, "%s: Can't find appcommand %s", __FUNCTION__, szButton);
+#endif
+
+  return 0;
 }
 
 void CButtonTranslator::Clear()

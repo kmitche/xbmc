@@ -102,7 +102,7 @@ void CGUIEPGGridContainer::Render()
   if (m_bInvalidated)
     UpdateLayout();
 
-  if (!m_focusedChannelLayout || !m_channelLayout || !m_rulerLayout || !m_focusedProgrammeLayout || !m_programmeLayout || m_rulerItems.empty() || (m_gridEnd - m_gridStart) == CDateTimeSpan(0, 0, 0, 0))
+  if (!m_focusedChannelLayout || !m_channelLayout || !m_rulerLayout || !m_focusedProgrammeLayout || !m_programmeLayout || m_rulerItems.size()<=1 || (m_gridEnd - m_gridStart) == CDateTimeSpan(0, 0, 0, 0))
     return;
 
   UpdateScrollOffset();
@@ -923,7 +923,7 @@ bool CGUIEPGGridContainer::MoveChannel(bool direction)
 
 bool CGUIEPGGridContainer::MoveProgrammes(bool direction)
 {
-  if (!m_gridIndex)
+  if (!m_gridIndex || !m_item)
     return false;
 
   if (direction)
@@ -1095,15 +1095,21 @@ void CGUIEPGGridContainer::SetChannel(int channel)
   if (m_blockCursor + m_blockOffset == 0 || m_blockOffset + m_blockCursor + GetItemSize(m_item) == m_blocks)
   {
     m_item          = GetItem(channel);
-    m_blockCursor   = GetBlock(m_item->item, channel);
-    m_channelCursor = channel;
+    if (m_item)
+    {
+      m_blockCursor   = GetBlock(m_item->item, channel);
+      m_channelCursor = channel;
+    }
     return;
   }
 
   /* basic checks failed, need to correctly identify nearest item */
   m_item          = GetClosestItem(channel);
-  m_channelCursor = channel;
-  m_blockCursor   = GetBlock(m_item->item, m_channelCursor);
+  if (m_item)
+  {
+    m_channelCursor = channel;
+    m_blockCursor   = GetBlock(m_item->item, m_channelCursor);
+  }
 }
 
 void CGUIEPGGridContainer::SetBlock(int block)
@@ -1223,6 +1229,10 @@ CGUIListItemPtr CGUIEPGGridContainer::GetListItem(int offset) const
 GridItemsPtr *CGUIEPGGridContainer::GetClosestItem(const int &channel)
 {
   GridItemsPtr *closest = GetItem(channel);
+
+  if(!closest)
+    return NULL;
+
   int block = GetBlock(closest->item, channel);
   int left;   // num blocks to start of previous item
   int right;  // num blocks to start of next item
@@ -1260,6 +1270,9 @@ int CGUIEPGGridContainer::GetItemSize(GridItemsPtr *item)
 
 int CGUIEPGGridContainer::GetBlock(const CGUIListItemPtr &item, const int &channel)
 {
+  if (!item)
+    return 0;
+
   return GetRealBlock(item, channel) - m_blockOffset;
 }
 
@@ -1507,8 +1520,8 @@ void CGUIEPGGridContainer::GoToEnd()
 
 void CGUIEPGGridContainer::SetStartEnd(CDateTime start, CDateTime end)
 {
-  m_gridStart = CDateTime(start.GetYear(), start.GetMonth(), start.GetDay(), start.GetHour(), 0, 0);
-  m_gridEnd = CDateTime(end.GetYear(), end.GetMonth(), end.GetDay(), end.GetHour(), 0, 0);
+  m_gridStart = CDateTime(start.GetYear(), start.GetMonth(), start.GetDay(), start.GetHour(), start.GetMinute() >= 30 ? 30 : 0, 0);
+  m_gridEnd = CDateTime(end.GetYear(), end.GetMonth(), end.GetDay(), end.GetHour(), end.GetMinute() >= 30 ? 30 : 0, 0);
 
   CLog::Log(LOGDEBUG, "CGUIEPGGridContainer - %s - start=%s end=%s",
       __FUNCTION__, m_gridStart.GetAsLocalizedDateTime(false, true).c_str(), m_gridEnd.GetAsLocalizedDateTime(false, true).c_str());

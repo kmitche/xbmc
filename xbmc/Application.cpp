@@ -410,12 +410,7 @@ bool CApplication::OnEvent(XBMC_Event& newEvent)
       g_application.getApplicationMessenger().UserEvent(newEvent.user.code);
       break;
     case XBMC_APPCOMMAND:
-      {
-        // Special media keys are mapped to WM_APPCOMMAND on Windows (and to DBUS events on Linux?)
-        // XBMC translates WM_APPCOMMAND to XBMC_APPCOMMAND events.
-        g_application.OnAppCommand(CAction(newEvent.appcommand.action));
-      }
-      break;
+      return g_application.OnAppCommand(newEvent.appcommand.action);
   }
   return true;
 }
@@ -1217,7 +1212,7 @@ bool CApplication::Initialize()
   CCrystalHD::GetInstance();
 #endif
 
-  CAddonMgr::Get().StartServices();
+  CAddonMgr::Get().StartServices(false);
 
   CLog::Log(LOGNOTICE, "initialize done");
 
@@ -2406,7 +2401,7 @@ bool CApplication::OnKey(const CKey& key)
 }
 
 // OnAppCommand is called in response to a XBMC_APPCOMMAND event.
-
+// This needs to return true if it processed the appcommand or false if it didn't
 bool CApplication::OnAppCommand(const CAction &action)
 {
   // Reset the screen saver
@@ -2414,12 +2409,30 @@ bool CApplication::OnAppCommand(const CAction &action)
 
   // If we were currently in the screen saver wake up and don't process the appcommand
   if (WakeUpScreenSaverAndDPMS())
-  {
     return true;
+
+  // The action ID is the APPCOMMAND code. We need to retrieve the action
+  // associated with this appcommand from the mapping table.
+  uint32_t appcmd = action.GetID();
+  CKey key(appcmd | KEY_APPCOMMAND, (unsigned int) 0);
+  int iWin = g_windowManager.GetActiveWindow() & WINDOW_ID_MASK;
+  CAction appcmdaction = CButtonTranslator::GetInstance().GetAction(iWin, key);
+
+  // If we couldn't find an action return false to indicate we have not
+  // handled this appcommand
+  if (!appcmdaction.GetID())
+  {
+    CLog::Log(LOGDEBUG, "%s: unknown appcommand %d", __FUNCTION__, appcmd);
+    return false;
   }
 
   // Process the appcommand
-  return OnAction(action);
+  CLog::Log(LOGDEBUG, "%s: appcommand %d, trying action %s", __FUNCTION__, appcmd, appcmdaction.GetName().c_str());
+  OnAction(appcmdaction);
+
+  // Always return true regardless of whether the action succeeded or not.
+  // This stops Windows handling the appcommand itself.
+  return true;
 }
 
 bool CApplication::OnAction(const CAction &action)
@@ -2580,89 +2593,87 @@ bool CApplication::OnAction(const CAction &action)
     return true;
   }
 
-  if ( IsPlaying())
+  if (IsPlaying() && !CurrentFileItem().IsLiveTV())
   {
-    if (!CurrentFileItem().IsLiveTV())
+    // pause : pauses current audio song
+    if (action.GetID() == ACTION_PAUSE && m_iPlaySpeed == 1)
     {
-      // pause : pauses current audio song
-      if (action.GetID() == ACTION_PAUSE && m_iPlaySpeed == 1)
-      {
-        m_pPlayer->Pause();
+      m_pPlayer->Pause();
 #ifdef HAS_KARAOKE
-        m_pKaraokeMgr->SetPaused( m_pPlayer->IsPaused() );
+      m_pKaraokeMgr->SetPaused( m_pPlayer->IsPaused() );
 #endif
-        if (!m_pPlayer->IsPaused())
-        { // unpaused - set the playspeed back to normal
+      if (!m_pPlayer->IsPaused())
+      { // unpaused - set the playspeed back to normal
+        SetPlaySpeed(1);
+      }
+      g_audioManager.Enable(m_pPlayer->IsPaused() && !g_audioContext.IsPassthroughActive());
+      return true;
+    }
+    if (!m_pPlayer->IsPaused())
+    {
+      // if we do a FF/RW in my music then map PLAY action togo back to normal speed
+      // if we are playing at normal speed, then allow play to pause
+      if (action.GetID() == ACTION_PLAYER_PLAY || action.GetID() == ACTION_PAUSE)
+      {
+        if (m_iPlaySpeed != 1)
+        {
           SetPlaySpeed(1);
         }
-        g_audioManager.Enable(m_pPlayer->IsPaused() && !g_audioContext.IsPassthroughActive());
+        else
+        {
+          m_pPlayer->Pause();
+        }
         return true;
       }
-      if (!m_pPlayer->IsPaused())
+      if (action.GetID() == ACTION_PLAYER_FORWARD || action.GetID() == ACTION_PLAYER_REWIND)
       {
-        // if we do a FF/RW in my music then map PLAY action togo back to normal speed
-        // if we are playing at normal speed, then allow play to pause
-        if (action.GetID() == ACTION_PLAYER_PLAY || action.GetID() == ACTION_PAUSE)
-        {
-          if (m_iPlaySpeed != 1)
-          {
-            SetPlaySpeed(1);
-          }
-          else
-          {
-            m_pPlayer->Pause();
-          }
-          return true;
-        }
-        if (action.GetID() == ACTION_PLAYER_FORWARD || action.GetID() == ACTION_PLAYER_REWIND)
-        {
-          int iPlaySpeed = m_iPlaySpeed;
-          if (action.GetID() == ACTION_PLAYER_REWIND && iPlaySpeed == 1) // Enables Rewinding
-            iPlaySpeed *= -2;
-          else if (action.GetID() == ACTION_PLAYER_REWIND && iPlaySpeed > 1) //goes down a notch if you're FFing
-            iPlaySpeed /= 2;
-          else if (action.GetID() == ACTION_PLAYER_FORWARD && iPlaySpeed < 1) //goes up a notch if you're RWing
-            iPlaySpeed /= 2;
-          else
-            iPlaySpeed *= 2;
+        int iPlaySpeed = m_iPlaySpeed;
+        if (action.GetID() == ACTION_PLAYER_REWIND && iPlaySpeed == 1) // Enables Rewinding
+          iPlaySpeed *= -2;
+        else if (action.GetID() == ACTION_PLAYER_REWIND && iPlaySpeed > 1) //goes down a notch if you're FFing
+          iPlaySpeed /= 2;
+        else if (action.GetID() == ACTION_PLAYER_FORWARD && iPlaySpeed < 1) //goes up a notch if you're RWing
+          iPlaySpeed /= 2;
+        else
+          iPlaySpeed *= 2;
 
-          if (action.GetID() == ACTION_PLAYER_FORWARD && iPlaySpeed == -1) //sets iSpeed back to 1 if -1 (didn't plan for a -1)
-            iPlaySpeed = 1;
-          if (iPlaySpeed > 32 || iPlaySpeed < -32)
-            iPlaySpeed = 1;
+        if (action.GetID() == ACTION_PLAYER_FORWARD && iPlaySpeed == -1) //sets iSpeed back to 1 if -1 (didn't plan for a -1)
+          iPlaySpeed = 1;
+        if (iPlaySpeed > 32 || iPlaySpeed < -32)
+          iPlaySpeed = 1;
 
-          SetPlaySpeed(iPlaySpeed);
-          return true;
-        }
-        else if ((action.GetAmount() || GetPlaySpeed() != 1) && (action.GetID() == ACTION_ANALOG_REWIND || action.GetID() == ACTION_ANALOG_FORWARD))
-        {
-          // calculate the speed based on the amount the button is held down
-          int iPower = (int)(action.GetAmount() * MAX_FFWD_SPEED + 0.5f);
-          // returns 0 -> MAX_FFWD_SPEED
-          int iSpeed = 1 << iPower;
-          if (iSpeed != 1 && action.GetID() == ACTION_ANALOG_REWIND)
-            iSpeed = -iSpeed;
-          g_application.SetPlaySpeed(iSpeed);
-          if (iSpeed == 1)
-            CLog::Log(LOGDEBUG,"Resetting playspeed");
-          return true;
-        }
+        SetPlaySpeed(iPlaySpeed);
+        return true;
       }
-      // allow play to unpause
-      else
+      else if ((action.GetAmount() || GetPlaySpeed() != 1) && (action.GetID() == ACTION_ANALOG_REWIND || action.GetID() == ACTION_ANALOG_FORWARD))
       {
-        if (action.GetID() == ACTION_PLAYER_PLAY)
-        {
-          // unpause, and set the playspeed back to normal
-          m_pPlayer->Pause();
-          g_audioManager.Enable(m_pPlayer->IsPaused() && !g_audioContext.IsPassthroughActive());
+        // calculate the speed based on the amount the button is held down
+        int iPower = (int)(action.GetAmount() * MAX_FFWD_SPEED + 0.5f);
+        // returns 0 -> MAX_FFWD_SPEED
+        int iSpeed = 1 << iPower;
+        if (iSpeed != 1 && action.GetID() == ACTION_ANALOG_REWIND)
+          iSpeed = -iSpeed;
+        g_application.SetPlaySpeed(iSpeed);
+        if (iSpeed == 1)
+          CLog::Log(LOGDEBUG,"Resetting playspeed");
+        return true;
+      }
+    }
+    // allow play to unpause
+    else
+    {
+      if (action.GetID() == ACTION_PLAYER_PLAY)
+      {
+        // unpause, and set the playspeed back to normal
+        m_pPlayer->Pause();
+        g_audioManager.Enable(m_pPlayer->IsPaused() && !g_audioContext.IsPassthroughActive());
 
-          g_application.SetPlaySpeed(1);
-          return true;
-        }
+        g_application.SetPlaySpeed(1);
+        return true;
       }
     }
   }
+
   if (action.GetID() == ACTION_MUTE)
   {
     Mute();
@@ -3430,7 +3441,7 @@ void CApplication::Stop(int exitCode)
   g_mediaManager.Stop();
 
   // Stop services before unloading Python
-  CAddonMgr::Get().StopServices();
+  CAddonMgr::Get().StopServices(false);
 
 /* Python resource freeing must be done after skin has been unloaded, not before
    some windows still need it when deinitializing during skin unloading. */
@@ -3623,10 +3634,7 @@ bool CApplication::PlayFile(const CFileItem& item, bool bRestart)
 
     OutputDebugString("new file set audiostream:0\n");
     // Switch to default options
-    // PVR channel settings are stored later
-    // default settings would overwrite changed settings for pvr channels
-    if (!item.IsPVR())
-      g_settings.m_currentVideoSettings = g_settings.m_defaultVideoSettings;
+    g_settings.m_currentVideoSettings = g_settings.m_defaultVideoSettings;
     // see if we have saved options in the database
 
     m_iPlaySpeed = 1;
@@ -4158,7 +4166,7 @@ bool CApplication::IsPlayingFullScreenVideo() const
 
 void CApplication::SaveFileState()
 {
-  if (!g_settings.GetCurrentProfile().canWriteDatabases())
+  if (m_progressTrackingItem->IsPVRChannel() || !g_settings.GetCurrentProfile().canWriteDatabases())
     return;
   CJob* job = new CSaveFileStateJob(*m_progressTrackingItem,
       m_progressTrackingVideoResumeBookmark,
@@ -4239,6 +4247,9 @@ void CApplication::StopPlaying()
     if( m_pKaraokeMgr )
       m_pKaraokeMgr->Stop();
 #endif
+
+    if (g_PVRManager.IsPlayingTV() || g_PVRManager.IsPlayingRadio())
+      g_PVRManager.SaveCurrentChannelSettings();
 
     if (m_pPlayer)
       m_pPlayer->CloseFile();
@@ -5160,12 +5171,6 @@ double CApplication::GetTotalTime() const
   return rc;
 }
 
-void CApplication::ResetPlayTime()
-{
-  if (IsPlaying() && m_pPlayer)
-    m_pPlayer->ResetTime();
-}
-
 void CApplication::StopShutdownTimer()
 {
   if (m_shutdownTimer.IsRunning())
@@ -5426,7 +5431,7 @@ bool CApplication::ProcessAndStartPlaylist(const CStdString& strPlayList, CPlayL
 void CApplication::SaveCurrentFileSettings()
 {
   // don't store settings for PVR in video database
-  if (m_itemCurrentFile->IsVideo() && !m_itemCurrentFile->IsPVR())
+  if (m_itemCurrentFile->IsVideo() && !m_itemCurrentFile->IsPVRChannel())
   {
     // save video settings
     if (g_settings.m_currentVideoSettings != g_settings.m_defaultVideoSettings)
@@ -5436,6 +5441,10 @@ void CApplication::SaveCurrentFileSettings()
       dbs.SetVideoSettings(m_itemCurrentFile->m_strPath, g_settings.m_currentVideoSettings);
       dbs.Close();
     }
+  }
+  else if (m_itemCurrentFile->IsPVRChannel())
+  {
+    g_PVRManager.SaveCurrentChannelSettings();
   }
 }
 

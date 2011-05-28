@@ -96,6 +96,7 @@ namespace PVR
     virtual void OnWindowUnload(void);
 
   protected:
+    virtual bool SelectPlayingFile(void);
     virtual bool OnMessageFocus(CGUIMessage &message);
 
     virtual bool OnClickButton(CGUIMessage &message) = 0;
@@ -124,6 +125,7 @@ namespace PVR
     virtual bool OnContextButtonSortByDate(CFileItem *item, CONTEXT_BUTTON button);
     virtual bool OnContextButtonSortByName(CFileItem *item, CONTEXT_BUTTON button);
     virtual bool OnContextButtonSortByChannel(CFileItem *item, CONTEXT_BUTTON button);
+    virtual bool OnContextButtonFind(CFileItem *item, CONTEXT_BUTTON button);
 
     CGUIWindowPVR *  m_parent;
     PVRWindow        m_window;

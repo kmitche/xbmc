@@ -618,7 +618,7 @@ void CGUIWindowSettingsCategory::CreateSettings()
       pControl->AddLabel(g_localizeStrings.Get(13509), RESAMPLE_REALLYHIGH);
       pControl->SetValue(pSettingInt->GetData());
     }
-    else if (strSetting.Equals("pvrmenu.defaultguideview"))
+    else if (strSetting.Equals("epg.defaultguideview"))
     {
       CSettingInt *pSettingInt = (CSettingInt*)pSetting;
       CGUISpinControlEx *pControl = (CGUISpinControlEx *)GetControl(GetSetting(strSetting)->GetID());
@@ -796,7 +796,9 @@ void CGUIWindowSettingsCategory::UpdateSettings()
       CGUIControl *pControl = (CGUIControl *)GetControl(pSettingControl->GetID());
       if (pControl) pControl->SetEnabled(g_settings.GetMasterProfile().getLockMode() != LOCK_MODE_EVERYONE);
     }
-    else if (!strSetting.Equals("pvr.enabled") && strSetting.Left(4).Equals("pvrmanager."))
+    else if (!strSetting.Equals("pvrmanager.enabled") &&
+        (strSetting.Equals("pvrmanager.channelscan") || strSetting.Equals("pvrmanager.channelmanager") ||
+         strSetting.Equals("pvrmenu.searchicons")))
     {
       CGUIControl *pControl = (CGUIControl *)GetControl(pSettingControl->GetID());
       if (pControl) pControl->SetEnabled(g_guiSettings.GetBool("pvrmanager.enabled"));
@@ -849,13 +851,9 @@ void CGUIWindowSettingsCategory::UpdateSettings()
                                          g_guiSettings.GetString("audiooutput.audiodevice").find("wasapi:") == CStdString::npos);
     }
 #ifdef HAS_WEB_SERVER
-    else if (strSetting.Equals("services.webserverusername"))
-    {
-      CGUIEditControl *pControl = (CGUIEditControl *)GetControl(pSettingControl->GetID());
-      if (pControl)
-        pControl->SetEnabled(g_guiSettings.GetBool("services.webserver"));
-    }
-    else if (strSetting.Equals("services.webserverpassword"))
+    else if (strSetting.Equals("services.webserverport") ||
+             strSetting.Equals("services.webserverusername") ||
+             strSetting.Equals("services.webserverpassword"))
     {
       CGUIEditControl *pControl = (CGUIEditControl *)GetControl(pSettingControl->GetID());
       if (pControl)
@@ -1050,13 +1048,6 @@ void CGUIWindowSettingsCategory::UpdateSettings()
         if (pControl)
           pControl->SetEnabled(addon->HasSettings());
       }
-    }
-    else if (!strSetting.Equals("pvrmanager.enabled")
-             && !strSetting.Equals("pvrmanager.resetdb")
-             && strSetting.Left(3).Equals("pvr"))
-    {
-      CGUIControl *pControl = (CGUIControl *)GetControl(pSettingControl->GetID());
-      if (pControl) pControl->SetEnabled(g_guiSettings.GetBool("pvrmanager.enabled"));
     }
 #if defined(_LINUX) && !defined(__APPLE__)
     else if (strSetting.Equals("audiooutput.custompassthrough"))
@@ -1953,7 +1944,7 @@ void CGUIWindowSettingsCategory::OnSettingChanged(CBaseSettingControl *pSettingC
   {
     CUtil::DeleteVideoDatabaseDirectoryCache();
   }
-  else if (strSetting.Equals("pvrmenu.searchicons"))
+  else if (strSetting.Equals("pvrmenu.searchicons") && g_PVRManager.IsStarted())
   {
     g_PVRManager.SearchMissingChannelIcons();
   }
@@ -1967,12 +1958,12 @@ void CGUIWindowSettingsCategory::OnSettingChanged(CBaseSettingControl *pSettingC
     if (CGUIDialogYesNo::ShowAndGetInput(19098, 19188, 750, 0))
       g_PVRManager.ResetEPG();
   }
-  else if (strSetting.Equals("pvrmanager.channelscan"))
+  else if (strSetting.Equals("pvrmanager.channelscan") && g_PVRManager.IsStarted())
   {
     if (CGUIDialogYesNo::ShowAndGetInput(19098, 19118, 19194, 0))
       g_PVRManager.StartChannelScan();
   }
-  else if (strSetting.Equals("pvrmanager.channelmanager"))
+  else if (strSetting.Equals("pvrmanager.channelmanager") && g_PVRManager.IsStarted())
   {
     CGUIDialogPVRChannelManager *dialog = (CGUIDialogPVRChannelManager *)g_windowManager.GetWindow(WINDOW_DIALOG_PVR_CHANNEL_MANAGER);
     if (dialog)

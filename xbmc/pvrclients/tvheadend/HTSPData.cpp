@@ -29,8 +29,7 @@ extern "C" {
 
 #define CMD_LOCK cMutexLock CmdLock((cMutex*)&m_Mutex)
 
-CHTSPData::CHTSPData() :
-    m_bSendNotifications(false)
+CHTSPData::CHTSPData()
 {
   m_session = new CHTSPConnection();
 }
@@ -49,6 +48,12 @@ bool CHTSPData::Open()
     return false;
   }
 
+  if(!SendEnableAsync())
+  {
+    XBMC->Log(LOG_ERROR, "%s - couldn't send EnableAsync().", __FUNCTION__);
+    return false;
+  }
+
   SetDescription("HTSP Data Listener");
   Start();
 
@@ -61,6 +66,23 @@ void CHTSPData::Close()
 {
   m_session->Close();
   Cancel(1);
+}
+
+bool CHTSPData::CheckConnection(void)
+{
+  bool bReturn(true);
+
+  if (!m_session->IsConnected() && m_bCreated)
+  {
+    if ((bReturn = m_session->Connect() && SendEnableAsync()))
+    {
+      /* notify the user that the connection has been restored */
+      CStdString strNotification(XBMC->GetLocalizedString(30501));
+      XBMC->QueueNotification(QUEUE_INFO, strNotification, m_session->GetServerName());
+    }
+  }
+
+  return bReturn;
 }
 
 htsmsg_t* CHTSPData::ReadResult(htsmsg_t *m)
@@ -263,7 +285,6 @@ unsigned int CHTSPData::GetNumRecordings()
 
 PVR_ERROR CHTSPData::GetRecordings(PVR_HANDLE handle)
 {
-  EnableNotifications(true);
   SRecordings recordings = GetDVREntries(true, false);
 
   for(SRecordings::const_iterator it = recordings.begin(); it != recordings.end(); ++it)
@@ -567,21 +588,16 @@ void CHTSPData::Action()
   XBMC->Log(LOG_DEBUG, "%s - starting", __FUNCTION__);
 
   htsmsg_t* msg;
-  if(!SendEnableAsync())
+  while (Running())
   {
-    XBMC->Log(LOG_ERROR, "%s - couldn't send EnableAsync().", __FUNCTION__);
-    m_started.Signal();
-    return;
-  }
-
-  while (IsConnected() && Running())
-  {
-    if((msg = m_session->ReadMessage(250)) == NULL)
+    if (!CheckConnection())
     {
-      if (!IsConnected() && Running())
-        m_session->Connect();
+      cCondWait::SleepMs(1000);
       continue;
     }
+
+    if((msg = m_session->ReadMessage(250)) == NULL)
+      continue;
 
     uint32_t seq;
     if(htsmsg_get_u32(msg, "seq", &seq) == 0)
@@ -619,11 +635,11 @@ void CHTSPData::Action()
     else if(strstr(method, "initialSyncCompleted"))
       m_started.Signal();
     else if(strstr(method, "dvrEntryAdd"))
-      CHTSPConnection::ParseDVREntryUpdate(msg, m_recordings, SendNotifications());
+      CHTSPConnection::ParseDVREntryUpdate(msg, m_recordings);
     else if(strstr(method, "dvrEntryUpdate"))
-      CHTSPConnection::ParseDVREntryUpdate(msg, m_recordings, SendNotifications());
+      CHTSPConnection::ParseDVREntryUpdate(msg, m_recordings);
     else if(strstr(method, "dvrEntryDelete"))
-      CHTSPConnection::ParseDVREntryDelete(msg, m_recordings, SendNotifications());
+      CHTSPConnection::ParseDVREntryDelete(msg, m_recordings);
     else
       XBMC->Log(LOG_DEBUG, "%s - Unmapped action recieved '%s'", __FUNCTION__, method);
 

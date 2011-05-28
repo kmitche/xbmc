@@ -146,6 +146,8 @@ namespace PVR
     virtual bool operator ==(const CPVRChannelGroup &right) const;
     virtual bool operator !=(const CPVRChannelGroup &right) const;
 
+    int Size(void) const { return size(); }
+
     /*!
      * @brief Refresh the channel list from the clients.
      */
@@ -157,6 +159,13 @@ namespace PVR
      * @return True if this group was updated, false otherwise.
      */
     virtual bool Update(const CPVRChannelGroup &group);
+
+    /*!
+     * @brief Change the channelnumber of a group. Used by CGUIDialogPVRChannelManager. Call SortByChannelNumber() and Renumber() after all changes are done.
+     * @param channel The channel to change the channel number for.
+     * @param iChannelNumber The new channel number.
+     */
+    virtual bool SetChannelNumber(CPVRChannel *channel, unsigned int iChannelNumber);
 
     /*!
      * @brief Move a channel from position iOldIndex to iNewIndex.
@@ -389,6 +398,11 @@ namespace PVR
     virtual bool HasChanges(void) const;
 
     //@}
+
+    /*!
+     * @brief Reset the channel number cache if this is the selected group in the UI.
+     */
+    void ResetChannelNumberCache(void);
 
     void OnJobComplete(unsigned int jobID, bool success, CJob* job) {}
   };
