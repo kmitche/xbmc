@@ -75,7 +75,10 @@ time_t MythXmlResponse::fromMythDateTime(const CStdString& iso)
   local.tm_min  = atoi(iso.Mid(14, 2));
   local.tm_sec  = atoi(iso.Mid(17, 2));
 
-  return mktime(&local);
+  /* All times returned to XBMC must be GMT times */
+  time_t local_time = mktime(&local);
+  tm *gmt = gmtime(&local_time);
+  return mktime(gmt);
 }
 
 void MythXmlResponse::parseErrorNode(TiXmlNode* node, int &errorCode, CStdString &desc)

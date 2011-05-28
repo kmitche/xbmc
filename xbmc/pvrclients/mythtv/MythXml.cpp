@@ -55,7 +55,7 @@ bool MythXml::open(CStdString hostname, int port, CStdString user, CStdString pa
 
 	http.SetTimeout(timeout);
 	if(!http.Get(strUrl, strXML)){
-		CLog::Log(LOGDEBUG, "MythXml - Could not open connection to mythtv backend.");
+	  XBMC->Log(LOG_DEBUG, "MythXml - Could not open connection to mythtv backend.");
 		http.Cancel();
 		return false;
 	}
@@ -155,7 +155,7 @@ PVR_ERROR MythXml::getBackendTime(time_t *localTime, int *gmtOffset)
    */
 }
 
-PVR_ERROR MythXml::requestChannelList(PVRHANDLE handle, int radio)
+PVR_ERROR MythXml::requestChannelList(PVR_HANDLE handle, int radio)
 {
   if (!checkConnection())
     return PVR_ERROR_SERVER_ERROR;
@@ -172,46 +172,40 @@ PVR_ERROR MythXml::requestChannelList(PVRHANDLE handle, int radio)
     PVR_CHANNEL pvrchannel;
     const SChannel& mythchannel = *it;
 
-    pvrchannel.uid           = mythchannel.chanid;
-    pvrchannel.number        = mythchannel.channum;
-    pvrchannel.name          = mythchannel.channame;
-    pvrchannel.callsign      = mythchannel.callsign;
-    pvrchannel.radio         = false; // TODO: Don't hardcode this. Must be pulled out of Myth if possible.
-    pvrchannel.input_format  = "";
+    pvrchannel.iUniqueId      = mythchannel.chanid;
+    pvrchannel.iChannelNumber = mythchannel.channum;
+    pvrchannel.strChannelName = mythchannel.channame;
+    pvrchannel.bIsRadio       = false; // TODO: Don't hardcode this. Must be pulled out of Myth if possible.
+    pvrchannel.strInputFormat = "";
 
-    CStdString url           = GetLiveTvPath(mythchannel);
-    pvrchannel.stream_url    = url;
+    CStdString url            = GetLiveTvPath(mythchannel);
+    pvrchannel.strStreamURL   = url;
 
-    CStdString icon          = GetChannelIconPath(mythchannel);
-    pvrchannel.iconpath      = icon;
+    CStdString icon           = GetChannelIconPath(mythchannel);
+    pvrchannel.strIconPath    = icon;
 
     /*
      * TODO: Determine how to hide channels in XBMC based on MythTV configuration. Some users have hundreds of channels.
      * Pretty sure the old myth:// code only showed channels with a number > 0.
      */
-    pvrchannel.hide          = false;
-    pvrchannel.recording     = false; // TODO: pull out of XML somehow. Perhaps using the ProgramGuideResponse.
+    pvrchannel.bIsHidden      = false;
 
     /*
      * Set the remaining parts that are not used by MythTV.
      */
-    pvrchannel.encryption       = 0;
-    pvrchannel.bouquet          = 0;
-    pvrchannel.multifeed        = false;
-    pvrchannel.multifeed_master = 0;
-    pvrchannel.multifeed_number = 0;
+    pvrchannel.iEncryptionSystem = 0;
 
     PVR->TransferChannelEntry(handle, &pvrchannel);
   }
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR MythXml::requestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &channel, time_t start, time_t end)
+PVR_ERROR MythXml::requestEPGForChannel(PVR_HANDLE handle, const PVR_CHANNEL &channel, time_t start, time_t end)
 {
   if (!checkConnection())
     return PVR_ERROR_SERVER_ERROR;
 
-  GetProgramGuideCommand cmd(channel.uid, start, end);
+  GetProgramGuideCommand cmd(channel.iUniqueId, start, end);
   if (!ExecuteCommand(cmd))
     return PVR_ERROR_UNKOWN;
 
@@ -220,21 +214,31 @@ PVR_ERROR MythXml::requestEPGForChannel(PVRHANDLE handle, const PVR_CHANNEL &cha
 
   for (it = epg.begin(); it != epg.end(); ++it)
   {
-    PVR_PROGINFO proginfo;
+    EPG_TAG epgtag;
     const SProgram& program = *it;
 
-    proginfo.title          = program.title;
-    proginfo.subtitle       = program.subtitle;
-    proginfo.description    = program.description;
-    proginfo.genre_type     = program.genre_type;
-    proginfo.genre_sub_type = program.genre_subtype;
+    epgtag.strTitle       = program.title;
+    epgtag.strPlotOutline = program.subtitle;
+    epgtag.strPlot        = program.description;
+    epgtag.iGenreType     = program.genre_type;
+    epgtag.iGenreSubType  = program.genre_subtype;
 
-    proginfo.starttime      = program.start;
-    proginfo.endtime        = program.end;
+    epgtag.startTime      = program.start;
+    epgtag.endTime        = program.end;
 
-    proginfo.channum        = program.channum;
+    epgtag.iChannelNumber = program.channum;
 
-    PVR->TransferEpgEntry(handle, &proginfo);
+//    epgtag.firstAired;
+//    epgtag.iEpisodeNumber;
+//    epgtag.iEpisodePartNumber;
+//    epgtag.iParentalRating;
+//    epgtag.iSeriesNumber;
+//    epgtag.iStarRating;
+//    epgtag.iUniqueBroadcastId;
+    epgtag.strEpisodeName  = ""; // HACK: To prevent Segmentation Fault.
+    epgtag.strIconPath     = ""; // HACK: To prevent Segmentation Fault.
+
+    PVR->TransferEpgEntry(handle, &epgtag);
   }
   return PVR_ERROR_NO_ERROR;
 }
@@ -250,7 +254,7 @@ int MythXml::getNumRecordings()
   return cmd.GetNumberOfRecordings();
 }
 
-PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
+PVR_ERROR MythXml::requestRecordingsList(PVR_HANDLE handle)
 {
   if (!checkConnection())
     return PVR_ERROR_SERVER_ERROR;
@@ -265,112 +269,31 @@ PVR_ERROR MythXml::requestRecordingsList(PVRHANDLE handle)
   int i= 0;
   for (it = recordings.begin(); it != recordings.end(); ++it)
   {
-    PVR_RECORDINGINFO recordinginfo;
-    const SRecording& recording = *it;
+    PVR_RECORDING pvrrecording;
+    const SRecording& mythrecording = *it;
 
-    recordinginfo.index           = i++; // TODO: Hopefully this can be removed from the API.
+    pvrrecording.strTitle        = mythrecording.title;
+    pvrrecording.strPlotOutline  = mythrecording.subtitle;
+    pvrrecording.strPlot         = mythrecording.description;
+    pvrrecording.recordingTime   = mythrecording.recstart;
+    pvrrecording.iDuration       = mythrecording.recend - mythrecording.recstart;
 
-    recordinginfo.title           = recording.title;
-    recordinginfo.subtitle        = recording.subtitle;
-    recordinginfo.description     = recording.description;
-    recordinginfo.recording_time  = recording.recstart;
-    recordinginfo.duration        = recording.recend - recording.recstart;
+    pvrrecording.strChannelName  = mythrecording.channame;
 
-    recordinginfo.channel_name    = recording.channame;
-
-    recordinginfo.directory       = ""; // TODO: put in directory structure to support TV Shows and Movies ala myth://
-    CStdString url                = GetUrlPrefix() + recording.url;
+    pvrrecording.strDirectory    = ""; // TODO: put in directory structure to support TV Shows and Movies ala myth://
+    CStdString url               = GetUrlPrefix() + mythrecording.url;
     // CStdString url                = GetRecordingPath(recording);
-    recordinginfo.stream_url      = url;
+    pvrrecording.strStreamURL    = url;
 
-    recordinginfo.priority        = recording.priority;
-    recordinginfo.lifetime        = 0; // TODO: Map the lifetime in MythTV to the lifetime supported in XBMC.
+    pvrrecording.iPriority       = mythrecording.priority;
+    pvrrecording.iLifetime       = 0; // TODO: Map the lifetime in MythTV to the lifetime supported in XBMC.
 
-    PVR->TransferRecordingEntry(handle, &recordinginfo);
+//    pvrrecording.iGenreSubType;
+//    pvrrecording.iGenreType;
+
+    PVR->TransferRecordingEntry(handle, &pvrrecording);
   }
   return PVR_ERROR_NO_ERROR;
-}
-
-int MythXml::getNumChannels(){
-	if(!checkConnection())
-		return 0;
-	GetNumChannelsCommand cmd;
-	GetNumChannelsParameters params;
-	GetNumChannelsResult result;
-	cmd.execute(hostname_, port_, params, result, timeout_);
-	return result.getNumberOfChannels();
-}
-
-PVR_ERROR MythXml::requestChannelList(PVR_HANDLE handle, bool bRadio){
-  if(!checkConnection())
-		return PVR_ERROR_SERVER_ERROR;
-	GetChannelListCommand cmd;
-	GetChannelListParameters params;
-	GetChannelListResult result;
-	cmd.execute(hostname_, port_, params, result, timeout_);
-  
-	if(!result.isSuccess())
-	  return PVR_ERROR_UNKOWN;
-	
-	const vector<SChannel>& channellist = result.getChannels();
-	vector<SChannel>::const_iterator it;
-	PVR_CHANNEL tag;
-	for( it = channellist.begin(); it != channellist.end(); ++it){
-	  const SChannel& channel = *it; 
-	  memset(&tag, 0 , sizeof(tag));
-	  tag.iUniqueId           = channel.id;
-	  tag.iChannelNumber        = channel.id;
-	  tag.strChannelName          = channel.name.c_str();
-//	  tag.callsign      = channel.callsign.c_str();;
-	  tag.bIsRadio         = false;
-	  tag.strInputFormat  = "";
-	  tag.strStreamURL    = "";
-
-	  PVR->TransferChannelEntry(handle, &tag);
-	}
-	return PVR_ERROR_NO_ERROR;
-}
-
-PVR_ERROR MythXml::requestEPGForChannel(PVR_HANDLE handle, const PVR_CHANNEL &channel, time_t iStart, time_t iEnd){
-  if(!checkConnection())
-		return PVR_ERROR_SERVER_ERROR;
-	GetProgramGuideCommand cmd;
-	GetProgramGuideParameters params(channel.iUniqueId, CDateTime(iStart), CDateTime(iEnd), true);
-	GetProgramGuideResult result;
-	
-	cmd.execute(hostname_, port_, params, result, timeout_);
-  
-	if(!result.isSuccess())
-	  return PVR_ERROR_UNKOWN;
-	
-	EPG_TAG guideItem;
-	const vector<SEpg>& epgInfo = result.getEpg();
-	vector<SEpg>::const_iterator it;
-	for( it = epgInfo.begin(); it != epgInfo.end(); ++it)
-	{
-	  const SEpg& epg = *it;
-	  time_t itemStart;
-	  time_t itemEnd;
-	  epg.start_time.GetAsTime(itemStart);
-	  epg.end_time.GetAsTime(itemEnd);
-	  
-	  guideItem.iChannelNumber         = epg.chan_num;
-	  guideItem.iUniqueBroadcastId             = epg.id;
-	  guideItem.strTitle           = epg.title;
-	  guideItem.strPlotOutline        = epg.subtitle;
-	  guideItem.strPlot     = epg.description;
-	  guideItem.iGenreType      = epg.genre_type;
-	  guideItem.iGenreSubType  = epg.genre_subtype;
-	  guideItem.iParentalRating = epg.parental_rating;
-	  guideItem.startTime       = itemStart;
-	  guideItem.endTime         = itemEnd;
-	  PVR->TransferEpgEntry(handle, &guideItem);
-	}
-	return PVR_ERROR_NO_ERROR;
-}
-
-bool MythXml::checkConnection(){
-	return true;
 }
 
 bool MythXml::ExecuteCommand(MythXmlCommand& command)

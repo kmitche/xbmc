@@ -364,7 +364,7 @@ PVR_ERROR GetEPGForChannel(PVR_HANDLE handle, const PVR_CHANNEL &channel, time_t
 /*******************************************/
 /** PVR Channel Functions                 **/
 
-int GetNumChannels()
+int GetChannelsAmount()
 {
   if (MythXmlApi == NULL)
     return PVR_ERROR_SERVER_ERROR;
@@ -378,6 +378,21 @@ PVR_ERROR GetChannels(PVR_HANDLE handle, bool bRadio)
     return PVR_ERROR_SERVER_ERROR;
 
 	return MythXmlApi->requestChannelList(handle, bRadio);
+}
+
+int GetChannelGroupsAmount()
+{
+  return 0;
+}
+
+PVR_ERROR GetChannelGroups(PVR_HANDLE handle, bool bRadio)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+
+PVR_ERROR GetChannelGroupMembers(PVR_HANDLE handle, const PVR_CHANNEL_GROUP &group)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 PVR_ERROR DeleteChannel(const PVR_CHANNEL &channel)

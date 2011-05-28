@@ -1,6 +1,8 @@
 #pragma once
+
 #include <mysql/mysql.h>
-#include "../StdString.h"
+
+#include "utils/StdString.h"
 
 class MythSqlResult
 {

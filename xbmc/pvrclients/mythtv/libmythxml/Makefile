@@ -20,6 +20,9 @@ include ../../../../Makefile.include
 # Includes for the addon handles.
 INCLUDES = -I../../../addons/include
 
+# Includes for utils/StdString
+INCLUDES += -I../../..
+
 # Additional include for tinyxml
 INCLUDES += -I../../../../lib/tinyXML
 

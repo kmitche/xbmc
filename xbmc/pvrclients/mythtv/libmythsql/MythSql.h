@@ -2,6 +2,9 @@
 
 #include <mysql/mysql.h>
 #include <vector>
+
+#include "utils/StdString.h"
+
 #include "IScheduleCommands.h"
 
 #define SCHEMA_VER_0_23_1 1254

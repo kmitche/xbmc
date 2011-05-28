@@ -8,5 +8,8 @@ SRCS = \
 include ../../../../Makefile.include
 -include $(patsubst %.cpp,%.P,$(patsubst %.c,%.P,$(SRCS)))
 
-# Includes for the addon handles.
-INCLUDES = -I../../../addons/include
+# Reset INCLUDES to just be the libraries needed for the addon.
+INCLUDES = -I../../../../addons -I../../../addons/include
+
+# Includes for utils/StdString
+INCLUDES += -I../../..
