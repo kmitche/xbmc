@@ -494,7 +494,7 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
   for (it = schedules.begin(); it != schedules.end(); ++it)
   {
     PVR_TIMER timer;
-    memset(&timer, 0, sizeof(timer));
+    memset(&timer, 0, sizeof(PVR_TIMER));
 
     const SSchedule& schedule = *it;
     /*

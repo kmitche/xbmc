@@ -170,6 +170,8 @@ PVR_ERROR MythXml::requestChannelList(PVR_HANDLE handle, int radio)
   for (it = channels.begin(); it != channels.end(); ++it)
   {
     PVR_CHANNEL pvrchannel;
+    memset(&pvrchannel, 0, sizeof(PVR_CHANNEL));
+
     const SChannel& mythchannel = *it;
 
     pvrchannel.iUniqueId      = mythchannel.chanid;
@@ -216,6 +218,8 @@ PVR_ERROR MythXml::requestEPGForChannel(PVR_HANDLE handle, const PVR_CHANNEL &ch
   for (it = epg.begin(); it != epg.end(); ++it)
   {
     EPG_TAG epgtag;
+    memset(&epgtag, 0, sizeof(EPG_TAG));
+
     const SProgram& program = *it;
 
     epgtag.iUniqueBroadcastId = i++; // GetRecordingId(program.chanid, program.start);
@@ -237,8 +241,8 @@ PVR_ERROR MythXml::requestEPGForChannel(PVR_HANDLE handle, const PVR_CHANNEL &ch
 //    epgtag.iSeriesNumber;
 //    epgtag.iStarRating;
 //    epgtag.iUniqueBroadcastId;
-    epgtag.strEpisodeName  = ""; // HACK: To prevent Segmentation Fault.
-    epgtag.strIconPath     = ""; // HACK: To prevent Segmentation Fault.
+//    epgtag.strEpisodeName
+//    epgtag.strIconPath
 
     PVR->TransferEpgEntry(handle, &epgtag);
   }
@@ -272,6 +276,8 @@ PVR_ERROR MythXml::requestRecordingsList(PVR_HANDLE handle)
   for (it = recordings.begin(); it != recordings.end(); ++it)
   {
     PVR_RECORDING pvrrecording;
+    memset(&pvrrecording, 0, sizeof(PVR_RECORDING));
+
     const SRecording& mythrecording = *it;
 
     pvrrecording.iClientIndex    = i++;
