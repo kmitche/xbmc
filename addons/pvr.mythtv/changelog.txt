@@ -1,15 +1,27 @@
 TODO:
 - Schedule recordings
-- Start recording from Live TV
+- Start recording from LiveTV
 
-0.2.0
-- Playback of Live TV channels using existing myth:// protocol
-- Playback of Recordings using existing myth:// protocol
-- Load Channel icon using MythXML GetChannelIcon command
-- Load scheduled Timers using MySQL interface
+KNOWN ISSUES:
+- Playback of Live TV is not working after the update to the new API
+- Listing of channels is not working after the update to the new API
+- Listing of EPG entries may have some issues as a HACK is being used to synthesize the unique
+  broadcast ID (which MythTV doesn't expose)
 
-0.1.0
-- Load list of Recordings using MythXML GetRecorded command
-- Load list of Channels using MythXML GetChannelList command
-- Load EPG using MythXML GetProgramGuide command
-- Load Drive Space, Backend Version, and Backend Time information using MythXML GetStatus command
+0.3.0 (29-May-2011)
+- Updated to support the new API. This has caused some regressions with playback of LiveTV and the 
+  channel listings which still needs to be fixed.
+- Changed playback of recordings to use the MythXML GetRecording command
+
+0.2.0 (05-Feb-2011)
+- Added playback of Live TV channels using the existing myth:// protocol
+- Added playback of recordings using the existing myth:// protocol
+- Added display of channel icon using the MythXML GetChannelIcon command
+- Added display of scheduled timers using the mythbackend MySQL interface
+
+0.1.0 (10-Jan-2011)
+- Added listing of recordings using the MythXML GetRecorded command
+- Added listing of channels using the MythXML GetChannelList command
+- Added listing of EPG using the MythXML GetProgramGuide command
+- Added display of Drive Space, Backend Version, and Backend Time using the MythXML GetStatus
+  command

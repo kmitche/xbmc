@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon
   id="pvr.mythtv"
-  version="0.2.0"
-  name="MythTV PVR Client"
+  version="0.3.0"
+  name="MythTV PVR Addon"
   provider-name="Team XBMC + community developers">
   <requires>
     <c-pluff version="0.1"/>
@@ -15,7 +15,7 @@
     library_windx="XBMC_MythTV_win32.pvr"/>
   <extension point="xbmc.addon.metadata">
     <summary>XBMC frontend for MythTV</summary>
-    <description>MythTV frontend; supporting streaming of Live TV, Recordings, EPG and Timers</description>
+    <description>MythTV frontend for XBMC. Supports streaming LiveTV, playback of recordings, display of EPG and recording schedules.</description>
     <disclaimer>This addon is currently under development! The authors are in no way responsible for failed recordings, incorrect timers, wasted hours, or any other undesirable effects.</disclaimer>
     <platform>all</platform>
   </extension>
