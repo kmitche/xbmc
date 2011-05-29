@@ -129,7 +129,7 @@ PVR_ERROR MythXml::GetDriveSpace(long long *total, long long *used)
     *used = cmd.GetUsed();
     return PVR_ERROR_NO_ERROR;
   }
-  return PVR_ERROR_UNKOWN;
+  return PVR_ERROR_UNKNOWN;
 }
 
 PVR_ERROR MythXml::getBackendTime(time_t *localTime, int *gmtOffset)
@@ -143,7 +143,7 @@ PVR_ERROR MythXml::getBackendTime(time_t *localTime, int *gmtOffset)
     *gmtOffset = cmd.GetGmtOffset();
     return PVR_ERROR_NO_ERROR;
   }
-  return PVR_ERROR_UNKOWN;
+  return PVR_ERROR_UNKNOWN;
   /*
    return result.getVersion();
    return "";
@@ -162,7 +162,7 @@ PVR_ERROR MythXml::requestChannelList(PVR_HANDLE handle, int radio)
 
   GetChannelListCommand cmd;
   if (!ExecuteCommand(cmd))
-    return PVR_ERROR_UNKOWN;
+    return PVR_ERROR_UNKNOWN;
 
   const vector<SChannel>& channels = cmd.GetChannels();
   vector<SChannel>::const_iterator it;
@@ -207,16 +207,18 @@ PVR_ERROR MythXml::requestEPGForChannel(PVR_HANDLE handle, const PVR_CHANNEL &ch
 
   GetProgramGuideCommand cmd(channel.iUniqueId, start, end);
   if (!ExecuteCommand(cmd))
-    return PVR_ERROR_UNKOWN;
+    return PVR_ERROR_UNKNOWN;
 
   const vector<SProgram>& epg = cmd.GetEpg();
   vector<SProgram>::const_iterator it;
 
+  int i = 0;
   for (it = epg.begin(); it != epg.end(); ++it)
   {
     EPG_TAG epgtag;
     const SProgram& program = *it;
 
+    epgtag.iUniqueBroadcastId = i++; // GetRecordingId(program.chanid, program.start);
     epgtag.strTitle       = program.title;
     epgtag.strPlotOutline = program.subtitle;
     epgtag.strPlot        = program.description;
@@ -261,17 +263,18 @@ PVR_ERROR MythXml::requestRecordingsList(PVR_HANDLE handle)
 
   GetRecordedCommand cmd;
   if (!ExecuteCommand(cmd))
-    return PVR_ERROR_UNKOWN;
+    return PVR_ERROR_UNKNOWN;
 
   const vector<SRecording> recordings = cmd.GetRecordings();
   vector<SRecording>::const_iterator it;
 
-  int i= 0;
+  int i = 0;
   for (it = recordings.begin(); it != recordings.end(); ++it)
   {
     PVR_RECORDING pvrrecording;
     const SRecording& mythrecording = *it;
 
+    pvrrecording.iClientIndex    = i++;
     pvrrecording.strTitle        = mythrecording.title;
     pvrrecording.strPlotOutline  = mythrecording.subtitle;
     pvrrecording.strPlot         = mythrecording.description;
@@ -383,5 +386,16 @@ CStdString MythXml::GetChannelIconPath(const SChannel &channel)
   CStdString icon;
   icon.Format("%s/Myth/GetChannelIcon?ChanId=%i", GetUrlPrefix().c_str(), channel.chanid);
   return icon;
+}
+
+CStdString MythXml::GetRecordingId(const int chanid, const time_t start)
+{
+  char buffer[16];
+  tm *local = localtime(&start);
+  strftime(buffer, 16, "%Y%m%d%H%M%S", local); // YYYYmmddHHMMSS
+
+  CStdString recording;
+  recording.Format("%i_%s", chanid, buffer);  // e.g. 1244_20110526192800
+  return recording;
 }
 

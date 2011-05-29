@@ -41,6 +41,7 @@ private:
   CStdString GetLiveTvPath(const SChannel &channel);
   CStdString GetChannelIconPath(const SChannel &channel);
   CStdString GetUrlPrefix();
+  CStdString GetRecordingId(const int chanid, const time_t start);
 
   CStdString hostname_;
   CStdString username_;

@@ -259,7 +259,10 @@ ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
     g_szPassword = (const char*) settingValue;
     if (tmp_sPassword != g_szPassword)
       return ADDON_STATUS_NEED_RESTART;
-  } 
+  }
+
+  PVR->TriggerRecordingUpdate();
+
   return ADDON_STATUS_OK;
 }
 
@@ -282,7 +285,7 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES *pCapabilities)
 {
   pCapabilities->bSupportsTimeshift          = false;
   pCapabilities->bSupportsEPG                = true;
-  pCapabilities->bSupportsRecordings         = false;
+  pCapabilities->bSupportsRecordings         = true;
   pCapabilities->bSupportsTimers             = false;
   pCapabilities->bSupportsTV                 = true;
   pCapabilities->bSupportsRadio              = false; // TODO: Change to true when radio info pulled out of MythXML (assuming possible)
