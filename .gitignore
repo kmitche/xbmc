@@ -3,6 +3,9 @@
 # commonly used editors
 # vim
 *.swp
+# eclipse
+*.project
+*.cproject
 
 # generated files etc
 config.cache
