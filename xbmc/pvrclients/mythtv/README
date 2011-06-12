@@ -1,6 +1,0 @@
-TODO:
-- Fix all lib* Makefiles so they don't include the PVR Makefile which includes the XBMC Makefile.
-
-Known Issues:
-- Recordings don't play back
-- If a hostname is used for the Myth Backend server it doesn't work because it gets URL Encoded somewhere.
