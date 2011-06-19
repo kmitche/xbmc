@@ -48,7 +48,7 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
   while ((row = mysql_fetch_row(res)) != NULL)
   {
     MythSchedule sched;
-    sched.m_recordid      = atoi(row[0]); // recordid
+    sched.recordid      = atoi(row[0]); // recordid
     sched.m_type          = (MythRecordingTypes)atoi(row[1]); // type. TODO: safe conversion to ENUM
     sched.m_inactive      = atoi(row[2]) != 0; // inactive
     sched.m_title         = row[3]; // title
