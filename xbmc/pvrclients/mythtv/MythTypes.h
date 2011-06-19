@@ -117,8 +117,8 @@ struct MythSchedule
   CStdString      storagegroup;
   int             chanid;
   int             channum;
-  time_t          m_starttime;
-  time_t          m_endtime;
+  time_t          start;
+  time_t          end;
   time_t          m_firstday;
   int             m_recording;
   int             m_priority;
@@ -133,8 +133,8 @@ struct MythSchedule
     inactive    = false;
     chanid      = 0;
     channum     = 0;
-    m_starttime   = 0;
-    m_endtime     = 0;
+    start       = 0;
+    end         = 0;
     m_firstday    = 0;
     m_recording   = 0;
     m_priority    = 0;

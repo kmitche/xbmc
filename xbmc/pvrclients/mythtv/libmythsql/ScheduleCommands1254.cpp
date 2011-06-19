@@ -55,8 +55,8 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
     sched.storagegroup  = row[4]; // storagegroup
     sched.chanid        = atoi(row[5]); // chanid
     sched.channum       = atoi(row[6]); // channum
-    sched.m_starttime     = MythSqlResult::ToDateTime(row[7], row[8]); // startdate, starttime
-    sched.m_endtime       = MythSqlResult::ToDateTime(row[9], row[10]); // enddate, endtime
+    sched.start         = MythSqlResult::ToDateTime(row[7], row[8]); // startdate, starttime
+    sched.end           = MythSqlResult::ToDateTime(row[9], row[10]); // enddate, endtime
     sched.m_priority      = atoi(row[11]); // recpriority
     sched.m_firstday      = 0; // TODO: fill this missing field in.
     sched.m_lifetime      = atoi(row[12]); // TODO: check this is correct for this field.
