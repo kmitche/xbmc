@@ -502,11 +502,11 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
      * and have the client here do the necessary mappings.
      */
     // timer.active        = schedule.m_inactive ? 0 : 1;
-    timer.strTitle      = schedule.m_title.c_str();
-    timer.strDirectory  = schedule.m_storagegroup.c_str();
-    timer.iClientChannelUid = schedule.m_channum;
-    timer.startTime     = schedule.m_starttime;
-    timer.endTime       = schedule.m_endtime;
+    timer.strTitle      = schedule.title.c_str();
+    timer.strDirectory  = schedule.storagegroup.c_str();
+    timer.iClientChannelUid = schedule.channum;
+    timer.startTime     = schedule.start;
+    timer.endTime       = schedule.end;
     timer.firstDay      = schedule.m_firstday; // TODO: Not a direct mapping?
     // timer.recording     = schedule.m_recording; // TODO: Can't get via the MythSQL interface? Have to get via Myth Protocol?
     timer.iPriority     = schedule.m_priority;
