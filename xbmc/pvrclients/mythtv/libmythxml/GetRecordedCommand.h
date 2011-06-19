@@ -4,7 +4,7 @@
 
 #include <vector>
 
-#include "SRecording.h"
+#include "../MythTypes.h"
 
 class GetRecordedCommand: public MythXmlCommand
 {
@@ -12,10 +12,10 @@ class GetRecordedCommand: public MythXmlCommand
     GetRecordedCommand();
     ~GetRecordedCommand();
 
-    const std::vector<SRecording>& GetRecordings();
+    const std::vector<MythRecording>& GetRecordings();
 
     bool ParseResponse(const TiXmlHandle& handle);
 
   private:
-    std::vector<SRecording> m_recordings;
+    std::vector<MythRecording> m_recordings;
 };

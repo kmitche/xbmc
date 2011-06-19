@@ -27,7 +27,7 @@ bool GetRecordedCommand::ParseResponse(const TiXmlHandle& handle)
     if (channelNode == NULL || recordingNode == NULL)
       continue;
 
-    SRecording recording;
+    MythRecording recording;
     recording.title       = programNode->Attribute("title");
     recording.subtitle    = programNode->Attribute("subTitle");
     recording.description = programNode->GetText();
@@ -58,7 +58,7 @@ bool GetRecordedCommand::ParseResponse(const TiXmlHandle& handle)
   return true;
 }
 
-const std::vector<SRecording>& GetRecordedCommand::GetRecordings()
+const std::vector<MythRecording>& GetRecordedCommand::GetRecordings()
 {
   return m_recordings;
 }
