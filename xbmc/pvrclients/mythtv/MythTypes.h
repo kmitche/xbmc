@@ -103,6 +103,8 @@ struct MythSchedule
   int             recordid;
   bool            inactive;
   CStdString      title;
+  CStdString      subtitle;
+  CStdString      description;
   CStdString      storagegroup;
   int             chanid;
   int             channum;

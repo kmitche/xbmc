@@ -503,6 +503,7 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
      */
     // timer.active        = schedule.m_inactive ? 0 : 1;
     timer.strTitle      = schedule.title.c_str();
+    timer.strSummary    = schedule.description.c_str();
     timer.strDirectory  = schedule.storagegroup.c_str();
     timer.iClientChannelUid = schedule.channum;
     timer.startTime     = schedule.start;
