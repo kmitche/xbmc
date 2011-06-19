@@ -35,7 +35,7 @@ bool GetProgramGuideCommand::ParseResponse(const TiXmlHandle& handle)
     for (programNode = channelNode->FirstChildElement("Program"); programNode;
          programNode = programNode->NextSiblingElement("Program"))
     {
-      SProgram program;
+      MythProgram program;
       program.title         = programNode->Attribute("title");
       program.subtitle      = programNode->Attribute("subTitle");
       program.description   = programNode->GetText();
@@ -60,7 +60,7 @@ bool GetProgramGuideCommand::ParseResponse(const TiXmlHandle& handle)
   return true;
 }
 
-const std::vector<SProgram>& GetProgramGuideCommand::GetEpg()
+const std::vector<MythProgram>& GetProgramGuideCommand::GetEpg()
 {
   return m_epg;
 }
