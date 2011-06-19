@@ -79,7 +79,10 @@ struct MythRecording
   }
 };
 
-enum MythRecordingTypes
+/*
+ * The enumeration for the types is defined at http://www.mythtv.org/wiki/Record_table
+ */
+enum MythScheduleType
 {
   kNotRecording = 0,
   kSingleRecord = 1,
@@ -96,6 +99,7 @@ enum MythRecordingTypes
 
 struct MythSchedule
 {
+  MythScheduleType type;
   int             recordid;
   bool            inactive;
   CStdString      title;
@@ -107,7 +111,6 @@ struct MythSchedule
   int             m_recording;
   int             m_priority;
   int             m_lifetime;
-  MythRecordingTypes  type;
 
   MythSchedule()
   {

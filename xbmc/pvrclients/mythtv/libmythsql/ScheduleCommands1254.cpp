@@ -49,7 +49,7 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
   {
     MythSchedule sched;
     sched.recordid      = atoi(row[0]); // recordid
-    sched.type          = (MythRecordingTypes)atoi(row[1]); // type. TODO: safe conversion to ENUM
+    sched.type          = (MythScheduleType)atoi(row[1]); // type. TODO: safe conversion to ENUM
     sched.inactive      = atoi(row[2]) != 0; // inactive
     sched.title         = row[3]; // title
     sched.storagegroup  = row[4]; // storagegroup
