@@ -125,13 +125,13 @@ bool MythSql::AddSchedule(const MythSchedule& schedule)
   return ret;
 }
 
-bool MythSql::DeleteSchedule(const MythSchedule& schedule)
+bool MythSql::DeleteSchedule(const int recordid)
 {
   MYSQL* conn = GetConnection();
   if (conn == NULL)
     return false;
 
-  bool ret = m_schedule_commands->DeleteSchedule(schedule, conn);
+  bool ret = m_schedule_commands->DeleteSchedule(recordid, conn);
 
   CloseConnection(conn);
   return ret;

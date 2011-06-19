@@ -20,7 +20,7 @@ public:
 	int  GetNumberOfSchedules();
 	bool GetAllSchedules(std::vector<MythSchedule>& schedules);
 	bool AddSchedule(const MythSchedule& schedule);
-	bool DeleteSchedule(const MythSchedule& schedule);
+	bool DeleteSchedule(const int recordid);
 	bool RenameSchedule(const MythSchedule& schedule, const CStdString& newname);
 
 private:

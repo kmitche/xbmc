@@ -74,9 +74,9 @@ bool ScheduleCommands1254::AddSchedule(const MythSchedule& schedule, MYSQL* conn
   return false;
 }
 
-bool ScheduleCommands1254::DeleteSchedule(const MythSchedule& schedule, MYSQL* conn)
+bool ScheduleCommands1254::DeleteSchedule(const int recordid, MYSQL* conn)
 {
-  CStdString query = "DELETE FROM record WHERE recordid = " + schedule.recordid;
+  CStdString query = "DELETE FROM record WHERE recordid = " + recordid;
   if (mysql_query(conn, query))
   {
     XBMC->Log(LOG_ERROR, "%s - Error deleting schedule. ERROR %u: %s",

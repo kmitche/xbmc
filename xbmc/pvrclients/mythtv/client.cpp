@@ -533,6 +533,13 @@ PVR_ERROR AddTimer(const PVR_TIMER &timer)
 
 PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete)
 {
+  if (p_mythsql == NULL)
+    return PVR_ERROR_SERVER_ERROR;
+
+  int recordid = timer.iClientIndex;
+  if (!p_mythsql->DeleteSchedule(recordid))
+      return PVR_ERROR_SERVER_ERROR;
+
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
