@@ -99,6 +99,9 @@
 #if defined(_LINUX) && defined(HAS_FILESYSTEM_SMB)
 #include "filesystem/SMBDirectory.h"
 #endif
+#ifdef HAS_FILESYSTEM_NFS
+#include "filesystem/FileNFS.h"
+#endif
 #ifdef HAS_FILESYSTEM_SFTP
 #include "filesystem/FileSFTP.h"
 #endif
@@ -167,6 +170,8 @@
 #include "windows/GUIWindowLoginScreen.h"
 #include "addons/GUIWindowAddonBrowser.h"
 #include "music/windows/GUIWindowVisualisation.h"
+#include "windows/GUIWindowDebugInfo.h"
+#include "windows/GUIWindowPointer.h"
 #include "windows/GUIWindowSystemInfo.h"
 #include "windows/GUIWindowScreensaver.h"
 #include "pictures/GUIWindowSlideShow.h"
@@ -250,6 +255,7 @@
 #ifdef _WIN32
 #include <shlobj.h>
 #include "win32util.h"
+#include "win32/WIN32USBScan.h"
 #endif
 #ifdef HAS_XRANDR
 #include "windowing/X11/XRandR.h"
@@ -354,7 +360,6 @@ CApplication::CApplication(void) : m_itemCurrentFile(new CFileItem), m_progressT
   m_bStandalone = false;
   m_bEnableLegacyRes = false;
   m_bSystemScreenSaverEnable = false;
-  m_debugLayout = NULL;
 }
 
 CApplication::~CApplication(void)
@@ -481,6 +486,7 @@ bool CApplication::Create()
   /* install win32 exception translator, win32 exceptions
    * can now be caught using c++ try catch */
   win32_exception::install_handler();
+
 #endif
 
   // only the InitDirectories* for the current platform should return true
@@ -614,6 +620,10 @@ bool CApplication::Create()
   }
 
   g_powerManager.Initialize();
+
+#ifdef _WIN32
+  CWIN32USBScan();
+#endif
 
   CLog::Log(LOGNOTICE, "load settings...");
 
@@ -1066,6 +1076,8 @@ bool CApplication::Initialize()
   g_windowManager.Add(new CGUIWindowLoginScreen);            // window id = 29
   g_windowManager.Add(new CGUIWindowSettingsProfile);          // window id = 34
   g_windowManager.Add(new CGUIWindowAddonBrowser);          // window id = 40
+  g_windowManager.Add(new CGUIWindowDebugInfo);            // window id = 98
+  g_windowManager.Add(new CGUIWindowPointer);            // window id = 99
   g_windowManager.Add(new CGUIDialogYesNo);              // window id = 100
   g_windowManager.Add(new CGUIDialogProgress);           // window id = 101
   g_windowManager.Add(new CGUIDialogExtendedProgressBar);     // window id = 148
@@ -1687,7 +1699,6 @@ void CApplication::LoadSkin(const SkinPtr& skin)
   CLog::Log(LOGDEBUG,"Load Skin XML: %.2fms", 1000.f * (end - start) / freq);
 
   CLog::Log(LOGINFO, "  initialize new skin...");
-  m_guiPointer.AllocResources(true);
   m_guiDialogVolumeBar.AllocResources(true);
   m_guiDialogSeekBar.AllocResources(true);
   m_guiDialogKaiToast.AllocResources(true);
@@ -1743,15 +1754,9 @@ void CApplication::UnloadSkin(bool forReload /* = false */)
 
   //These windows are not handled by the windowmanager (why not?) so we should unload them manually
   CGUIMessage msg(GUI_MSG_WINDOW_DEINIT, 0, 0);
-  m_guiPointer.OnMessage(msg);
-  m_guiPointer.ResetControlStates();
-  m_guiPointer.FreeResources(true);
   m_guiDialogMuteBug.OnMessage(msg);
   m_guiDialogMuteBug.ResetControlStates();
   m_guiDialogMuteBug.FreeResources(true);
-
-  delete m_debugLayout;
-  m_debugLayout = NULL;
 
   // remove the skin-dependent window
   g_windowManager.Delete(WINDOW_DIALOG_FULLSCREEN_INFO);
@@ -1901,14 +1906,9 @@ void CApplication::RenderNoPresent()
     }
   }
 
-  // Render the mouse pointer
-  if (g_Mouse.IsActive())
-    m_guiPointer.Render();
-
   // reset image scaling and effect states
   g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
 
-  RenderMemoryStatus();
   RenderScreenSaver();
 
   g_graphicsContext.Unlock();
@@ -1954,7 +1954,9 @@ void CApplication::RenderScreenSaver()
   if (draw)
   {
     color_t color = ((color_t)(screenSaverFadeAmount * amount * 2.55f) & 0xff) << 24;
-    CGUITexture::DrawQuad(CRect(0, 0, (float)g_graphicsContext.GetWidth(), (float)g_graphicsContext.GetHeight()), color);
+    CRect rect(0, 0, (float)g_graphicsContext.GetWidth(), (float)g_graphicsContext.GetHeight());
+    g_windowManager.MarkDirty(rect);
+    CGUITexture::DrawQuad(rect, color);
   }
 }
 
@@ -2124,8 +2126,6 @@ void CApplication::Render()
   else if (vsync_mode != VSYNC_DRIVER)
     g_Windowing.SetVSync(false);
 
-  g_windowManager.UpdateModelessVisibility();
-
   if(!g_Windowing.BeginRender())
     return;
 
@@ -2158,98 +2158,6 @@ void CApplication::Render()
 void CApplication::SetStandAlone(bool value)
 {
   g_advancedSettings.m_handleMounting = m_bStandalone = value;
-}
-
-void CApplication::RenderMemoryStatus()
-{
-  MEASURE_FUNCTION;
-
-  g_cpuInfo.getUsedPercentage(); // must call it to recalculate pct values
-
-  // reset the window scaling and fade status
-  RESOLUTION res = g_graphicsContext.GetVideoResolution();
-  g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
-
-  static int yShift = 20;
-  static int xShift = 40;
-  static unsigned int lastShift = time(NULL);
-  time_t now = time(NULL);
-  if (now - lastShift > 10)
-  {
-    yShift *= -1;
-    if (now % 5 == 0)
-      xShift *= -1;
-    lastShift = now;
-  }
-
-  if (!m_debugLayout)
-  {
-    CGUIFont *font13 = g_fontManager.GetDefaultFont();
-    CGUIFont *font13border = g_fontManager.GetDefaultFont(true);
-    if (font13)
-      m_debugLayout = new CGUITextLayout(font13, true, 0, font13border);
-  }
-  if (!m_debugLayout)
-    return;
-
-  if (LOG_LEVEL_DEBUG_FREEMEM <= g_advancedSettings.m_logLevel)
-  {
-    CStdString info;
-    MEMORYSTATUS stat;
-    GlobalMemoryStatus(&stat);
-    CStdString profiling = CGUIControlProfiler::IsRunning() ? " (profiling)" : "";
-    CStdString strCores = g_cpuInfo.GetCoresUsageString();
-#if !defined(_LINUX)
-    info.Format("LOG: %sxbmc.log\nMEM: %d/%d KB - FPS: %2.1f fps\nCPU: %s%s", g_settings.m_logFolder.c_str(),
-              stat.dwAvailPhys/1024, stat.dwTotalPhys/1024, g_infoManager.GetFPS(), strCores.c_str(), profiling.c_str());
-#else
-    double dCPU = m_resourceCounter.GetCPUUsage();
-    info.Format("LOG: %sxbmc.log\nMEM: %"PRIu64"/%"PRIu64" KB - FPS: %2.1f fps\nCPU: %s (CPU-XBMC %4.2f%%%s)", g_settings.m_logFolder.c_str(),
-              stat.dwAvailPhys/1024, stat.dwTotalPhys/1024, g_infoManager.GetFPS(), strCores.c_str(), dCPU, profiling.c_str());
-#endif
-
-
-    float x = xShift + 0.04f * g_graphicsContext.GetWidth() + g_settings.m_ResInfo[res].Overscan.left;
-    float y = yShift + 0.04f * g_graphicsContext.GetHeight() + g_settings.m_ResInfo[res].Overscan.top;
-
-    m_debugLayout->Update(info);
-    m_debugLayout->RenderOutline(x, y, 0xffffffff, 0xff000000, 0, 0);
-  }
-
-  // render the skin debug info
-  if (g_SkinInfo->IsDebugging())
-  {
-    CStdString info;
-    CGUIWindow *window = g_windowManager.GetWindow(g_windowManager.GetFocusedWindow());
-    CPoint point(m_guiPointer.GetXPosition(), m_guiPointer.GetYPosition());
-    if (window)
-    {
-      CStdString windowName = CButtonTranslator::TranslateWindow(window->GetID());
-      if (!windowName.IsEmpty())
-        windowName += " (" + window->GetProperty("xmlfile") + ")";
-      else
-        windowName = window->GetProperty("xmlfile");
-      info = "Window: " + windowName + "  ";
-      // transform the mouse coordinates to this window's coordinates
-      g_graphicsContext.SetScalingResolution(window->GetCoordsRes(), true);
-      point.x *= g_graphicsContext.GetGUIScaleX();
-      point.y *= g_graphicsContext.GetGUIScaleY();
-      g_graphicsContext.SetRenderingResolution(g_graphicsContext.GetResInfo(), false);
-    }
-    info.AppendFormat("Mouse: (%d,%d)  ", (int)point.x, (int)point.y);
-    if (window)
-    {
-      CGUIControl *control = window->GetFocusedControl();
-      if (control)
-        info.AppendFormat("Focused: %i (%s)", control->GetID(), CGUIControlFactory::TranslateControlType(control->GetControlType()).c_str());
-    }
-
-    float x = xShift + 0.04f * g_graphicsContext.GetWidth() + g_settings.m_ResInfo[res].Overscan.left;
-    float y = yShift + 0.08f * g_graphicsContext.GetHeight() + g_settings.m_ResInfo[res].Overscan.top;
-
-    m_debugLayout->Update(info);
-    m_debugLayout->RenderOutline(x, y, 0xffffffff, 0xff000000, 0, 0);
-  }
 }
 
 // OnKey() translates the key into a CAction which is sent on to our Window Manager.
@@ -2464,10 +2372,7 @@ bool CApplication::OnAction(const CAction &action)
   }
 
   if (action.IsMouse())
-  {
     g_Mouse.SetActive(true);
-    m_guiPointer.SetPosition(action.GetAmount(0), action.GetAmount(1));
-  }
 
   // The action PLAYPAUSE behaves as ACTION_PAUSE if we are currently
   // playing or ACTION_PLAYER_PLAY if we are not playing.
@@ -2759,6 +2664,15 @@ bool CApplication::OnAction(const CAction &action)
     CGUIControlProfiler::Instance().Start();
     return true;
   }
+  if (action.GetID() == ACTION_SHOW_PLAYLIST)
+  {
+    int iPlaylist = g_playlistPlayer.GetCurrentPlaylist();
+    if (iPlaylist == PLAYLIST_VIDEO)
+      g_windowManager.ActivateWindow(WINDOW_VIDEO_PLAYLIST);
+    else if (iPlaylist == PLAYLIST_MUSIC)
+      g_windowManager.ActivateWindow(WINDOW_MUSIC_PLAYLIST);
+    return true;
+  }
   return false;
 }
 
@@ -2826,6 +2740,9 @@ void CApplication::FrameMove()
   ProcessGamepad(frameTime);
   ProcessEventServer(frameTime);
 
+  // Process events and animate controls
+  if (!m_bStop)
+    g_windowManager.Process(CTimeUtils::GetFrameTime());
   g_windowManager.FrameMove();
 }
 
@@ -2956,7 +2873,40 @@ bool CApplication::ProcessMouse()
   if (WakeUpScreenSaverAndDPMS())
     return true;
 
-  return OnAction(g_Mouse.GetAction());
+  // Get the mouse command ID
+  uint32_t mousecommand = g_Mouse.GetAction();
+
+  // Retrieve the corresponding action
+  int iWin;
+  CKey key(mousecommand | KEY_MOUSE, (unsigned int) 0);
+  if (g_windowManager.HasModalDialog())
+    iWin = g_windowManager.GetTopMostModalDialogID() & WINDOW_ID_MASK;
+  else
+    iWin = g_windowManager.GetActiveWindow() & WINDOW_ID_MASK;
+  CAction mouseaction = CButtonTranslator::GetInstance().GetAction(iWin, key);
+
+  // If we couldn't find an action return false to indicate we have not
+  // handled this mouse action
+  if (!mouseaction.GetID())
+  {
+    CLog::Log(LOGDEBUG, "%s: unknown mouse command %d", __FUNCTION__, mousecommand);
+    return false;
+  }
+
+  // Process the appcommand
+  CAction newmouseaction = CAction(mouseaction.GetID(), 
+                                  g_Mouse.GetHold(MOUSE_LEFT_BUTTON), 
+                                  (float)g_Mouse.GetX(), 
+                                  (float)g_Mouse.GetY(), 
+                                  (float)g_Mouse.GetDX(), 
+                                  (float)g_Mouse.GetDY(),
+                                  mouseaction.GetName());
+
+  // Log mouse actions except for move and noop
+  if (newmouseaction.GetID() != ACTION_MOUSE_MOVE && newmouseaction.GetID() != ACTION_NOOP)
+    CLog::Log(LOGDEBUG, "%s: trying mouse action %s", __FUNCTION__, newmouseaction.GetName().c_str());
+
+  return OnAction(newmouseaction);
 }
 
 void  CApplication::CheckForTitleChange()
@@ -3336,7 +3286,7 @@ void CApplication::Stop(int exitCode)
 {
   try
   {
-    CAnnouncementManager::Announce(System, "xbmc", "ApplicationStop");
+    CAnnouncementManager::Announce(System, "xbmc", "OnQuit");
 
     // cancel any jobs from the jobmanager
     CJobManager::GetInstance().CancelJobs();
@@ -3934,7 +3884,7 @@ void CApplication::OnPlayBackEnded()
     getApplicationMessenger().HttpApi("broadcastlevel; OnPlayBackEnded;1");
 #endif
 
-  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackEnded");
+  CAnnouncementManager::Announce(Player, "xbmc", "OnStop");
 
   if (IsPlayingAudio())
   {
@@ -3963,7 +3913,9 @@ void CApplication::OnPlayBackStarted()
     getApplicationMessenger().HttpApi("broadcastlevel; OnPlayBackStarted;1");
 #endif
 
-  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackStarted", m_itemCurrentFile);
+  CVariant param;
+  param["speed"] = 1;
+  CAnnouncementManager::Announce(Player, "xbmc", "OnPlay", m_itemCurrentFile, param);
 
   CGUIMessage msg(GUI_MSG_PLAYBACK_STARTED, 0, 0);
   g_windowManager.SendThreadMessage(msg);
@@ -3982,8 +3934,6 @@ void CApplication::OnQueueNextItem()
   if (g_settings.m_HttpApiBroadcastLevel>=1)
     getApplicationMessenger().HttpApi("broadcastlevel; OnQueueNextItem;1");
 #endif
-
-  CAnnouncementManager::Announce(Player, "xbmc", "QueueNextItem");
 
   if(IsPlayingAudio())
   {
@@ -4012,7 +3962,7 @@ void CApplication::OnPlayBackStopped()
     getApplicationMessenger().HttpApi("broadcastlevel; OnPlayBackStopped;1");
 #endif
 
-  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackStopped", m_itemCurrentFile);
+  CAnnouncementManager::Announce(Player, "xbmc", "OnStop", m_itemCurrentFile);
 
   CLastfmScrobbler::GetInstance()->SubmitQueue();
   CLibrefmScrobbler::GetInstance()->SubmitQueue();
@@ -4033,7 +3983,7 @@ void CApplication::OnPlayBackPaused()
     getApplicationMessenger().HttpApi("broadcastlevel; OnPlayBackPaused;1");
 #endif
 
-  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackPaused", m_itemCurrentFile);
+  CAnnouncementManager::Announce(Player, "xbmc", "OnPause", m_itemCurrentFile);
 }
 
 void CApplication::OnPlayBackResumed()
@@ -4048,7 +3998,9 @@ void CApplication::OnPlayBackResumed()
     getApplicationMessenger().HttpApi("broadcastlevel; OnPlayBackResumed;1");
 #endif
 
-  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackResumed", m_itemCurrentFile);
+  CVariant param;
+  param["speed"] = 1;
+  CAnnouncementManager::Announce(Player, "xbmc", "OnPlay", m_itemCurrentFile, param);
 }
 
 void CApplication::OnPlayBackSpeedChanged(int iSpeed)
@@ -4069,7 +4021,7 @@ void CApplication::OnPlayBackSpeedChanged(int iSpeed)
 
   CVariant param;
   param["speed"] = iSpeed;
-  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackSpeedChanged", m_itemCurrentFile, param);
+  CAnnouncementManager::Announce(Player, "xbmc", "OnPlay", m_itemCurrentFile, param);
 }
 
 void CApplication::OnPlayBackSeek(int iTime, int seekOffset)
@@ -4091,7 +4043,7 @@ void CApplication::OnPlayBackSeek(int iTime, int seekOffset)
   CVariant param;
   param["time"] = iTime;
   param["seekoffset"] = seekOffset;
-  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackSeek", param);
+  CAnnouncementManager::Announce(Player, "xbmc", "OnSeek", param);
   g_infoManager.SetDisplayAfterSeek(2500, seekOffset/1000);
 }
 
@@ -4110,10 +4062,6 @@ void CApplication::OnPlayBackSeekChapter(int iChapter)
     getApplicationMessenger().HttpApi(tmp);
   }
 #endif
-
-  CVariant param;
-  param["chapter"] = iChapter;
-  CAnnouncementManager::Announce(Player, "xbmc", "PlaybackSeekChapter", param);
 }
 
 bool CApplication::IsPlaying() const
@@ -4280,6 +4228,11 @@ void CApplication::ResetScreenSaverTimer()
   Cocoa_UpdateSystemActivity();
 #endif
   m_screenSaverTimer.StartZero();
+}
+
+void CApplication::StopScreenSaverTimer()
+{
+  m_screenSaverTimer.Stop();
 }
 
 bool CApplication::ToggleDPMS(bool manual)
@@ -4820,6 +4773,7 @@ void CApplication::Process()
     m_slowTimer.Reset();
     ProcessSlow();
   }
+
 }
 
 // We get called every 500ms
@@ -4909,6 +4863,10 @@ void CApplication::ProcessSlow()
 
 #if defined(_LINUX) && defined(HAS_FILESYSTEM_SMB)
   smb.CheckIfIdle();
+#endif
+  
+#ifdef HAS_FILESYSTEM_NFS
+  gNfsConnection.CheckIfIdle();
 #endif
 
 #ifdef HAS_FILESYSTEM_SFTP

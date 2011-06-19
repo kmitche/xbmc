@@ -851,8 +851,7 @@ void CGUIWindowSettingsCategory::UpdateSettings()
                                          g_guiSettings.GetString("audiooutput.audiodevice").find("wasapi:") == CStdString::npos);
     }
 #ifdef HAS_WEB_SERVER
-    else if (strSetting.Equals("services.webserverport") ||
-             strSetting.Equals("services.webserverusername") ||
+    else if (strSetting.Equals("services.webserverusername") ||
              strSetting.Equals("services.webserverpassword"))
     {
       CGUIEditControl *pControl = (CGUIEditControl *)GetControl(pSettingControl->GetID());
@@ -2086,7 +2085,7 @@ void CGUIWindowSettingsCategory::FrameMove()
   CGUIWindow::FrameMove();
 }
 
-void CGUIWindowSettingsCategory::Render()
+void CGUIWindowSettingsCategory::DoProcess(unsigned int currentTime, CDirtyRegionList &dirtyregions)
 {
   // update alpha status of current button
   bool bAlphaFaded = false;
@@ -2106,7 +2105,7 @@ void CGUIWindowSettingsCategory::Render()
       bAlphaFaded = true;
     }
   }
-  CGUIWindow::Render();
+  CGUIWindow::DoProcess(currentTime, dirtyregions);
   if (bAlphaFaded)
   {
     control->SetFocus(false);
@@ -2115,6 +2114,11 @@ void CGUIWindowSettingsCategory::Render()
     else
       ((CGUIButtonControl *)control)->SetSelected(false);
   }
+}
+
+void CGUIWindowSettingsCategory::Render()
+{
+  CGUIWindow::Render();
   // render the error message if necessary
   if (m_strErrorMessage.size())
   {
@@ -2395,7 +2399,8 @@ DisplayMode CGUIWindowSettingsCategory::FillInScreens(CStdString strSetting, RES
   pControl->Clear();
 
   CStdString strScreen;
-  pControl->AddLabel(g_localizeStrings.Get(242), -1);
+  if (g_advancedSettings.m_canWindowed)
+    pControl->AddLabel(g_localizeStrings.Get(242), -1);
 
   for (int idx = 0; idx < g_Windowing.GetNumScreens(); idx++)
   {

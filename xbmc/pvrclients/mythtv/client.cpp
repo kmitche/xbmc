@@ -286,7 +286,7 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES *pCapabilities)
   pCapabilities->bSupportsTimeshift          = false;
   pCapabilities->bSupportsEPG                = true;
   pCapabilities->bSupportsRecordings         = true;
-  pCapabilities->bSupportsTimers             = false;
+  pCapabilities->bSupportsTimers             = true;
   pCapabilities->bSupportsTV                 = true;
   pCapabilities->bSupportsRadio              = false; // TODO: Change to true when radio info pulled out of MythXML (assuming possible)
   pCapabilities->bSupportsChannelSettings    = false;

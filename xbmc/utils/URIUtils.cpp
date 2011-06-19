@@ -30,6 +30,7 @@
 #include "settings/Settings.h"
 #include "URL.h"
 
+#include <netinet/in.h>
 #include <arpa/inet.h>
 
 using namespace std;
@@ -646,6 +647,11 @@ bool URIUtils::IsHDHomeRun(const CStdString& strFile)
   return strFile.Left(10).Equals("hdhomerun:");
 }
 
+bool URIUtils::IsSlingbox(const CStdString& strFile)
+{
+  return strFile.Left(6).Equals("sling:");
+}
+
 bool URIUtils::IsVTP(const CStdString& strFile)
 {
   return strFile.Left(4).Equals("vtp:");
@@ -673,6 +679,7 @@ bool URIUtils::IsLiveTV(const CStdString& strFile)
   return IsTuxBox(strFileWithoutSlash) ||
       IsVTP(strFileWithoutSlash) ||
       IsHDHomeRun(strFileWithoutSlash) ||
+      IsSlingbox(strFileWithoutSlash) ||
       IsHTSP(strFileWithoutSlash) ||
       strFileWithoutSlash.Left(4).Equals("sap:") ||
       (strFileWithoutSlash.Right(4).Equals(".pvr") && !strFileWithoutSlash.Left(16).Equals("pvr://recordings")) ||
@@ -683,6 +690,17 @@ bool URIUtils::IsMusicDb(const CStdString& strFile)
 {
   return strFile.Left(8).Equals("musicdb:");
 }
+
+bool URIUtils::IsNfs(const CStdString& strFile)
+{
+  CStdString strFile2(strFile);
+  
+  if (IsStack(strFile))
+    strFile2 = CStackDirectory::GetFirstStackedFile(strFile);
+  
+  return strFile2.Left(4).Equals("nfs:");
+}
+
 
 bool URIUtils::IsVideoDb(const CStdString& strFile)
 {
