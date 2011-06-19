@@ -53,8 +53,8 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
     sched.inactive      = atoi(row[2]) != 0; // inactive
     sched.title         = row[3]; // title
     sched.storagegroup  = row[4]; // storagegroup
-    sched.m_chanid        = atoi(row[5]); // chanid
-    sched.m_channum       = atoi(row[6]); // channum
+    sched.chanid        = atoi(row[5]); // chanid
+    sched.channum       = atoi(row[6]); // channum
     sched.m_starttime     = MythSqlResult::ToDateTime(row[7], row[8]); // startdate, starttime
     sched.m_endtime       = MythSqlResult::ToDateTime(row[9], row[10]); // enddate, endtime
     sched.m_priority      = atoi(row[11]); // recpriority

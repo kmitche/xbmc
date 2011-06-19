@@ -115,8 +115,8 @@ struct MythSchedule
   bool            inactive;
   CStdString      title;
   CStdString      storagegroup;
-  int             m_chanid;
-  int             m_channum;
+  int             chanid;
+  int             channum;
   time_t          m_starttime;
   time_t          m_endtime;
   time_t          m_firstday;
@@ -131,8 +131,8 @@ struct MythSchedule
   {
     recordid    = -1;
     inactive    = false;
-    m_chanid      = 0;
-    m_channum     = 0;
+    chanid      = 0;
+    channum     = 0;
     m_starttime   = 0;
     m_endtime     = 0;
     m_firstday    = 0;
