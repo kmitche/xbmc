@@ -187,10 +187,9 @@ PVR_ERROR MythXml::requestChannelList(PVR_HANDLE handle, int radio)
     pvrchannel.strIconPath    = icon;
 
     /*
-     * TODO: Determine how to hide channels in XBMC based on MythTV configuration. Some users have hundreds of channels.
-     * Pretty sure the old myth:// code only showed channels with a number > 0.
+     * Hidden channels in MythTV have an empty channel number, which would have parsed to 0.
      */
-    pvrchannel.bIsHidden      = false;
+    pvrchannel.bIsHidden      = (mythchannel.channum == 0);
 
     /*
      * Set the remaining parts that are not used by MythTV.
