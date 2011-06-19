@@ -105,6 +105,7 @@ struct MythSchedule
   CStdString      title;
   CStdString      subtitle;
   CStdString      description;
+  CStdString      category;
   CStdString      storagegroup;
   int             chanid;
   int             channum;

@@ -37,7 +37,7 @@ int ScheduleCommands1254::GetNumberOfSchedules(MYSQL* conn)
 
 bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules, MYSQL* conn)
 {
-  if (mysql_query(conn, "SELECT r.recordid, r.type, r.inactive, r.title, r.subtitle, r.description, r.storagegroup, r.chanid, c.channum, r.startdate, r.starttime, r.enddate, r.endtime, r.startoffset, r.endoffset, r.recpriority FROM record AS r INNER JOIN channel AS c ON r.chanid = c.chanid"))
+  if (mysql_query(conn, "SELECT r.recordid, r.type, r.inactive, r.title, r.subtitle, r.description, r.category, r.storagegroup, r.chanid, c.channum, r.startdate, r.starttime, r.enddate, r.endtime, r.startoffset, r.endoffset, r.recpriority FROM record AS r INNER JOIN channel AS c ON r.chanid = c.chanid"))
   {
     XBMC->Log(LOG_ERROR, "%s - Error querying for all schedules. ERROR %u: %s",
               __FUNCTION__, mysql_errno(conn), mysql_error(conn));
@@ -54,14 +54,15 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
     sched.title         = row[3]; // title
     sched.subtitle      = row[4]; // subtitle
     sched.description   = row[5]; // description
-    sched.storagegroup  = row[6]; // storagegroup
-    sched.chanid        = atoi(row[7]); // chanid
-    sched.channum       = atoi(row[8]); // channum
-    sched.start         = MythSqlResult::ToDateTime(row[9], row[10]); // startdate, starttime
-    sched.end           = MythSqlResult::ToDateTime(row[11], row[12]); // enddate, endtime
-    sched.startoffset   = atoi(row[13]); // startoffset
-    sched.endoffset     = atoi(row[14]); // endoffset
-    sched.priority      = atoi(row[15]); // recpriority
+    sched.category      = row[6]; // category
+    sched.storagegroup  = row[7]; // storagegroup
+    sched.chanid        = atoi(row[8]); // chanid
+    sched.channum       = atoi(row[9]); // channum
+    sched.start         = MythSqlResult::ToDateTime(row[10], row[11]); // startdate, starttime
+    sched.end           = MythSqlResult::ToDateTime(row[12], row[13]); // enddate, endtime
+    sched.startoffset   = atoi(row[14]); // startoffset
+    sched.endoffset     = atoi(row[15]); // endoffset
+    sched.priority      = atoi(row[16]); // recpriority
     schedules.push_back(sched);
   }
   mysql_free_result(res);

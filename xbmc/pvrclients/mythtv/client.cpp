@@ -518,6 +518,7 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
 
     // TODO: How to convert schedule.m_type? MythTV concept of schedules doesn't fit this API very well.
     // TODO: How to determine if recording?
+    // TODO: Specify the Genre based on the Category.
 
 
     PVR->TransferTimerEntry(handle, &timer);
