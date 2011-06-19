@@ -21,7 +21,7 @@ GetChannelListCommand::~GetChannelListCommand()
 {
 }
 
-const std::vector<SChannel>& GetChannelListCommand::GetChannels()
+const std::vector<MythChannel>& GetChannelListCommand::GetChannels()
 {
   return m_channels;
 }
@@ -36,7 +36,7 @@ bool GetChannelListCommand::ParseResponse(const TiXmlHandle& handle)
   for (channelNode = channelsNode->FirstChildElement("Channel"); channelNode;
        channelNode = channelNode->NextSiblingElement("Channel"))
   {
-    SChannel channel;
+    MythChannel channel;
     channel.chanid    = MythXmlResponse::toInteger(channelNode->Attribute("chanId"));
     channel.channum   = MythXmlResponse::toInteger(channelNode->Attribute("chanNum"));
     channel.channame  = channelNode->Attribute("channelName");

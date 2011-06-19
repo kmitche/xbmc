@@ -4,7 +4,7 @@
 
 #include <vector>
 
-#include "SChannel.h"
+#include "../MythTypes.h"
 
 class GetChannelListCommand: public MythXmlCommand
 {
@@ -12,10 +12,10 @@ class GetChannelListCommand: public MythXmlCommand
     GetChannelListCommand();
     ~GetChannelListCommand();
 
-    const std::vector<SChannel>& GetChannels();
+    const std::vector<MythChannel>& GetChannels();
 
     bool ParseResponse(const TiXmlHandle& handle);
 
   private:
-    std::vector<SChannel> m_channels;
+    std::vector<MythChannel> m_channels;
 };
