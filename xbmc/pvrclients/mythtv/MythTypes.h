@@ -112,7 +112,7 @@ enum MythRepeatFlags
 struct MythSchedule
 {
   int             recordid;
-  bool            m_inactive;
+  bool            inactive;
   CStdString      m_title;
   CStdString      m_storagegroup;
   int             m_chanid;
@@ -130,7 +130,7 @@ struct MythSchedule
   MythSchedule()
   {
     recordid    = -1;
-    m_inactive    = false;
+    inactive    = false;
     m_chanid      = 0;
     m_channum     = 0;
     m_starttime   = 0;
