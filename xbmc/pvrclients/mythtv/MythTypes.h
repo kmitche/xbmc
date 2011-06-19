@@ -110,7 +110,6 @@ struct MythSchedule
   time_t          end;
   int             m_recording;
   int             priority;
-  int             m_lifetime;
 
   MythSchedule()
   {
@@ -122,7 +121,6 @@ struct MythSchedule
     end         = 0;
     m_recording   = 0;
     priority    = 0;
-    m_lifetime    = 0;
     type        = kNotRecording;
   }
 };

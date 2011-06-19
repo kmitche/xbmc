@@ -37,7 +37,7 @@ int ScheduleCommands1254::GetNumberOfSchedules(MYSQL* conn)
 
 bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules, MYSQL* conn)
 {
-  if (mysql_query(conn, "SELECT r.recordid, r.type, r.inactive, r.title, r.storagegroup, r.chanid, c.channum, r.startdate, r.starttime, r.enddate, r.endtime, r.recpriority, r.autoexpire FROM record AS r INNER JOIN channel AS c ON r.chanid = c.chanid"))
+  if (mysql_query(conn, "SELECT r.recordid, r.type, r.inactive, r.title, r.storagegroup, r.chanid, c.channum, r.startdate, r.starttime, r.enddate, r.endtime, r.recpriority FROM record AS r INNER JOIN channel AS c ON r.chanid = c.chanid"))
   {
     XBMC->Log(LOG_ERROR, "%s - Error querying for all schedules. ERROR %u: %s",
               __FUNCTION__, mysql_errno(conn), mysql_error(conn));
@@ -58,7 +58,6 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
     sched.start         = MythSqlResult::ToDateTime(row[7], row[8]); // startdate, starttime
     sched.end           = MythSqlResult::ToDateTime(row[9], row[10]); // enddate, endtime
     sched.priority      = atoi(row[11]); // recpriority
-    sched.m_lifetime      = atoi(row[12]); // TODO: check this is correct for this field.
     sched.m_recording     = false; // TODO: fill this missing field in. Possible?
     schedules.push_back(sched);
   }
