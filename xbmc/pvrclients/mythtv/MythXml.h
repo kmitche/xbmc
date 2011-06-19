@@ -9,8 +9,7 @@
 
 #include "libmythxml/MythXmlCommand.h"
 #include "libmythxml/MythXmlResponse.h"
-#include "libmythxml/SRecording.h"
-#include "libmythxml/SChannel.h"
+#include "MythTypes.h"
 #include "client.h"
 
 /*! \class MythXml
@@ -37,9 +36,9 @@ public:
 private:
   bool ExecuteCommand(MythXmlCommand& command);
   bool checkConnection();
-  CStdString GetRecordingPath(const SRecording &recording);
-  CStdString GetLiveTvPath(const SChannel &channel);
-  CStdString GetChannelIconPath(const SChannel &channel);
+  CStdString GetRecordingPath(const MythRecording &recording);
+  CStdString GetLiveTvPath(const MythChannel &channel);
+  CStdString GetChannelIconPath(const MythChannel &channel);
   CStdString GetUrlPrefix();
   CStdString GetRecordingId(const int chanid, const time_t start);
 

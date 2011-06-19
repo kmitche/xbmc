@@ -164,15 +164,15 @@ PVR_ERROR MythXml::requestChannelList(PVR_HANDLE handle, int radio)
   if (!ExecuteCommand(cmd))
     return PVR_ERROR_UNKNOWN;
 
-  const vector<SChannel>& channels = cmd.GetChannels();
-  vector<SChannel>::const_iterator it;
+  const vector<MythChannel>& channels = cmd.GetChannels();
+  vector<MythChannel>::const_iterator it;
 
   for (it = channels.begin(); it != channels.end(); ++it)
   {
     PVR_CHANNEL pvrchannel;
     memset(&pvrchannel, 0, sizeof(PVR_CHANNEL));
 
-    const SChannel& mythchannel = *it;
+    const MythChannel& mythchannel = *it;
 
     pvrchannel.iUniqueId      = mythchannel.chanid;
     pvrchannel.iChannelNumber = mythchannel.channum;
@@ -210,8 +210,8 @@ PVR_ERROR MythXml::requestEPGForChannel(PVR_HANDLE handle, const PVR_CHANNEL &ch
   if (!ExecuteCommand(cmd))
     return PVR_ERROR_UNKNOWN;
 
-  const vector<SProgram>& epg = cmd.GetEpg();
-  vector<SProgram>::const_iterator it;
+  const vector<MythProgram>& epg = cmd.GetEpg();
+  vector<MythProgram>::const_iterator it;
 
   int i = 0;
   for (it = epg.begin(); it != epg.end(); ++it)
@@ -219,7 +219,7 @@ PVR_ERROR MythXml::requestEPGForChannel(PVR_HANDLE handle, const PVR_CHANNEL &ch
     EPG_TAG epgtag;
     memset(&epgtag, 0, sizeof(EPG_TAG));
 
-    const SProgram& program = *it;
+    const MythProgram& program = *it;
 
     epgtag.iUniqueBroadcastId = i++; // GetRecordingId(program.chanid, program.start);
     epgtag.strTitle       = program.title;
@@ -268,8 +268,8 @@ PVR_ERROR MythXml::requestRecordingsList(PVR_HANDLE handle)
   if (!ExecuteCommand(cmd))
     return PVR_ERROR_UNKNOWN;
 
-  const vector<SRecording> recordings = cmd.GetRecordings();
-  vector<SRecording>::const_iterator it;
+  const vector<MythRecording> recordings = cmd.GetRecordings();
+  vector<MythRecording>::const_iterator it;
 
   int i = 0;
   for (it = recordings.begin(); it != recordings.end(); ++it)
@@ -277,7 +277,7 @@ PVR_ERROR MythXml::requestRecordingsList(PVR_HANDLE handle)
     PVR_RECORDING pvrrecording;
     memset(&pvrrecording, 0, sizeof(PVR_RECORDING));
 
-    const SRecording& mythrecording = *it;
+    const MythRecording& mythrecording = *it;
 
     pvrrecording.iClientIndex    = i++;
     pvrrecording.strTitle        = mythrecording.title;
@@ -355,7 +355,7 @@ CStdString MythXml::GetUrlPrefix()
     return urlPrefix;
 }
 
-CStdString MythXml::GetLiveTvPath(const SChannel &channel)
+CStdString MythXml::GetLiveTvPath(const MythChannel &channel)
 {
   /*
    * HACK: Use the existing LiveTV functionality within XBMC until libcmyth has been moved to the PVR addon.
@@ -365,7 +365,7 @@ CStdString MythXml::GetLiveTvPath(const SChannel &channel)
   return path;
 }
 
-CStdString MythXml::GetRecordingPath(const SRecording &recording)
+CStdString MythXml::GetRecordingPath(const MythRecording &recording)
 {
   /*
    * HACK: The MythXML GetRecorded interface doesn't support seeking so use the existing myth://
@@ -386,7 +386,7 @@ CStdString MythXml::GetRecordingPath(const SRecording &recording)
   return path;
 }
 
-CStdString MythXml::GetChannelIconPath(const SChannel &channel)
+CStdString MythXml::GetChannelIconPath(const MythChannel &channel)
 {
   CStdString icon;
   icon.Format("%s/Myth/GetChannelIcon?ChanId=%i", GetUrlPrefix().c_str(), channel.chanid);

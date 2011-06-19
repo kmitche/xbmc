@@ -483,20 +483,20 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
   if (p_mythsql == NULL)
     return PVR_ERROR_SERVER_ERROR;
 
-  vector<SSchedule> schedules;
+  vector<MythSchedule> schedules;
   if (!p_mythsql->GetAllSchedules(schedules))
     return PVR_ERROR_SERVER_ERROR;
 
-  vector<SSchedule>::const_iterator it;
+  vector<MythSchedule>::const_iterator it;
 
-  // TODO: Just use PVRTIMERINFO rather than SSchedule? Who else is really going to use the library?
+  // TODO: Just use PVRTIMERINFO rather than MythSchedule? Who else is really going to use the library?
   // TODO: Remove m_ off the structure fieldnames.
   for (it = schedules.begin(); it != schedules.end(); ++it)
   {
     PVR_TIMER timer;
     memset(&timer, 0, sizeof(PVR_TIMER));
 
-    const SSchedule& schedule = *it;
+    const MythSchedule& schedule = *it;
     /*
      * TODO: Remove the elements out of the MythTV schedule that don't really make sense for MythTV
      * and have the client here do the necessary mappings.
