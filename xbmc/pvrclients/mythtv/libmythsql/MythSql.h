@@ -18,10 +18,10 @@ public:
 	bool Init();
 	void Destroy();
 	int  GetNumberOfSchedules();
-	bool GetAllSchedules(std::vector<SSchedule>& schedules);
-	bool AddSchedule(const SSchedule& schedule);
-	bool DeleteSchedule(const SSchedule& schedule);
-	bool RenameSchedule(const SSchedule& schedule, const CStdString& newname);
+	bool GetAllSchedules(std::vector<MythSchedule>& schedules);
+	bool AddSchedule(const MythSchedule& schedule);
+	bool DeleteSchedule(const MythSchedule& schedule);
+	bool RenameSchedule(const MythSchedule& schedule, const CStdString& newname);
 
 private:
 	CStdString m_hostname;

@@ -35,7 +35,7 @@ int ScheduleCommands1254::GetNumberOfSchedules(MYSQL* conn)
   return num_schedules;
 }
 
-bool ScheduleCommands1254::GetAllSchedules(std::vector<SSchedule>& schedules, MYSQL* conn)
+bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules, MYSQL* conn)
 {
   if (mysql_query(conn, "SELECT r.recordid, r.type, r.inactive, r.title, r.storagegroup, r.chanid, c.channum, r.startdate, r.starttime, r.enddate, r.endtime, r.recpriority, r.autoexpire FROM record AS r INNER JOIN channel AS c ON r.chanid = c.chanid"))
   {
@@ -47,9 +47,9 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<SSchedule>& schedules, MY
   MYSQL_ROW row;
   while ((row = mysql_fetch_row(res)) != NULL)
   {
-    SSchedule sched;
+    MythSchedule sched;
     sched.m_recordid      = atoi(row[0]); // recordid
-    sched.m_type          = (RecordingTypes)atoi(row[1]); // type. TODO: safe conversion to ENUM
+    sched.m_type          = (MythRecordingTypes)atoi(row[1]); // type. TODO: safe conversion to ENUM
     sched.m_inactive      = atoi(row[2]) != 0; // inactive
     sched.m_title         = row[3]; // title
     sched.m_storagegroup  = row[4]; // storagegroup
@@ -69,17 +69,17 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<SSchedule>& schedules, MY
   return true;
 }
 
-bool ScheduleCommands1254::AddSchedule(const SSchedule& schedule, MYSQL* conn)
+bool ScheduleCommands1254::AddSchedule(const MythSchedule& schedule, MYSQL* conn)
 {
   return false;
 }
 
-bool ScheduleCommands1254::DeleteSchedule(const SSchedule& schedule, MYSQL* conn)
+bool ScheduleCommands1254::DeleteSchedule(const MythSchedule& schedule, MYSQL* conn)
 {
   return false;
 }
 
-bool ScheduleCommands1254::RenameSchedule(const SSchedule& schedule, const CStdString& newname, MYSQL* conn)
+bool ScheduleCommands1254::RenameSchedule(const MythSchedule& schedule, const CStdString& newname, MYSQL* conn)
 {
   return false;
 }

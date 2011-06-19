@@ -101,7 +101,7 @@ int MythSql::GetNumberOfSchedules()
   return ret;
 }
 
-bool MythSql::GetAllSchedules(std::vector<SSchedule>& schedules)
+bool MythSql::GetAllSchedules(std::vector<MythSchedule>& schedules)
 {
   MYSQL* conn = GetConnection();
   if (conn == NULL)
@@ -113,7 +113,7 @@ bool MythSql::GetAllSchedules(std::vector<SSchedule>& schedules)
   return ret;
 }
 
-bool MythSql::AddSchedule(const SSchedule& schedule)
+bool MythSql::AddSchedule(const MythSchedule& schedule)
 {
   MYSQL* conn = GetConnection();
   if (conn == NULL)
@@ -125,7 +125,7 @@ bool MythSql::AddSchedule(const SSchedule& schedule)
   return ret;
 }
 
-bool MythSql::DeleteSchedule(const SSchedule& schedule)
+bool MythSql::DeleteSchedule(const MythSchedule& schedule)
 {
   MYSQL* conn = GetConnection();
   if (conn == NULL)
@@ -137,7 +137,7 @@ bool MythSql::DeleteSchedule(const SSchedule& schedule)
   return ret;
 }
 
-bool MythSql::RenameSchedule(const SSchedule& schedule, const CStdString& newname)
+bool MythSql::RenameSchedule(const MythSchedule& schedule, const CStdString& newname)
 {
   MYSQL* conn = GetConnection();
   if (conn == NULL)
