@@ -507,7 +507,6 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
     timer.iClientChannelUid = schedule.channum;
     timer.startTime     = schedule.start;
     timer.endTime       = schedule.end;
-    timer.firstDay      = schedule.m_firstday; // TODO: Not a direct mapping?
     // timer.recording     = schedule.m_recording; // TODO: Can't get via the MythSQL interface? Have to get via Myth Protocol?
     timer.iPriority     = schedule.m_priority;
     timer.iLifetime      = schedule.m_lifetime; // TODO: Not a direct mapping

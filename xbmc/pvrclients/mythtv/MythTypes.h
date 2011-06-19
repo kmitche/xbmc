@@ -104,7 +104,6 @@ struct MythSchedule
   int             channum;
   time_t          start;
   time_t          end;
-  time_t          m_firstday;
   int             m_recording;
   int             m_priority;
   int             m_lifetime;
@@ -119,7 +118,6 @@ struct MythSchedule
     channum     = 0;
     start       = 0;
     end         = 0;
-    m_firstday    = 0;
     m_recording   = 0;
     m_priority    = 0;
     m_lifetime    = 0;
