@@ -110,6 +110,10 @@ struct MythSchedule
   int             channum;
   time_t          start;
   time_t          end;
+
+  int             startoffset;    /* minutes */
+  int             endoffset;      /* minutes */
+
   int             priority;
 
   MythSchedule()
@@ -120,6 +124,10 @@ struct MythSchedule
     channum     = 0;
     start       = 0;
     end         = 0;
+
+    startoffset = 0;
+    endoffset   = 0;
+
     priority    = 0;
     type        = kNotRecording;
   }

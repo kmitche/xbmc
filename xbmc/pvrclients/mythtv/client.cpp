@@ -508,6 +508,8 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
     timer.iClientChannelUid = schedule.channum;
     timer.startTime     = schedule.start;
     timer.endTime       = schedule.end;
+    timer.iMarginStart  = schedule.startoffset;
+    timer.iMarginEnd    = schedule.endoffset;
     timer.state         = PVR_TIMER_STATE_SCHEDULED; // TODO: Determine from sensible data.
     // timer.recording     = schedule.m_recording; // TODO: Can't get via the MythSQL interface? Have to get via Myth Protocol?
     timer.iPriority     = schedule.priority;
