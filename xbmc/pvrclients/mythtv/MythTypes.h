@@ -94,21 +94,6 @@ enum MythRecordingTypes
   kFindWeeklyRecord
 };
 
-enum MythRepeatFlags
-{
-  kMonday = 0,
-  kTueday = 1,
-  kWednesday,
-  kThursday,
-  kFriday,
-  kSaturday,
-  kSunday,
-  kWeekDays,
-  kAllButSunday,
-  kAll,
-  kWeekend
-};
-
 struct MythSchedule
 {
   int             recordid;
@@ -124,8 +109,7 @@ struct MythSchedule
   int             m_priority;
   int             m_lifetime;
   int             m_repeat;
-  MythRepeatFlags     m_repeatflags;
-  MythRecordingTypes  m_type;
+  MythRecordingTypes  type;
 
   MythSchedule()
   {
@@ -140,7 +124,6 @@ struct MythSchedule
     m_priority    = 0;
     m_lifetime    = 0;
     m_repeat      = 0;
-    m_repeatflags = kAll;
-    m_type        = kNotRecording;
+    type        = kNotRecording;
   }
 };

@@ -49,7 +49,7 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
   {
     MythSchedule sched;
     sched.recordid      = atoi(row[0]); // recordid
-    sched.m_type          = (MythRecordingTypes)atoi(row[1]); // type. TODO: safe conversion to ENUM
+    sched.type          = (MythRecordingTypes)atoi(row[1]); // type. TODO: safe conversion to ENUM
     sched.inactive      = atoi(row[2]) != 0; // inactive
     sched.title         = row[3]; // title
     sched.storagegroup  = row[4]; // storagegroup
@@ -62,7 +62,6 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
     sched.m_lifetime      = atoi(row[12]); // TODO: check this is correct for this field.
     sched.m_recording     = false; // TODO: fill this missing field in. Possible?
     sched.m_repeat        = 0; // TODO: fill this missing field in. Possible?
-    sched.m_repeatflags   = kAll; // TODO: determine repeat flags from type?
     schedules.push_back(sched);
   }
   mysql_free_result(res);

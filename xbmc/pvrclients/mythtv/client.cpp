@@ -512,7 +512,7 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
     timer.iPriority     = schedule.m_priority;
     timer.iLifetime      = schedule.m_lifetime; // TODO: Not a direct mapping
     //timer.repeat        = schedule.m_repeat; // TODO: Not a direct mapping
-    //timer.repeatflags   = schedule.m_repeatflags; // TODO: Not a direct mapping
+    //timer.repeatflags   = // TODO: Not a direct mapping
 
     // TODO: How to convert schedule.m_type? MythTV concept of schedules doesn't fit this API very well.
 
