@@ -111,6 +111,22 @@ enum MythRepeatFlags
 
 struct MythSchedule
 {
+  int             m_recordid;
+  bool            m_inactive;
+  CStdString      m_title;
+  CStdString      m_storagegroup;
+  int             m_chanid;
+  int             m_channum;
+  time_t          m_starttime;
+  time_t          m_endtime;
+  time_t          m_firstday;
+  int             m_recording;
+  int             m_priority;
+  int             m_lifetime;
+  int             m_repeat;
+  MythRepeatFlags     m_repeatflags;
+  MythRecordingTypes  m_type;
+
   MythSchedule()
   {
     m_recordid    = -1;
@@ -127,20 +143,4 @@ struct MythSchedule
     m_repeatflags = kAll;
     m_type        = kNotRecording;
   }
-
-  int             m_recordid;
-  bool            m_inactive;
-  CStdString      m_title;
-  CStdString      m_storagegroup;
-  int             m_chanid;
-  int             m_channum;
-  time_t          m_starttime;
-  time_t          m_endtime;
-  time_t          m_firstday;
-  int             m_recording;
-  int             m_priority;
-  int             m_lifetime;
-  int             m_repeat;
-  MythRepeatFlags     m_repeatflags;
-  MythRecordingTypes  m_type;
 };
