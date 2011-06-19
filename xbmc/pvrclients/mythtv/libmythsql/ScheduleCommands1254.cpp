@@ -60,7 +60,6 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
     sched.m_priority      = atoi(row[11]); // recpriority
     sched.m_lifetime      = atoi(row[12]); // TODO: check this is correct for this field.
     sched.m_recording     = false; // TODO: fill this missing field in. Possible?
-    sched.m_repeat        = 0; // TODO: fill this missing field in. Possible?
     schedules.push_back(sched);
   }
   mysql_free_result(res);

@@ -107,7 +107,6 @@ struct MythSchedule
   int             m_recording;
   int             m_priority;
   int             m_lifetime;
-  int             m_repeat;
   MythRecordingTypes  type;
 
   MythSchedule()
@@ -121,7 +120,6 @@ struct MythSchedule
     m_recording   = 0;
     m_priority    = 0;
     m_lifetime    = 0;
-    m_repeat      = 0;
     type        = kNotRecording;
   }
 };

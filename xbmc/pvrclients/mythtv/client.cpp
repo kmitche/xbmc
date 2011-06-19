@@ -510,10 +510,11 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
     // timer.recording     = schedule.m_recording; // TODO: Can't get via the MythSQL interface? Have to get via Myth Protocol?
     timer.iPriority     = schedule.m_priority;
     timer.iLifetime      = schedule.m_lifetime; // TODO: Not a direct mapping
-    //timer.repeat        = schedule.m_repeat; // TODO: Not a direct mapping
+    //timer.repeat        = // TODO: Determine this from the MythRecordingType
     //timer.repeatflags   = // TODO: Not a direct mapping
 
     // TODO: How to convert schedule.m_type? MythTV concept of schedules doesn't fit this API very well.
+
 
     PVR->TransferTimerEntry(handle, &timer);
   }
