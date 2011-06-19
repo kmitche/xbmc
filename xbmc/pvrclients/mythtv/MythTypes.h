@@ -108,7 +108,6 @@ struct MythSchedule
   int             channum;
   time_t          start;
   time_t          end;
-  int             m_recording;
   int             priority;
 
   MythSchedule()
@@ -119,7 +118,6 @@ struct MythSchedule
     channum     = 0;
     start       = 0;
     end         = 0;
-    m_recording   = 0;
     priority    = 0;
     type        = kNotRecording;
   }

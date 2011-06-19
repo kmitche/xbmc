@@ -58,7 +58,6 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
     sched.start         = MythSqlResult::ToDateTime(row[7], row[8]); // startdate, starttime
     sched.end           = MythSqlResult::ToDateTime(row[9], row[10]); // enddate, endtime
     sched.priority      = atoi(row[11]); // recpriority
-    sched.m_recording     = false; // TODO: fill this missing field in. Possible?
     schedules.push_back(sched);
   }
   mysql_free_result(res);

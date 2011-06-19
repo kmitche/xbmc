@@ -507,12 +507,14 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
     timer.iClientChannelUid = schedule.channum;
     timer.startTime     = schedule.start;
     timer.endTime       = schedule.end;
+    timer.state         = PVR_TIMER_STATE_SCHEDULED; // TODO: Determine from sensible data.
     // timer.recording     = schedule.m_recording; // TODO: Can't get via the MythSQL interface? Have to get via Myth Protocol?
     timer.iPriority     = schedule.priority;
     //timer.repeat        = // TODO: Determine this from the MythRecordingType
     //timer.repeatflags   = // TODO: Not a direct mapping
 
     // TODO: How to convert schedule.m_type? MythTV concept of schedules doesn't fit this API very well.
+    // TODO: How to determine if recording?
 
 
     PVR->TransferTimerEntry(handle, &timer);
