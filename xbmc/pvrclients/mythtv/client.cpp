@@ -502,10 +502,11 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
      * and have the client here do the necessary mappings.
      */
     // timer.active        = schedule.m_inactive ? 0 : 1;
+    timer.iClientIndex  = schedule.recordid;
     timer.strTitle      = schedule.title.c_str();
     timer.strSummary    = schedule.description.c_str();
     timer.strDirectory  = schedule.storagegroup.c_str();
-    timer.iClientChannelUid = schedule.channum;
+    timer.iClientChannelUid = schedule.chanid;
     timer.startTime     = schedule.start;
     timer.endTime       = schedule.end;
     timer.iMarginStart  = schedule.startoffset;
