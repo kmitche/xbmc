@@ -1,5 +1,5 @@
 TODO:
-- Schedule recordings
+- Add Timer (aka Schedule a Recordings)
 - Start recording from LiveTV
 
 KNOWN ISSUES:
@@ -7,6 +7,21 @@ KNOWN ISSUES:
 - Listing of channels is not working after the update to the new API
 - Listing of EPG entries may have some issues as a HACK is being used to synthesize the unique
   broadcast ID (which MythTV doesn't expose)
+- The listing of Timers may have the next scheduled start time appear in the past. This is because
+  MythTV's model for scheduling is different to XBMC PVR. This may be resolvable by passing the 
+  next recording date across the interface, but more testing is required to ensure that doesn't
+  impact anything else.
+
+UNSUPPORTED:
+The following areas will not be supported by the MythTV addon for XBMC as the PVR concepts do not
+map to MythTV.
+- Rename Timer. Schedules in MythTV (aka Timers in XBMC PVR) do not have names. The title of the 
+  schedule in MythTV is used directly by the scheduler to match to shows in the EPG to determine
+  what to record.
+
+RELEASE NOTES:
+0.4.0 (19-Jun-2011)
+- Updated to support retrieving and deleting timers (schedules to use MythTV terminology)
 
 0.3.0 (29-May-2011)
 - Updated to support the new API. This has caused some regressions with playback of LiveTV and the 
