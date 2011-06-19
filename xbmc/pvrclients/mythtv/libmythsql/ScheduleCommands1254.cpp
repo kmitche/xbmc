@@ -52,7 +52,7 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
     sched.m_type          = (MythRecordingTypes)atoi(row[1]); // type. TODO: safe conversion to ENUM
     sched.inactive      = atoi(row[2]) != 0; // inactive
     sched.title         = row[3]; // title
-    sched.m_storagegroup  = row[4]; // storagegroup
+    sched.storagegroup  = row[4]; // storagegroup
     sched.m_chanid        = atoi(row[5]); // chanid
     sched.m_channum       = atoi(row[6]); // channum
     sched.m_starttime     = MythSqlResult::ToDateTime(row[7], row[8]); // startdate, starttime
