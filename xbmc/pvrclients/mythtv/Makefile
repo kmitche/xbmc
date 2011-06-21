@@ -11,6 +11,7 @@ DIRS = libmythxml libmythsql
 
 SRCS = \
 	client.cpp \
+	MythTransformer.cpp \
 	MythXml.cpp
 
 include ../../../Makefile.include
