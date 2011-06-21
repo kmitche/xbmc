@@ -40,6 +40,9 @@ bool GetRecordedCommand::ParseResponse(const TiXmlHandle& handle)
     recording.channame    = channelNode->Attribute("channelName");
     recording.callsign    = channelNode->Attribute("callSign");
 
+    recording.seriesid    = programNode->Attribute("seriesId");
+    recording.programid   = programNode->Attribute("programId");
+
     int priority          = atoi(recordingNode->Attribute("recPriority")); // TODO: move priority shuffle to client
     priority              = priority < 0 ? 0 : priority;
     priority              = priority > 100 ? 100 : priority;

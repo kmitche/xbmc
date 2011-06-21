@@ -56,6 +56,9 @@ struct MythRecording
   CStdString  channame;
   CStdString  callsign;
 
+  CStdString  seriesid;
+  CStdString  programid;
+
   int         priority;
 
   time_t      recstart;
