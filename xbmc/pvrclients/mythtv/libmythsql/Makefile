@@ -2,6 +2,7 @@ LIB = libmythsql.a
 
 SRCS = \
 	MythSql.cpp \
+	MythSqlQuery.cpp \
 	MythSqlResult.cpp \
 	ScheduleCommands1254.cpp
 
