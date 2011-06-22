@@ -32,6 +32,8 @@ bool GetRecordedCommand::ParseResponse(const TiXmlHandle& handle)
     recording.subtitle    = programNode->Attribute("subTitle");
     recording.description = programNode->GetText();
     recording.category    = programNode->Attribute("category");
+    recording.category_type = programNode->Attribute("catType");
+
     recording.start       = MythXmlResponse::toDateTime(programNode->Attribute("startTime"));
     recording.end         = MythXmlResponse::toDateTime(programNode->Attribute("endTime"));
 

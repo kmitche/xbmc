@@ -48,6 +48,7 @@ struct MythRecording
   CStdString  subtitle;
   CStdString  description;
   CStdString  category;
+  CStdString  category_type;
   time_t      start;
   time_t      end;
 
