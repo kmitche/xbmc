@@ -21,6 +21,8 @@
 #include "libmythxml/GetProgramGuideCommand.h"
 #include "libmythxml/GetRecordedCommand.h"
 
+#include "MythTransformer.h"
+
 using std::vector;
 using XFILE::CFileCurl;
 
@@ -288,7 +290,11 @@ PVR_ERROR MythXml::requestRecordingsList(PVR_HANDLE handle)
 
     pvrrecording.strChannelName  = mythrecording.channame;
 
-    pvrrecording.strDirectory    = ""; // TODO: put in directory structure to support TV Shows and Movies ala myth://
+    if (MythTransformer::IsMovie(mythrecording))
+      pvrrecording.strDirectory    = "Movies";
+    else
+      pvrrecording.strDirectory    = mythrecording.title; // e.g. Mythbusters
+
     CStdString url               = GetUrlPrefix() + mythrecording.url;
     // CStdString url                = GetRecordingPath(recording);
     pvrrecording.strStreamURL    = url;

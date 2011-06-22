@@ -20,6 +20,10 @@ map to MythTV.
   what to record.
 
 RELEASE NOTES:
+0.5.0 (22-Jun-2011)
+- Updated to put recordings into a directory structure. Movies are in a folder called "Movies" and
+  all other recordings are in a folder with the name of the TV Show.
+
 0.4.0 (19-Jun-2011)
 - Updated to support retrieving and deleting timers (schedules to use MythTV terminology)
 
