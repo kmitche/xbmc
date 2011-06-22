@@ -16,28 +16,43 @@ bool MythTransformer::IsMovie(const MythRecording &recording)
    * "SP" = sports
    * "SH" = tvshow
    *
-   * The reliability of the programid being filled in depends on the quality of the EPG content.
+   * The reliability of the programid being filled in depends on the quality of the EPG content. The
+   * category_type appears to be more reliably filled in than the programid. Therefore, use both the
+   * programid and category_type to maximise the chance of the recording being correctly identified
+   * as a movie.
+   *
+   * Note that the category_type is available via the Myth XML interface but not via the Myth
+   * Protocol interface.
    */
 
   CStdString programid = recording.programid;
+  CStdString category_type = recording.category_type;
 
   /*
    * If we have no useful information, return true if the duration is longer than 90 minutes.
    */
-  if (programid.IsEmpty())
+  if (programid.IsEmpty()
+  &&  category_type.IsEmpty())
   {
     int duration = recording.end - recording.start; // seconds
     return (duration > 90 * 60); // 90 minutes. TODO: should this be configurable?
   }
 
-  if (programid.Left(2) == "MV")
+  if (programid.Left(2) == "MV"
+  ||  category_type     == "movies")
     return true;
 
   if (programid.Left(2) == "EP"
+  ||  category_type     == "series"
   ||  programid.Left(2) == "SP"
-  ||  programid.Left(2) == "SH")
+  ||  category_type     == "sports"
+  ||  programid.Left(2) == "SH"
+  ||  category_type     == "tvshow")
     return false;
 
+  /*
+   * If no match on the start of the programid or the category_type then assume that it's not a movie.
+   */
   return false;
 }
 
