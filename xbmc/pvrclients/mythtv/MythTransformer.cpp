@@ -6,6 +6,41 @@ MythTransformer::MythTransformer() {
 MythTransformer::~MythTransformer() {
 }
 
+bool MythTransformer::IsMovie(const MythRecording &recording)
+{
+  /*
+   * The programid (if it exists) is a combination key where the first 2 characters maps to the
+   * category_type and the rest is the key. From MythTV/release-0-21-fixes/mythtv/libs/libmythtv/programinfo.cpp
+   * "MV" = movie
+   * "EP" = series
+   * "SP" = sports
+   * "SH" = tvshow
+   *
+   * The reliability of the programid being filled in depends on the quality of the EPG content.
+   */
+
+  CStdString programid = recording.programid;
+
+  /*
+   * If we have no useful information, return true if the duration is longer than 90 minutes.
+   */
+  if (programid.IsEmpty())
+  {
+    int duration = recording.end - recording.start; // seconds
+    return (duration > 90 * 60); // 90 minutes. TODO: should this be configurable?
+  }
+
+  if (programid.Left(2) == "MV")
+    return true;
+
+  if (programid.Left(2) == "EP"
+  ||  programid.Left(2) == "SP"
+  ||  programid.Left(2) == "SH")
+    return false;
+
+  return false;
+}
+
 void MythTransformer::SetSeasonAndEpisode(const MythRecording &program, int *season, int *episode) {
   /*
    * A valid programid generated from an XMLTV source should look like:
@@ -112,4 +147,3 @@ void MythTransformer::SetSeasonAndEpisode(const MythRecording &program, int *sea
   }
   return;
 }
-
