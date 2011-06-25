@@ -9,8 +9,9 @@ MythTransformer::~MythTransformer() {
 bool MythTransformer::IsMovie(const MythRecording &recording)
 {
   /*
-   * The programid (if it exists) is a combination key where the first 2 characters maps to the
-   * category_type and the rest is the key. From MythTV/release-0-21-fixes/mythtv/libs/libmythtv/programinfo.cpp
+   * For EPGs that use an XMLTV source, the programid (if it exists) is a combination key where the
+   * first 2 characters maps to the category_type and the rest is the key.
+   * From MythTV/release-0-21-fixes/mythtv/libs/libmythtv/programinfo.cpp
    * "MV" = movie
    * "EP" = series
    * "SP" = sports
@@ -21,22 +22,17 @@ bool MythTransformer::IsMovie(const MythRecording &recording)
    * programid and category_type to maximise the chance of the recording being correctly identified
    * as a movie.
    *
-   * Note that the category_type is available via the Myth XML interface but not via the Myth
-   * Protocol interface.
+   * The programid and seriesid can be something completely different for non-XMLTV EPG sources.
+   *
+   * Note that the category_type is exposed via the Myth XML interface but not via the Myth
+   * Protocol interface. Unfortunately Myth 0.23 and 0.24 don't populate the category_type in the
+   * XML response.
    */
 
   CStdString programid = recording.programid;
   CStdString category_type = recording.category_type;
 
-  /*
-   * If we have no useful information, return true if the duration is longer than 90 minutes.
-   */
-  if (programid.IsEmpty()
-  &&  category_type.IsEmpty())
-  {
-    int duration = recording.end - recording.start; // seconds
-    return (duration > 90 * 60); // 90 minutes. TODO: should this be configurable?
-  }
+  // TODO: Get the category_type from the MYSQL database if it's empty. Will provide much better results.
 
   if (programid.Left(2) == "MV"
   ||  category_type     == "movies")
@@ -51,9 +47,11 @@ bool MythTransformer::IsMovie(const MythRecording &recording)
     return false;
 
   /*
-   * If no match on the start of the programid or the category_type then assume that it's not a movie.
+   * If we have no useful information from the programid or the category_type the return true if the
+   * duration is longer than 90 minutes.
    */
-  return false;
+  int duration = recording.end - recording.start; // seconds
+  return (duration > 90 * 60); // 90 minutes. TODO: should this be configurable?
 }
 
 void MythTransformer::SetSeasonAndEpisode(const MythRecording &program, int *season, int *episode) {
