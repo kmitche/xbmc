@@ -95,41 +95,19 @@ bool ScheduleCommands1254::AddSchedule(const MythSchedule& schedule, MYSQL* conn
   /*
    * Table definition for the record table can be found at http://www.mythtv.org/wiki/Record_table
    */
-  int recordid;
+  CStdString query;
+  query.Format("INSERT INTO record (type, chanid, starttime, startdate, endtime, enddate, \
+               title, description, startoffset, endoffset) VALUES (%i, %i, '%s', '%s', '%s', '%s', '%s', '%s', %i, %i)",
+               kWeekslotRecord, schedule.chanid,
+               MythSqlQuery::ToTime(schedule.start).c_str(), MythSqlQuery::ToDate(schedule.start).c_str(),
+               MythSqlQuery::ToTime(schedule.end).c_str(),   MythSqlQuery::ToDate(schedule.end).c_str(),
+               MythSqlQuery::Escape(schedule.title), MythSqlQuery::Escape(schedule.description),
+               schedule.startoffset, schedule.endoffset);
+  if (mysql_query(conn, query))
   {
-    /*
-     * First, get a new recordid (the primary key) by finding out what the existing maximum is.
-     */
-    CStdString query = "SELECT MAX(recordid) FROM record";
-    if (mysql_query(conn, query))
-    {
-      XBMC->Log(LOG_ERROR, "%s - Error querying for maximum recordid. ERROR %u: %s",
-                __FUNCTION__, mysql_errno(conn), mysql_error(conn));
-      return false;
-    }
-    MYSQL_RES* res = mysql_use_result(conn);
-    MYSQL_ROW row;
-    if ((row = mysql_fetch_row(res)) != NULL)
-      recordid = atoi(row[0]);
-    else
-      recordid = 0; // TODO: Not sure what it means if we don't get a row back. Error?
-    mysql_free_result(res);
-  }
-
-  {
-    CStdString query;
-    query.Format("INSERT INTO record (recordid, type, chanid, startime, startdate, endtime, enddate, \
-                 title, description, startoffset, endoffset) VALUES (%i, %i, %i, %s, %s,%s, %s, %s, %s, %i, %i)",
-                 recordid++, kWeekslotRecord, schedule.chanid,
-                 MythSqlQuery::ToTime(schedule.start).c_str(), MythSqlQuery::ToDate(schedule.start).c_str(),
-                 MythSqlQuery::ToTime(schedule.end).c_str(), MythSqlQuery::ToDate(schedule.end).c_str(),
-                 schedule.title, schedule.description, schedule.startoffset, schedule.endoffset);
-    if (mysql_query(conn, query))
-    {
-     XBMC->Log(LOG_ERROR, "%s - Error inserting new schedule. ERROR %u: %s",
-               __FUNCTION__, mysql_errno(conn), mysql_error(conn));
-     return false;
-    }
+   XBMC->Log(LOG_ERROR, "%s - Error inserting new schedule. ERROR %u: %s",
+             __FUNCTION__, mysql_errno(conn), mysql_error(conn));
+   return false;
   }
   return true;
 }

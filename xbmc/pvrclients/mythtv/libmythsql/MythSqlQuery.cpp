@@ -21,3 +21,10 @@ CStdString MythSqlQuery::ToTime(const time_t& time)
   strftime(buffer, 12, "%H:%M:%S", localtime(&time));
   return buffer;
 }
+
+CStdString MythSqlQuery::Escape(const CStdString& value)
+{
+  CStdString escaped(value);
+  escaped.Replace("'", "''");
+  return escaped;
+}

@@ -9,4 +9,5 @@ class MythSqlQuery
   public:
     static CStdString ToDate(const time_t& time);
     static CStdString ToTime(const time_t& time);
+    static CStdString Escape(const CStdString& value);
 };
