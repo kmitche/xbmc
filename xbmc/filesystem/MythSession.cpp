@@ -108,8 +108,8 @@ CDateTime CMythSession::GetValue(cmyth_timestamp_t t)
   CDateTime result;
   if (t)
   {
-    time_t time = m_dll->timestamp_to_unixtime(t); // Returns NULL if error
-    if (time)
+    time_t time = m_dll->timestamp_to_unixtime(t); // Returns -1 if error
+    if (time != -1)
       result = CTimeUtils::GetLocalTime(time);
     else
       result = CTimeUtils::GetLocalTime(0);

@@ -261,6 +261,9 @@ time_t
 cmyth_timestamp_to_unixtime(cmyth_timestamp_t ts)
 {
     struct tm tm;
+    if (ts->timestamp_year == 0 && ts->timestamp_month == 0) { // Sometimes mythbackend returns 0000-00-00
+        return -1;
+    }
     tm.tm_sec = ts->timestamp_second;
     tm.tm_min = ts->timestamp_minute;
     tm.tm_hour = ts->timestamp_hour;
