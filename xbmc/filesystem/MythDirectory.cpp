@@ -386,6 +386,13 @@ bool CMythDirectory::GetTvShowFolders(const CStdString& base, CFileItemList &ite
       {
         CFileItemPtr item(new CFileItem(path, true));
         item->m_dateTime = GetValue(m_dll->proginfo_rec_start(program));
+        /*
+         * We create a VideoInfoTag for the directory to indicate that we have info for the contents
+         * in case the scraper can't match the TV show name.
+         */
+        CVideoInfoTag* tag = item->GetVideoInfoTag();
+        tag->m_strPath = path;
+        tag->m_strTitle = title;
         item->SetLabel(title);
         items.Add(item);
       }
@@ -650,3 +657,26 @@ bool CMythDirectory::IsLiveTV(const CStdString& strPath)
   CURL url(strPath);
   return url.GetFileName().Left(9) == "channels/";
 }
+
+CFileItemPtr CMythDirectory::GetFileItem(const CStdString& strPath)
+{
+  CFileItemPtr item = IDirectory::GetFileItem(strPath);
+  if (item->HasVideoInfoTag())
+    return item;
+
+  CURL url(strPath);
+  CStdString fileName = url.GetFileName();
+  URIUtils::RemoveSlashAtEnd(fileName);
+  if (fileName.Left(8) == "tvshows/")
+  {
+    CStdString tvshow = fileName.Mid(8);
+    if (!tvshow.IsEmpty())
+    {
+      CVideoInfoTag* tag = item->GetVideoInfoTag();
+      tag->m_strPath = strPath;
+      tag->m_strTitle = tvshow;
+    }
+  }
+  return item;
+}
+

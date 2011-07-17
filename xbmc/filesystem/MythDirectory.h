@@ -44,6 +44,7 @@ public:
   virtual bool GetDirectory(const CStdString& strPath, CFileItemList &items);
   virtual bool Exists(const char* strPath);
   virtual bool IsAllowed(const CStdString &strFile) const { return true; };
+  virtual CFileItemPtr GetFileItem(const CStdString& strPath);
   virtual DIR_CACHE_TYPE GetCacheType(const CStdString& strPath) const;
 
   static bool SupportsFileOperations(const CStdString& strPath);
