@@ -329,3 +329,8 @@ CStdString CDirectory::Translate(const CStdString &path)
   }
   return path;
 }
+
+CFileItemPtr CDirectory::GetFileItem(const CStdString& strPath)
+{
+  return CFileItemPtr(CFactoryDirectory::Create(strPath)->GetFileItem(strPath));
+}

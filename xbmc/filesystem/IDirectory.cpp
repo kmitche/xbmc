@@ -27,6 +27,7 @@
 #include "URL.h"
 #include "PasswordManager.h"
 #include "utils/URIUtils.h"
+#include "FileItem.h"
 
 using namespace XFILE;
 
@@ -37,6 +38,7 @@ IDirectory::IDirectory(void)
   m_cacheDirectory = DIR_CACHE_NEVER;
   m_useFileDirectories = false;
   m_extFileInfo = true;
+  m_fileItem = NULL;
 }
 
 IDirectory::~IDirectory(void)
@@ -192,4 +194,12 @@ void IDirectory::RequireAuthentication(const CStdString &url)
   m_requirements.clear();
   m_requirements["type"] = "authenticate";
   m_requirements["url"] = url;
+}
+
+CFileItemPtr IDirectory::GetFileItem(const CStdString& strPath)
+{
+  if (!m_fileItem)
+    m_fileItem = new CFileItem(strPath, true);
+
+  return CFileItemPtr(m_fileItem);
 }

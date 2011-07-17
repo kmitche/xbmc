@@ -22,6 +22,7 @@
 
 #include "utils/StdString.h"
 #include "utils/Variant.h"
+#include "FileItem.h"
 
 class CFileItemList;
 
@@ -84,6 +85,13 @@ public:
   virtual bool IsAllowed(const CStdString& strFile) const;
 
   /*!
+  \brief Get a CFileItemPtr for this directory
+  \param strPath Path to directory
+  \return Returns a CFileItemPtr
+  */
+  virtual CFileItemPtr GetFileItem(const CStdString& strPath);
+
+  /*!
   \brief How this directory should be cached
   \param strPath Directory at hand.
   \return Returns the cache type.
@@ -141,6 +149,7 @@ protected:
   DIR_CACHE_TYPE m_cacheDirectory;    ///< If !DIR_CACHE_NEVER the directory is cached by g_directoryCache (defaults to DIR_CACHE_ONCE)
   bool m_useFileDirectories; ///< If true the directory may allow file directories (defaults to false)
   bool m_extFileInfo;       ///< If true the GetDirectory call can retrieve extra file information (defaults to true)
+  CFileItem *m_fileItem;
 
   CVariant m_requirements;
 };
