@@ -23,6 +23,7 @@
 #include "responsepacket.h"
 #include "requestpacket.h"
 #include "vnsicommand.h"
+#include "utils/StdString.h"
 
 extern "C" {
 #include "libTcpSocket/os-dependent_socket.h"
@@ -292,17 +293,18 @@ bool cVNSIData::GetEPGForChannel(PVR_HANDLE handle, const PVR_CHANNEL &channel, 
     EPG_TAG tag;
     memset(&tag, 0 , sizeof(tag));
 
-    tag.iChannelNumber     = channel.iChannelNumber;
-    tag.iUniqueBroadcastId = vresp->extract_U32();
-    tag.startTime          = vresp->extract_U32();
-    tag.endTime            = tag.startTime + vresp->extract_U32();
-    uint32_t content       = vresp->extract_U32();
-    tag.iGenreType         = content & 0xF0;
-    tag.iGenreSubType      = content & 0x0F;
-    tag.iParentalRating    = vresp->extract_U32();
-    tag.strTitle           = vresp->extract_String();
-    tag.strPlotOutline     = vresp->extract_String();
-    tag.strPlot            = vresp->extract_String();
+    tag.iChannelNumber      = channel.iChannelNumber;
+    tag.iUniqueBroadcastId  = vresp->extract_U32();
+    tag.startTime           = vresp->extract_U32();
+    tag.endTime             = tag.startTime + vresp->extract_U32();
+    uint32_t content        = vresp->extract_U32();
+    tag.iGenreType          = content & 0xF0;
+    tag.iGenreSubType       = content & 0x0F;
+    tag.strGenreDescription = "";
+    tag.iParentalRating     = vresp->extract_U32();
+    tag.strTitle            = vresp->extract_String();
+    tag.strPlotOutline      = vresp->extract_String();
+    tag.strPlot             = vresp->extract_String();
 
     PVR->TransferEpgEntry(handle, &tag);
     delete[] tag.strTitle;
@@ -649,6 +651,7 @@ PVR_ERROR cVNSIData::GetRecordingsList(PVR_HANDLE handle)
     return PVR_ERROR_UNKNOWN;
   }
 
+  CStdString strRecordingId;
   while (!vresp->end())
   {
     PVR_RECORDING tag;
@@ -661,7 +664,8 @@ PVR_ERROR cVNSIData::GetRecordingsList(PVR_HANDLE handle)
     tag.strPlotOutline  = vresp->extract_String();
     tag.strPlot         = vresp->extract_String();
     tag.strDirectory    = vresp->extract_String();
-    tag.iClientIndex    = vresp->extract_U32();
+    strRecordingId.Format("%i", vresp->extract_U32());
+    tag.strRecordingId  = strRecordingId.c_str();
     tag.strStreamURL    = "";
 
     PVR->TransferRecordingEntry(handle, &tag);
@@ -688,8 +692,8 @@ PVR_ERROR cVNSIData::RenameRecording(const PVR_RECORDING& recinfo, const char* n
   }
 
   // add uid
-  XBMC->Log(LOG_DEBUG, "%s - uid: %u", __FUNCTION__, recinfo.iClientIndex);
-  if (!vrp.add_U32(recinfo.iClientIndex))
+  XBMC->Log(LOG_DEBUG, "%s - uid: %s", __FUNCTION__, recinfo.strRecordingId);
+  if (!vrp.add_U32(atoi(recinfo.strRecordingId)))
     return PVR_ERROR_UNKNOWN;
 
   // add new title
@@ -721,7 +725,7 @@ PVR_ERROR cVNSIData::DeleteRecording(const PVR_RECORDING& recinfo)
     return PVR_ERROR_UNKNOWN;
   }
 
-  if (!vrp.add_U32(recinfo.iClientIndex))
+  if (!vrp.add_U32(atoi(recinfo.strRecordingId)))
     return PVR_ERROR_UNKNOWN;
 
   cResponsePacket* vresp = ReadResult(&vrp);

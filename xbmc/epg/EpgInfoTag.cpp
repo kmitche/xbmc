@@ -24,6 +24,7 @@
 #include "EpgContainer.h"
 #include "EpgDatabase.h"
 #include "utils/log.h"
+#include "addons/include/xbmc_pvr_types.h"
 
 using namespace std;
 using namespace EPG;
@@ -232,21 +233,36 @@ void CEpgInfoTag::SetPlotOutline(const CStdString &strPlotOutline)
 
 void CEpgInfoTag::SetPlot(const CStdString &strPlot)
 {
-  if (m_strPlot != strPlot)
+
+  CStdString strPlotClean = (m_strPlotOutline.length() > 0 && strPlot.Left(m_strPlotOutline.length()).Equals(m_strPlotOutline)) ?
+    strPlot.Right(strPlot.length() - m_strPlotOutline.length()) :
+    strPlot;
+
+  if (m_strPlot != strPlotClean)
   {
-    m_strPlot = strPlot;
+    m_strPlot = strPlotClean;
     m_bChanged = true;
     UpdatePath();
   }
 }
 
-void CEpgInfoTag::SetGenre(int iID, int iSubID)
+void CEpgInfoTag::SetGenre(int iID, int iSubID, const char* strGenre)
 {
   if (m_iGenreType != iID || m_iGenreSubType != iSubID)
   {
     m_iGenreType    = iID;
     m_iGenreSubType = iSubID;
-    m_strGenre      = CEpg::ConvertGenreIdToString(iID, iSubID);
+    if ((iID == EPG_GENRE_USE_STRING) && (strGenre != NULL) && (strlen(strGenre) > 0))
+    {
+      /* Type and sub type are not given. No EPG color coding possible
+       * Use the provided genre description as backup. */
+      m_strGenre    = strGenre;
+    }
+    else
+    {
+      /* Determine the genre description from the type and subtype IDs */
+      m_strGenre      = CEpg::ConvertGenreIdToString(iID, iSubID);
+    }
     m_bChanged = true;
     UpdatePath();
   }
@@ -384,7 +400,8 @@ bool CEpgInfoTag::Update(const CEpgInfoTag &tag)
       m_iEpisodePart       != tag.m_iEpisodePart ||
       m_iSeriesNumber      != tag.m_iSeriesNumber ||
       m_strEpisodeName     != tag.m_strEpisodeName ||
-      m_iUniqueBroadcastID != tag.m_iUniqueBroadcastID
+      m_iUniqueBroadcastID != tag.m_iUniqueBroadcastID ||
+      ( tag.m_strGenre.length() > 0 && m_strGenre != tag.m_strGenre )
   );
 
   if (bChanged)
@@ -397,7 +414,16 @@ bool CEpgInfoTag::Update(const CEpgInfoTag &tag)
     m_endTime            = tag.m_endTime;
     m_iGenreType         = tag.m_iGenreType;
     m_iGenreSubType      = tag.m_iGenreSubType;
-    m_strGenre           = CEpg::ConvertGenreIdToString(tag.m_iGenreType, tag.m_iGenreSubType);
+    if (m_iGenreType == EPG_GENRE_USE_STRING && tag.m_strGenre.length() > 0)
+    {
+      /* No type/subtype. Use the provided description */
+      m_strGenre         = tag.m_strGenre;
+    }
+    else
+    {
+      /* Determine genre description by type/subtype */
+      m_strGenre         = CEpg::ConvertGenreIdToString(tag.m_iGenreType, tag.m_iGenreSubType);
+    }
     m_firstAired         = tag.m_firstAired;
     m_iParentalRating    = tag.m_iParentalRating;
     m_iStarRating        = tag.m_iStarRating;
@@ -450,4 +476,22 @@ bool CEpgInfoTag::Persist(bool bSingleUpdate /* = true */, bool bLastUpdate /* =
   database->Close();
 
   return bReturn;
+}
+
+float CEpgInfoTag::ProgressPercentage(void) const
+{
+  int fReturn(0);
+  int iDuration;
+  time_t currentTime, startTime, endTime;
+  CDateTime::GetCurrentDateTime().GetAsUTCDateTime().GetAsTime(currentTime);
+  m_startTime.GetAsTime(startTime);
+  m_endTime.GetAsTime(endTime);
+  iDuration = endTime - startTime > 0 ? endTime - startTime : 3600;
+
+  if (currentTime >= startTime && currentTime <= endTime)
+    fReturn = ((float) currentTime - startTime) / iDuration * 100;
+  else if (currentTime > endTime)
+    fReturn = 100;
+
+  return fReturn;
 }

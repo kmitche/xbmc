@@ -229,7 +229,7 @@ namespace EPG
      * @param iID The genre type ID.
      * @param iSubID The genre subtype ID.
      */
-    void SetGenre(int iID, int iSubID);
+    void SetGenre(int iID, int iSubID, const char* strGenre);
 
     /*!
      * @brief Get the first air date of this event.
@@ -385,5 +385,10 @@ namespace EPG
      * @return True if the tag was persisted correctly, false otherwise.
      */
     bool Persist(bool bSingleUpdate = true, bool bLastUpdate = false);
+
+    /*!
+     * @return The current progress of this tag.
+     */
+    float ProgressPercentage(void) const;
   };
 }

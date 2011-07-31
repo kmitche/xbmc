@@ -61,6 +61,7 @@
 #include "utils/log.h"
 #include "utils/Variant.h"
 #include "music/karaoke/karaokelyricsfactory.h"
+#include "ThumbnailCache.h"
 
 using namespace std;
 using namespace XFILE;
@@ -134,6 +135,7 @@ CFileItem::CFileItem(const CVideoInfoTag& movie)
     m_bIsFolder = false;
   }
   *GetVideoInfoTag() = movie;
+  if (movie.m_iSeason == 0) SetProperty("isspecial", "true");
   FillInDefaultIcon();
   SetCachedVideoThumb();
 }
@@ -158,6 +160,14 @@ CFileItem::CFileItem(const CPVREpgInfoTag& tag)
     *GetPVRTimerInfoTag() = *tag.Timer();
   SetLabel(tag.Title());
   m_strLabel2 = tag.Plot();
+  m_dateTime = tag.StartAsLocalTime();
+
+  const CEpgInfoTag *nextTag = tag.GetNextEvent();
+  SetProperty("epg.progress", tag.ProgressPercentage());
+  SetProperty("epg.endtime", tag.EndAsLocalTime().GetAsLocalizedTime("", false));
+  SetProperty("epg.starttime", tag.StartAsLocalTime().GetAsLocalizedTime("", false));
+  SetProperty("epg.duration", tag.GetDuration());
+  SetProperty("epg.next", nextTag ? nextTag->Title() : "");
 
   if (!tag.Icon().IsEmpty())
   {
@@ -185,6 +195,13 @@ CFileItem::CFileItem(const CEpgInfoTag& tag)
   m_strLabel2 = tag.Plot();
   m_dateTime = tag.StartAsLocalTime();
 
+  const CEpgInfoTag *nextTag = tag.GetNextEvent();
+  SetProperty("epg.progress", tag.ProgressPercentage());
+  SetProperty("epg.endtime", tag.EndAsLocalTime().GetAsLocalizedTime("", false));
+  SetProperty("epg.starttime", tag.StartAsLocalTime().GetAsLocalizedTime("", false));
+  SetProperty("epg.duration", tag.GetDuration());
+  SetProperty("epg.next", nextTag ? nextTag->Title() : "");
+
   if (!tag.Icon().IsEmpty())
   {
     SetThumbnailImage(tag.Icon());
@@ -210,6 +227,13 @@ CFileItem::CFileItem(const CPVRChannel& channel)
   *GetPVRChannelInfoTag() = channel;
   SetLabel(channel.ChannelName());
   m_strLabel2 = epgNow ? epgNow->Title() : g_localizeStrings.Get(19055);
+
+  const CEpgInfoTag *nextTag = epgNow ? epgNow->GetNextEvent() : NULL;
+  SetProperty("epg.progress", epgNow ? epgNow->ProgressPercentage() : 0);
+  SetProperty("epg.endtime", epgNow ? epgNow->EndAsLocalTime().GetAsLocalizedTime("", false) : "");
+  SetProperty("epg.starttime", epgNow ? epgNow->StartAsLocalTime().GetAsLocalizedTime("", false) : "");
+  SetProperty("epg.duration", epgNow ? epgNow->GetDuration() : 0);
+  SetProperty("epg.next", nextTag ? nextTag->Title() : "");
 
   if (channel.IsRadio() && epgNow)
   {
@@ -1269,21 +1293,17 @@ void CFileItem::FillInDefaultIcon()
 
 CStdString CFileItem::GetCachedArtistThumb() const
 {
-  return GetCachedThumb("artist"+GetLabel(),g_settings.GetMusicArtistThumbFolder());
+  return CThumbnailCache::GetArtistThumb(*this);
 }
 
 CStdString CFileItem::GetCachedSeasonThumb() const
 {
-  CStdString seasonPath;
-  if (HasVideoInfoTag())
-    seasonPath = GetVideoInfoTag()->m_strPath;
-
-  return GetCachedThumb("season"+seasonPath+GetLabel(),g_settings.GetVideoThumbFolder(),true);
+  return CThumbnailCache::GetSeasonThumb(*this);
 }
 
 CStdString CFileItem::GetCachedActorThumb() const
 {
-  return GetCachedThumb("actor"+GetLabel(),g_settings.GetVideoThumbFolder(),true);
+  return CThumbnailCache::GetActorThumb(*this);
 }
 
 void CFileItem::SetCachedArtistThumb()
@@ -2736,7 +2756,7 @@ CStdString CFileItem::GetPreviouslyCachedMusicThumb() const
   if (!strAlbum.IsEmpty() && !strArtist.IsEmpty())
   {
     // try permanent album thumb using "album name + artist name"
-    CStdString thumb(CUtil::GetCachedAlbumThumb(strAlbum, strArtist));
+    CStdString thumb(CThumbnailCache::GetAlbumThumb(strAlbum, strArtist));
     if (CFile::Exists(thumb))
       return thumb;
   }
@@ -2745,7 +2765,7 @@ CStdString CFileItem::GetPreviouslyCachedMusicThumb() const
   if (!m_bIsFolder)
   {
     // look for locally cached tbn
-    CStdString thumb(CUtil::GetCachedMusicThumb(m_strPath));
+    CStdString thumb(CThumbnailCache::GetMusicThumb(m_strPath));
     if (CFile::Exists(thumb))
       return thumb;
   }
@@ -2759,7 +2779,7 @@ CStdString CFileItem::GetPreviouslyCachedMusicThumb() const
   // music thumbs are cached without slash at end
   URIUtils::RemoveSlashAtEnd(strPath);
 
-  CStdString thumb(CUtil::GetCachedMusicThumb(strPath));
+  CStdString thumb(CThumbnailCache::GetMusicThumb(strPath));
   if (CFile::Exists(thumb))
     return thumb;
 
@@ -2819,7 +2839,7 @@ void CFileItem::SetUserMusicThumb(bool alwaysCheckRemote /* = false */)
   CStdString thumb(GetUserMusicThumb(alwaysCheckRemote));
   if (!thumb.IsEmpty())
   {
-    CStdString cachedThumb(CUtil::GetCachedMusicThumb(m_strPath));
+    CStdString cachedThumb(CThumbnailCache::GetMusicThumb(m_strPath));
     CPicture::CreateThumbnail(thumb, cachedThumb);
   }
 
@@ -2828,24 +2848,12 @@ void CFileItem::SetUserMusicThumb(bool alwaysCheckRemote /* = false */)
 
 CStdString CFileItem::GetCachedVideoThumb() const
 {
-  if (IsStack())
-    return GetCachedThumb(CStackDirectory::GetFirstStackedFile(m_strPath),g_settings.GetVideoThumbFolder(),true);
-  else if (IsVideoDb() && HasVideoInfoTag())
-  {
-    if (m_bIsFolder && !GetVideoInfoTag()->m_strPath.IsEmpty())
-      return GetCachedThumb(GetVideoInfoTag()->m_strPath, g_settings.GetVideoThumbFolder(), true);
-    else if (!GetVideoInfoTag()->m_strFileNameAndPath.IsEmpty())
-      return GetCachedThumb(GetVideoInfoTag()->m_strFileNameAndPath, g_settings.GetVideoThumbFolder(), true);
-  }
-  return GetCachedThumb(m_strPath,g_settings.GetVideoThumbFolder(),true);
+  return CThumbnailCache::GetVideoThumb(*this);
 }
 
 CStdString CFileItem::GetCachedEpisodeThumb() const
 {
-  // get the locally cached thumb
-  CStdString strCRC;
-  strCRC.Format("%sepisode%i",GetVideoInfoTag()->m_strFileNameAndPath.c_str(),GetVideoInfoTag()->m_iEpisode);
-  return GetCachedThumb(strCRC,g_settings.GetVideoThumbFolder(),true);
+  return CThumbnailCache::GetEpisodeThumb(*this);
 }
 
 void CFileItem::SetCachedVideoThumb()
@@ -3142,47 +3150,12 @@ CStdString CFileItem::GetLocalFanart() const
 
 CStdString CFileItem::GetCachedFanart() const
 {
-  // get the locally cached thumb
-  if (IsVideoDb())
-  {
-    if (!HasVideoInfoTag())
-      return "";
-    if (!GetVideoInfoTag()->m_strArtist.IsEmpty())
-      return GetCachedThumb(GetVideoInfoTag()->m_strArtist,g_settings.GetMusicFanartFolder());
-    if (!m_bIsFolder && !GetVideoInfoTag()->m_strShowTitle.IsEmpty())
-    {
-      CVideoDatabase database;
-      database.Open();
-      int iShowId = database.GetTvShowId(GetVideoInfoTag()->m_strPath);
-      CStdString showPath;
-      database.GetFilePathById(iShowId,showPath,VIDEODB_CONTENT_TVSHOWS);
-      return GetCachedThumb(showPath,g_settings.GetVideoFanartFolder());
-    }
-    return GetCachedThumb(m_bIsFolder ? GetVideoInfoTag()->m_strPath : GetVideoInfoTag()->m_strFileNameAndPath,g_settings.GetVideoFanartFolder());
-  }
-  if (HasMusicInfoTag())
-    return GetCachedThumb(GetMusicInfoTag()->GetArtist(),g_settings.GetMusicFanartFolder());
-
-  return GetCachedThumb(m_strPath,g_settings.GetVideoFanartFolder());
+  return CThumbnailCache::GetFanart(*this);
 }
 
 CStdString CFileItem::GetCachedThumb(const CStdString &path, const CStdString &path2, bool split)
 {
-  // get the locally cached thumb
-  Crc32 crc;
-  crc.ComputeFromLowerCase(path);
-
-  CStdString thumb;
-  if (split)
-  {
-    CStdString hex;
-    hex.Format("%08x", (__int32)crc);
-    thumb.Format("%c\\%08x.tbn", hex[0], (unsigned __int32)crc);
-  }
-  else
-    thumb.Format("%08x.tbn", (unsigned __int32)crc);
-
-  return URIUtils::AddFileToFolder(path2, thumb);
+  return CThumbnailCache::GetThumb(path, path2, split);
 }
 
 /*void CFileItem::SetThumb()

@@ -19,6 +19,7 @@
  *
  */
 
+#include "threads/SystemClock.h"
 #include "utils/AutoPtrHandle.h"
 #include "FileCache.h"
 #include "threads/Thread.h"
@@ -41,20 +42,20 @@ class CWriteRate
 public:
   CWriteRate()
   {
-    m_stamp = CTimeUtils::GetTimeMS();
+    m_stamp = XbmcThreads::SystemClockMillis();
     m_pos   = 0;
     m_pause = 0;
   }
 
   void Reset(int64_t pos)
   {
-    m_stamp = CTimeUtils::GetTimeMS();
+    m_stamp = XbmcThreads::SystemClockMillis();
     m_pos   = pos;
   }
 
   unsigned Rate(int64_t pos, unsigned int time_bias = 0)
   {
-    const unsigned ts = CTimeUtils::GetTimeMS() + time_bias;
+    const unsigned ts = XbmcThreads::SystemClockMillis() + time_bias;
     if(ts == m_stamp)
       return 0;
     return (unsigned)(1000 * (pos - m_pos) / (ts - m_stamp));
@@ -62,12 +63,12 @@ public:
 
   void Pause()
   {
-    m_pause = CTimeUtils::GetTimeMS();
+    m_pause = XbmcThreads::SystemClockMillis();
   }
 
   void Resume()
   {
-    m_stamp += CTimeUtils::GetTimeMS() - m_pause;
+    m_stamp += XbmcThreads::SystemClockMillis() - m_pause;
     m_pause  = 0;
   }
 
@@ -243,11 +244,8 @@ void CFileCache::Process()
       CLog::Log(LOGINFO, "CFileCache::Process - Hit eof.");
       m_pCache->EndOfInput();
 
-      // since there is no more to read - wait either for seek or close
-      // WaitForSingleObject is CThread::WaitForSingleObject that will also listen to the
-      // end thread event.
-      int nRet = CThread::WaitForSingleObject(m_seekEvent.GetHandle(), INFINITE);
-      if (nRet == WAIT_OBJECT_0)
+      // The thread event will now also cause the wait of an event to return a false.
+      if (AbortableWait(m_seekEvent) == WAIT_SIGNALED)
       {
         m_pCache->ClearEndOfInput();
         m_seekEvent.Set(); // hack so that later we realize seek is needed

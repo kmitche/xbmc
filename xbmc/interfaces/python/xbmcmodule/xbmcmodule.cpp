@@ -52,6 +52,10 @@
 #include "guilib/LocalizeStrings.h"
 #include "utils/FileUtils.h"
 #include "pythreadstate.h"
+#include "utils/log.h"
+#include "utils/Weather.h"
+#include "guilib/GUIFontManager.h"
+#include "filesystem/Directory.h"
 
 // include for constants
 #include "pyutil.h"
@@ -60,12 +64,6 @@
 using namespace std;
 using namespace XFILE;
 
-#ifndef __GNUC__
-#pragma code_seg("PY_TEXT")
-#pragma data_seg("PY_DATA")
-#pragma bss_seg("PY_BSS")
-#pragma const_seg("PY_RDATA")
-#endif
 
 #if defined(__GNUG__) && (__GNUC__>4) || (__GNUC__==4 && __GNUC_MINOR__>=2)
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
@@ -80,53 +78,6 @@ namespace PYXBMC
 /*****************************************************************
  * start of xbmc methods
  *****************************************************************/
-
-  // output() method
-  PyDoc_STRVAR(output__doc__,
-    "output(msg[, level]) -- Write a string to XBMC's log file and the debug window.\n"
-    "\n"
-    "msg            : string - text to output.\n"
-    "level          : [opt] integer - log level to ouput at. (default=LOGNOTICE)\n"
-    "\n"
-    "*Note, You can use the above as keywords for arguments and skip certain optional arguments.\n"
-    "       Once you use a keyword, all following arguments require the keyword.\n"
-    "\n"
-    "       Text is written to the log for the following conditions.\n"
-    "         XBMC loglevel == -1 (NONE, nothing at all is logged)"
-    "         XBMC loglevel == 0 (NORMAL, shows LOGNOTICE, LOGERROR, LOGSEVERE and LOGFATAL)"
-    "         XBMC loglevel == 1 (DEBUG, shows all)"
-    "       See pydocs for valid values for level.\n"
-    "\n"
-    "example:\n"
-    "  - xbmc.output(msg='This is a test string.', level=xbmc.LOGDEBUG)\n");
-
-  PyObject* XBMC_Output(PyObject *self, PyObject *args, PyObject *kwds)
-  {
-    static const char *keywords[] = {
-      "msg",
-      "level",
-      NULL};
-
-    char *s_line = NULL;
-    int iLevel = LOGNOTICE;
-    if (!PyArg_ParseTupleAndKeywords(
-      args,
-      kwds,
-      (char*)"s|i",
-      (char**)keywords,
-      &s_line,
-      &iLevel))
-    {
-      return NULL;
-    }
-    // check for a valid loglevel
-    if (iLevel < LOGDEBUG || iLevel > LOGNONE)
-      iLevel = LOGNOTICE;
-    CLog::Log(iLevel, "%s", s_line);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-  }
 
   // log() method
   PyDoc_STRVAR(log__doc__,
@@ -176,6 +127,17 @@ namespace PYXBMC
     return Py_None;
   }
 
+  // output() method
+  PyDoc_STRVAR(output__doc__,
+               "'xbmc.output()' is depreciated and will be removed in future releases,\n"
+               "please use 'xbmc.log()' instead");
+  
+  PyObject* XBMC_Output(PyObject *self, PyObject *args, PyObject *kwds)
+  {
+    CLog::Log(LOGWARNING,"'xbmc.output()' is depreciated and will be removed in future releases, please use 'xbmc.log()' instead");
+    return XBMC_Log(self, args, kwds);
+  }
+  
   // shutdown() method
   PyDoc_STRVAR(shutdown__doc__,
     "shutdown() -- Shutdown the xbox.\n"
@@ -186,22 +148,6 @@ namespace PYXBMC
   PyObject* XBMC_Shutdown(PyObject *self, PyObject *args)
   {
     ThreadMessage tMsg = {TMSG_SHUTDOWN};
-    g_application.getApplicationMessenger().SendMessage(tMsg);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-  }
-
-  // dashboard() method
-  PyDoc_STRVAR(dashboard__doc__,
-    "dashboard() -- Boot to dashboard as set in My Pograms/General.\n"
-    "\n"
-    "example:\n"
-    "  - xbmc.dashboard()\n");
-
-  PyObject* XBMC_Dashboard(PyObject *self, PyObject *args)
-  {
-    ThreadMessage tMsg = {TMSG_DASHBOARD};
     g_application.getApplicationMessenger().SendMessage(tMsg);
 
     Py_INCREF(Py_None);
@@ -950,12 +896,12 @@ namespace PYXBMC
   }
   
   PyDoc_STRVAR(subHashAndFileSize__doc__,
-    "subHashAndFileSize(file)\n"
+    "subHashAndFileSize(file) -- Calculate subtitle hash and size.\n"
     "\n"
-    "file        : file to calculate subtitle hash and size for"
+    "file        : file to calculate subtitle hash and size for\n"
     "\n"
     "example:\n"
-    " size,hash = xbmcvfs.subHashAndFileSize(file)\n"); 
+    " - size,hash = xbmcvfs.subHashAndFileSize(file)\n"); 
   PyObject* XBMC_subHashAndFileSize(PyObject *self, PyObject *args, PyObject *kwds)
   {
     PyObject *f_line;
@@ -979,6 +925,56 @@ namespace PYXBMC
     return Py_BuildValue((char*)"ss",strSize.c_str(), strHash.c_str());
   } 
 
+  // getcleanmovietitle function
+  PyDoc_STRVAR(setLanguage__doc__,
+    "setLanguage(language)\n"
+    "\n"
+    "language       : string or unicode - Language string\n"
+    "\n"
+    "example:\n"
+    "  xbmc.setLanguage('English')");
+
+  PyObject* XBMC_SetLanguage(PyObject *self, PyObject *args)
+  {
+    char *cLine = NULL;
+    if (!PyArg_ParseTuple(args, (char*)"s", &cLine)) return NULL;
+    CStdString strLanguage = cLine;
+    CFileItemList items;
+    CDirectory::GetDirectory("special://xbmc/language/", items);
+    for (int i = 0; i < items.Size(); ++i)
+    {	
+      CFileItemPtr pItem = items[i];
+      if (pItem->m_bIsFolder && (strcmpi(pItem->GetLabel().c_str(), strLanguage.c_str()) == 0))
+      {
+        CStdString strLangInfoPath;
+        strLangInfoPath.Format("special://xbmc/language/%s/langinfo.xml", strLanguage.c_str());
+        g_langInfo.Load(strLangInfoPath);
+				
+        if (g_langInfo.ForceUnicodeFont() && !g_fontManager.IsFontSetUnicode())
+        {
+          CLog::Log(LOGINFO, "Language needs a ttf font, loading first ttf font available");
+          CStdString strFontSet;
+          if (g_fontManager.GetFirstFontSetUnicode(strFontSet))
+            strLanguage = strFontSet;
+          else
+            CLog::Log(LOGERROR, "No ttf font found but needed: %s", strFontSet.c_str());
+        }
+        g_guiSettings.SetString("locale.language", strLanguage);
+				
+        g_charsetConverter.reset();
+				
+        CStdString strLanguagePath;
+        strLanguagePath.Format("special://xbmc/language/%s/strings.xml", strLanguage.c_str());
+        g_localizeStrings.Load(strLanguagePath);
+        g_weatherManager.Refresh();
+
+        g_application.getApplicationMessenger().ExecBuiltIn("ReloadSkin");
+      }
+    }
+		Py_INCREF(Py_None);
+    return Py_None;
+	}	
+	
   // define c functions to be used in python here
   PyMethodDef xbmcMethods[] = {
     {(char*)"output", (PyCFunction)XBMC_Output, METH_VARARGS|METH_KEYWORDS, output__doc__},
@@ -988,7 +984,6 @@ namespace PYXBMC
 
     {(char*)"sleep", (PyCFunction)XBMC_Sleep, METH_VARARGS, sleep__doc__},
     {(char*)"shutdown", (PyCFunction)XBMC_Shutdown, METH_VARARGS, shutdown__doc__},
-    {(char*)"dashboard", (PyCFunction)XBMC_Dashboard, METH_VARARGS, dashboard__doc__},
     {(char*)"restart", (PyCFunction)XBMC_Restart, METH_VARARGS, restart__doc__},
     {(char*)"getSkinDir", (PyCFunction)XBMC_GetSkinDir, METH_VARARGS, getSkinDir__doc__},
     {(char*)"getLocalizedString", (PyCFunction)XBMC_GetLocalizedString, METH_VARARGS, getLocalizedString__doc__},
@@ -1027,6 +1022,8 @@ namespace PYXBMC
     {(char*)"skinHasImage", (PyCFunction)XBMC_SkinHasImage, METH_VARARGS|METH_KEYWORDS, skinHasImage__doc__},
     {(char*)"subHashAndFileSize", (PyCFunction)XBMC_subHashAndFileSize, METH_VARARGS, subHashAndFileSize__doc__},
 
+    {(char*)"setLanguage", (PyCFunction)XBMC_SetLanguage, METH_VARARGS, setLanguage__doc__},	  
+	  
     {NULL, NULL, 0, NULL}
   };
 
