@@ -379,7 +379,6 @@
     <ClCompile Include="..\..\xbmc\guilib\GUIBaseContainer.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIBorderedImage.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIButtonControl.cpp" />
-    <ClCompile Include="..\..\xbmc\guilib\GUIButtonScroller.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUICheckMarkControl.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIColorManager.cpp" />
     <ClCompile Include="..\..\xbmc\guilib\GUIControl.cpp" />
@@ -470,6 +469,7 @@
     <ClCompile Include="..\..\xbmc\interfaces\Builtins.cpp" />
     <ClCompile Include="..\..\xbmc\interfaces\http-api\HttpApi.cpp" />
     <ClCompile Include="..\..\xbmc\interfaces\http-api\XBMChttp.cpp" />
+    <ClCompile Include="..\..\xbmc\interfaces\info\InfoBool.cpp" />
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\AudioLibrary.cpp" />
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\AVPlayerOperations.cpp" />
     <ClCompile Include="..\..\xbmc\interfaces\json-rpc\AVPlaylistOperations.cpp" />
@@ -783,6 +783,7 @@
     <ClCompile Include="..\..\xbmc\threads\Event.cpp" />
     <ClCompile Include="..\..\xbmc\threads\LockFree.cpp" />
     <ClCompile Include="..\..\xbmc\threads\platform\Implementation.cpp" />
+    <ClCompile Include="..\..\xbmc\threads\platform\win\FairMonitor.cpp" />
     <ClCompile Include="..\..\xbmc\threads\SystemClock.cpp" />
     <ClCompile Include="..\..\xbmc\threads\Thread.cpp" />
     <ClCompile Include="..\..\xbmc\ThumbLoader.cpp" />
@@ -842,6 +843,7 @@
     <ClCompile Include="..\..\xbmc\utils\StringUtils.cpp" />
     <ClCompile Include="..\..\xbmc\utils\SystemInfo.cpp" />
     <ClCompile Include="..\..\xbmc\utils\TextSearch.cpp" />
+    <ClCompile Include="..\..\xbmc\utils\TimeSmoother.cpp" />
     <ClCompile Include="..\..\xbmc\utils\TimeUtils.cpp" />
     <ClCompile Include="..\..\xbmc\utils\TuxBoxUtil.cpp" />
     <ClCompile Include="..\..\xbmc\utils\URIUtils.cpp" />
@@ -1340,7 +1342,6 @@
     <ClInclude Include="..\..\xbmc\guilib\GUIBaseContainer.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIBorderedImage.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIButtonControl.h" />
-    <ClInclude Include="..\..\xbmc\guilib\GUIButtonScroller.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUICallback.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUICheckMarkControl.h" />
     <ClInclude Include="..\..\xbmc\guilib\GUIColorManager.h" />
@@ -1444,6 +1445,7 @@
     <ClInclude Include="..\..\xbmc\interfaces\http-api\HttpApi.h" />
     <ClInclude Include="..\..\xbmc\interfaces\http-api\XBMChttp.h" />
     <ClInclude Include="..\..\xbmc\interfaces\IAnnouncer.h" />
+    <ClInclude Include="..\..\xbmc\interfaces\info\InfoBool.h" />
     <ClInclude Include="..\..\xbmc\interfaces\json-rpc\AudioLibrary.h" />
     <ClInclude Include="..\..\xbmc\interfaces\json-rpc\AVPlayerOperations.h" />
     <ClInclude Include="..\..\xbmc\interfaces\json-rpc\AVPlaylistOperations.h" />
@@ -1748,6 +1750,7 @@
     <ClInclude Include="..\..\xbmc\utils\StringUtils.h" />
     <ClInclude Include="..\..\xbmc\utils\SystemInfo.h" />
     <ClInclude Include="..\..\xbmc\utils\TextSearch.h" />
+    <ClInclude Include="..\..\xbmc\utils\TimeSmoother.h" />
     <ClInclude Include="..\..\xbmc\utils\TimeUtils.h" />
     <ClInclude Include="..\..\xbmc\utils\TuxBoxUtil.h" />
     <ClInclude Include="..\..\xbmc\utils\URIUtils.h" />

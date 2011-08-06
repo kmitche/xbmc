@@ -3602,9 +3602,21 @@ void CVideoDatabase::UpdateBasePathID(const char *table, const char *id, int col
   m_pDS2->close();
 }
 
-bool CVideoDatabase::GetPlayCounts(CFileItemList &items)
+bool CVideoDatabase::GetPlayCounts(const CStdString &strPath, CFileItemList &items)
 {
-  int pathID = GetPathId(items.m_strPath);
+  if(URIUtils::IsMultiPath(strPath))
+  {
+    vector<CStdString> paths;
+    CMultiPathDirectory::GetPaths(strPath, paths);
+
+    bool ret = false;
+    for(unsigned i=0;i<paths.size();i++)
+      ret |= GetPlayCounts(paths[i], items);
+
+    return ret;
+  }
+
+  int pathID = GetPathId(strPath);
   if (pathID < 0)
     return false; // path (and thus files) aren't in the database
 
@@ -3623,7 +3635,7 @@ bool CVideoDatabase::GetPlayCounts(CFileItemList &items)
     while (!m_pDS->eof())
     {
       CStdString path;
-      ConstructPath(path, items.m_strPath, m_pDS->fv(0).get_asString());
+      ConstructPath(path, strPath, m_pDS->fv(0).get_asString());
       CFileItemPtr item = items.Get(path);
       if (item)
         item->GetVideoInfoTag()->m_playCount = m_pDS->fv(1).get_asInt();
@@ -4808,7 +4820,10 @@ bool CVideoDatabase::GetTvShowsByWhere(const CStdString& strBaseDir, const CStdS
       int numSeasons = m_pDS->fv(VIDEODB_DETAILS_TVSHOW_NUM_SEASONS).get_asInt();
 
       CVideoInfoTag movie = GetDetailsForTvShow(m_pDS, false);
-      if (!g_advancedSettings.m_bVideoLibraryHideEmptySeries || movie.m_iEpisode > 0)
+      if ((g_settings.GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE ||
+           g_passwordManager.bMasterUser                                     ||
+           g_passwordManager.IsDatabasePathUnlocked(movie.m_strPath, g_settings.m_videoSources)) &&
+          (!g_advancedSettings.m_bVideoLibraryHideEmptySeries || movie.m_iEpisode > 0))
       {
         CFileItemPtr pItem(new CFileItem(movie));
         pItem->m_strPath.Format("%s%ld/", strBaseDir.c_str(), idShow);
@@ -5084,16 +5099,20 @@ bool CVideoDatabase::GetEpisodesByWhere(const CStdString& strBaseDir, const CStd
       int idShow = m_pDS->fv("idShow").get_asInt();
 
       CVideoInfoTag movie = GetDetailsForEpisode(m_pDS);
-      CFileItemPtr pItem(new CFileItem(movie));
-      if (appendFullShowPath)
-        pItem->m_strPath.Format("%s%ld/%ld/%ld",strBaseDir.c_str(), idShow, movie.m_iSeason,idEpisode);
-      else
-        pItem->m_strPath.Format("%s%ld",strBaseDir.c_str(), idEpisode);
-      pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED,movie.m_playCount > 0);
-      pItem->m_dateTime.SetFromDateString(movie.m_strFirstAired);
-      pItem->GetVideoInfoTag()->m_iYear = pItem->m_dateTime.GetYear();
-      items.Add(pItem);
-
+      if (g_settings.GetMasterProfile().getLockMode() == LOCK_MODE_EVERYONE ||
+          g_passwordManager.bMasterUser                                     ||
+          g_passwordManager.IsDatabasePathUnlocked(movie.m_strPath, g_settings.m_videoSources))
+      {
+        CFileItemPtr pItem(new CFileItem(movie));
+        if (appendFullShowPath)
+          pItem->m_strPath.Format("%s%ld/%ld/%ld",strBaseDir.c_str(), idShow, movie.m_iSeason,idEpisode);
+        else
+          pItem->m_strPath.Format("%s%ld",strBaseDir.c_str(), idEpisode);
+        pItem->SetOverlayImage(CGUIListItem::ICON_OVERLAY_UNWATCHED,movie.m_playCount > 0);
+        pItem->m_dateTime.SetFromDateString(movie.m_strFirstAired);
+        pItem->GetVideoInfoTag()->m_iYear = pItem->m_dateTime.GetYear();
+        items.Add(pItem);
+      }
       m_pDS->next();
     }
 
@@ -7823,52 +7842,20 @@ void CVideoDatabase::AnnounceUpdate(std::string content, int id)
   ANNOUNCEMENT::CAnnouncementManager::Announce(ANNOUNCEMENT::VideoLibrary, "xbmc", "OnUpdate", data);
 }
 
-bool CVideoDatabase::GetItemForPath(const CStdString &content, const CStdString &strPath, CFileItem &item)
-{
-  CFileItemList items;
-  CStdString path(strPath);
-
-  if(URIUtils::IsMultiPath(path))
-    path = CMultiPathDirectory::GetFirstPath(path);
-
-  if (content == "movies")
-  {
-    CStdString where = PrepareSQL("where c%02d='%s' limit 1", VIDEODB_ID_BASEPATH, path.c_str());
-    GetMoviesByWhere("", where, "", items);
-  }
-  else if (content == "episodes")
-  {
-    CStdString where = PrepareSQL("where c%02d='%s' limit 1", VIDEODB_ID_EPISODE_BASEPATH, path.c_str());
-    GetEpisodesByWhere("", where, items);
-  }
-  else if (content == "tvshows")
-  {
-    CStdString where = PrepareSQL("where c%02d='%s' limit 1", VIDEODB_ID_TV_BASEPATH, path.c_str());
-    GetTvShowsByWhere("", where, items);
-  }
-  else if (content == "musicvideos")
-  {
-    CStdString where = PrepareSQL("where c%02d='%s' limit 1", VIDEODB_ID_MUSICVIDEO_BASEPATH, path.c_str());
-    GetMusicVideosByWhere("", where, items);
-  }
-  if (items.Size())
-  {
-    item = *items[0];
-    if (item.m_bIsFolder)
-      item.m_strPath = item.GetVideoInfoTag()->m_strPath;
-    else
-      item.m_strPath = item.GetVideoInfoTag()->m_strFileNameAndPath;
-    return true;
-  }
-  return false;
-}
-
 bool CVideoDatabase::GetItemsForPath(const CStdString &content, const CStdString &strPath, CFileItemList &items)
 {
   CStdString path(strPath);
   
   if(URIUtils::IsMultiPath(path))
-    path = CMultiPathDirectory::GetFirstPath(path);
+  {
+    vector<CStdString> paths;
+    CMultiPathDirectory::GetPaths(path, paths);
+
+    for(unsigned i=0;i<paths.size();i++)
+      GetItemsForPath(content, paths[i], items);
+
+    return items.Size() > 0;
+  }
   
   int pathID = GetPathId(path);
   if (pathID < 0)

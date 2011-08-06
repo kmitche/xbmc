@@ -402,6 +402,11 @@ namespace PVR
      */
     void SaveCurrentChannelSettings(void);
 
+    /*!
+     * @brief Load the settings for the current channel from the database.
+     */
+    void LoadCurrentChannelSettings(void);
+
   protected:
     /*!
      * @brief PVR update and control thread.
@@ -489,11 +494,6 @@ namespace PVR
     bool StartUpdateThreads(void);
 
     /*!
-     * @brief Load the settings for the current channel from the database.
-     */
-    void LoadCurrentChannelSettings(void);
-
-    /*!
      * @brief Continue playback on the last channel if it was stored in the database.
      * @return True if playback was continued, false otherwise.
      */
@@ -534,6 +534,8 @@ namespace PVR
     CCriticalSection                m_critSection;                 /*!< critical section for all changes to this class, except for changes to triggers */
     bool                            m_bFirstStart;                 /*!< true when the PVR manager was started first, false otherwise */
     bool                            m_bLoaded;                     /*!< true if the pvrmanager has been loaded and can be used */
+    bool                            m_bIsStopping;                 /*!< true while the pvrmanager is being unloaded */
+    bool                            m_bIsSwitchingChannels;        /*!< true while switching channels */
     CGUIDialogExtendedProgressBar * m_loadingProgressDialog;       /*!< progress dialog that is displayed while the pvrmanager is loading */
     CPVRChannelGroup *              m_currentRadioGroup;           /*!< the currently selected radio channel group list */
     CPVRChannelGroup *              m_currentTVGroup;              /*!< the currently selected TV channel group list */
