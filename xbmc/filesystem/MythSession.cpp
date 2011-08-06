@@ -153,6 +153,7 @@ void CMythSession::SetFileItemMetaData(CFileItem &item, cmyth_proginfo_t program
    * Set the VideoInfoTag meta-data so it matches the FileItem meta-data where possible.
    */
   CVideoInfoTag* tag      = item.GetVideoInfoTag();
+  tag->m_strPath          = item.m_strPath;
   tag->m_strTitle         = subtitle; // The title is just supposed to be the episode title.
   tag->m_strShowTitle     = title;
   tag->m_strOriginalTitle = title;
@@ -180,6 +181,11 @@ void CMythSession::SetFileItemMetaData(CFileItem &item, cmyth_proginfo_t program
   if (originalairdate != "1970-01-01"
   &&  originalairdate != "1969-12-31")
     tag->m_strFirstAired = originalairdate;
+
+  /*
+   * Setting the premiered date to the actual recorded date time.
+   */
+  tag->m_strPremiered = GetValue(m_dll->proginfo_start(program)).GetAsDBDate();
 
   /*
    * Video sort title is the raw title with the date appended on the end in a sortable format so

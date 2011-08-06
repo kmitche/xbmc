@@ -280,9 +280,7 @@ namespace VIDEO
       }
       else
       {
-        CFileItemPtr item(new CFileItem(URIUtils::GetFileName(strDirectory)));
-        item->SetPath(strDirectory);
-        item->m_bIsFolder = true;
+        CFileItemPtr item(CDirectory::GetFileItem(strDirectory));
         items.Add(item);
         items.SetPath(URIUtils::GetParentPath(item->GetPath()));
       }
@@ -488,8 +486,28 @@ namespace VIDEO
     int retVal = 0;
     if (pURL)
       url = *pURL;
-    else if ((retVal = FindVideo(pItem->GetMovieName(bDirNames), info2, url, pDlgProgress)) <= 0)
-      return retVal < 0 ? INFO_CANCELLED : INFO_NOT_FOUND;
+    else
+    {
+      retVal = FindVideo(pItem->GetMovieName(bDirNames), info2, url, pDlgProgress);
+      if (retVal == 0 && pItem->m_bIsFolder)
+      {
+        /*
+         * If the scraper didn't find a match, but the folder has a VideoInfoTag with a Title then
+         * add the TV Show to the library.
+         */
+        if (pItem->HasVideoInfoTag() && !pItem->GetVideoInfoTag()->m_strTitle.IsEmpty()) {
+          long lResult;
+          if ((lResult = AddVideo(pItem.get(), info2->Content())) < 0)
+            return INFO_ERROR;
+          INFO_RET ret = RetrieveInfoForEpisodes(pItem, lResult, info2, useLocal, pDlgProgress);
+          if (ret == INFO_ADDED)
+            m_database.SetPathHash(pItem->m_strPath, pItem->GetProperty("hash"));
+          return ret;
+        }
+      }
+      if (retVal <= 0)
+        return retVal < 0 ? INFO_CANCELLED : INFO_NOT_FOUND;
+    }
 
     long lResult=-1;
     if (GetDetails(pItem.get(), url, info2, result == CNfoFile::COMBINED_NFO ? &m_nfoReader : NULL, pDlgProgress))
@@ -747,82 +765,58 @@ namespace VIDEO
 
     CVideoInfoTag* tag = item->GetVideoInfoTag();
     /*
-     * First check the season and episode number. This takes precedence over the original air
-     * date and episode title. Must be a valid season and episode number combination.
+     * Put in all the valid information from the tag into the episode and the let the scanner
+     * update the XBMC library as best it can. Default the season and episode to -1 to force lookup
+     * using original air date or title if there isn't a valid season or episode number known.
      */
-    if (tag->m_iSeason > -1 && tag->m_iEpisode > 0)
+    SEpisode episode;
+    episode.strPath = item->m_strPath;
+    episode.tag = *tag;
+    episode.iSeason = -1;
+    episode.iEpisode = -1;
+
+    bool bValid = false;
+
+    if (tag->m_iSeason > -1 && tag->m_iEpisode > 0) // A valid season and episode number is already known.
     {
-      SEpisode episode;
-      episode.strPath = item->GetPath();
       episode.iSeason = tag->m_iSeason;
       episode.iEpisode = tag->m_iEpisode;
-      episode.isFolder = false;
-      episodeList.push_back(episode);
-      CLog::Log(LOGDEBUG, "%s - found match for: %s. Season %d, Episode %d", __FUNCTION__,
+      bValid = true;
+      CLog::Log(LOGDEBUG, "%s - found valid match for: '%s', season: %d, episode: %d", __FUNCTION__,
                 episode.strPath.c_str(), episode.iSeason, episode.iEpisode);
-      return true;
     }
-
-    /*
-     * Next preference is the first aired date. If it exists use that for matching the TV Show
-     * information. Also set the title in case there are multiple matches for the first aired date.
-     */
-    if (!tag->m_strFirstAired.IsEmpty())
+    if (!tag->m_strFirstAired.IsEmpty()) // Can match on first aired date if that's all there is.
     {
-      SEpisode episode;
-      episode.strPath = item->GetPath();
-      episode.strTitle = tag->m_strTitle;
-      episode.isFolder = false;
-      /*
-       * Set season and episode to -1 to indicate to use the aired date.
-       */
-      episode.iSeason = -1;
-      episode.iEpisode = -1;
-      /*
-       * The first aired date string must be parseable.
-       */
-      episode.cDate.SetFromDateString(item->GetVideoInfoTag()->m_strFirstAired);
-      episodeList.push_back(episode);
-      CLog::Log(LOGDEBUG, "%s - found match for: '%s', firstAired: '%s' = '%s', title: '%s'",
+      episode.cDate.SetFromDateString(item->GetVideoInfoTag()->m_strFirstAired); // First aired date string must be parseable
+      bValid = true;
+      CLog::Log(LOGDEBUG, "%s - found valid match for: '%s', firstAired: '%s' = '%s'",
                 __FUNCTION__, episode.strPath.c_str(), tag->m_strFirstAired.c_str(),
-                episode.cDate.GetAsLocalizedDate().c_str(), episode.strTitle.c_str());
-      return true;
+                episode.cDate.GetAsLocalizedDate().c_str());
     }
-
-    /*
-     * Next preference is the episode title. If it exists use that for matching the TV Show
-     * information.
-     */
-    if (!tag->m_strTitle.IsEmpty())
+    if (!tag->m_strTitle.IsEmpty()) // Can match on title if that's all there is.
     {
-      SEpisode episode;
-      episode.strPath = item->GetPath();
       episode.strTitle = tag->m_strTitle;
-      episode.isFolder = false;
-      /*
-       * Set season and episode to -1 to indicate to use the title.
-       */
-      episode.iSeason = -1;
-      episode.iEpisode = -1;
-      episodeList.push_back(episode);
-      CLog::Log(LOGDEBUG,"%s - found match for: '%s', title: '%s'", __FUNCTION__,
+      bValid = true;
+      CLog::Log(LOGDEBUG,"%s - found valid match for: '%s', title: '%s'", __FUNCTION__,
                 episode.strPath.c_str(), episode.strTitle.c_str());
-      return true;
     }
-
     /*
-     * There is no further episode information available if both the season and episode number have
-     * been set to 0. Return the match as true so no further matching is attempted, but don't add it
-     * to the episode list.
+     * If a valid piece of information has not been found, and both the season and episode number
+     * have been set to 0 then the VideoInfoTag contains all the information that is available.
+     *
+     * Don't set the episode and season number though as they are not truly valid.
      */
-    if (tag->m_iSeason == 0 && tag->m_iEpisode == 0)
+    if (!bValid && tag->m_iSeason == 0 && tag->m_iEpisode == 0)
     {
-      CLog::Log(LOGDEBUG,"%s - found exclusion match for: %s. Both Season and Episode are 0. Item will be ignored for scanning.",
-                __FUNCTION__, item->GetPath().c_str());
-      return true;
+      bValid = true;
+      CLog::Log(LOGDEBUG,"%s - found default match for: %s. Both season and episode are 0.",
+                __FUNCTION__, item->m_strPath.c_str());
     }
 
-    return false;
+    if (bValid)
+      episodeList.push_back(episode);
+
+    return bValid;
   }
 
   bool CVideoInfoScanner::EnumerateEpisodeItem(const CFileItemPtr item, EPISODES& episodeList)
@@ -1261,7 +1255,7 @@ namespace VIDEO
         }
       }
 
-      if (episodes.empty())
+      if (episodes.empty() && file->tag.IsEmpty()) // No hope of getting into the library.
       {
         CLog::Log(LOGERROR, "VideoInfoScanner: Asked to lookup episode %s"
                             " online, but we have no episode guide. Check your tvshow.nfo and make"
@@ -1352,9 +1346,59 @@ namespace VIDEO
       }
       else
       {
-        CLog::Log(LOGDEBUG,"%s - no match for show: '%s', season: %d, episode: %d, airdate: '%s', title: '%s'",
-                  __FUNCTION__, strShowTitle.c_str(), file->iSeason, file->iEpisode,
-                  file->cDate.GetAsLocalizedDate().c_str(), file->strTitle.c_str());
+        /*
+         * If a scraper match was not found but the tag is not empty then add the VideoInfoTag
+         * information directly into the library.
+         */
+        if (!file->tag.IsEmpty())
+        {
+          *item.GetVideoInfoTag() = file->tag;
+
+          /*
+           * If there was no match for a scraper then the season and episode number won't have been
+           * set. Set the season to 0 (Special) and the Episode to 1 so other parts of XBMC still
+           * consider it to be a TVSHOW.
+           */
+          item.GetVideoInfoTag()->m_iSeason = 0;
+          item.GetVideoInfoTag()->m_iEpisode = 1;
+
+          /*
+           * If no original air date has been set, then copy over the premiered date on the assumption
+           * that it was a recorded TV Show that was not matched by a scraper.
+           */
+          if (item.GetVideoInfoTag()->m_strFirstAired.IsEmpty()
+          && !item.GetVideoInfoTag()->m_strPremiered.IsEmpty())
+            item.GetVideoInfoTag()->m_strFirstAired = item.GetVideoInfoTag()->m_strPremiered;
+
+          /*
+           * If no title has been set, then use the show title and the air date. Code within
+           * XBMC uses a m_strTitle.IsEmpty() check to determine if an episode is valid so this is
+           * the easiest way, rather than altering the GUIInfoManager to return a sensible string
+           * at runtime if the title is empty.
+           */
+          if (item.GetVideoInfoTag()->m_strTitle.IsEmpty())
+          {
+            item.GetVideoInfoTag()->m_strTitle = strShowTitle;
+            if (!item.GetVideoInfoTag()->m_strPremiered.IsEmpty())
+              item.GetVideoInfoTag()->m_strTitle += " (" + item.GetVideoInfoTag()->m_strPremiered + ")";
+          }
+
+          if (m_pObserver)
+          {
+            CStdString strTitle;
+            strTitle.Format("%s - %s", strShowTitle.c_str(), item.GetVideoInfoTag()->m_strTitle.c_str());
+            m_pObserver->OnSetTitle(strTitle);
+          }
+
+          CLog::Log(LOGDEBUG,"%s - no scraper match for show: '%s', title: '%s'. Using VideoInfoTag information for the library.",
+                    __FUNCTION__, strShowTitle.c_str(), item.GetVideoInfoTag()->m_strTitle.c_str());
+          if (AddVideo(&item, CONTENT_TVSHOWS, idShow) < 0)
+            return INFO_ERROR;
+        }
+        else
+          CLog::Log(LOGDEBUG,"%s - no scraper match for show: '%s', season: %d, episode: %d, airdate: '%s', title: '%s'",
+                    __FUNCTION__, strShowTitle.c_str(), file->iSeason, file->iEpisode,
+                    file->cDate.GetAsLocalizedDate().c_str(), file->strTitle.c_str());
       }
     }
     if (g_guiSettings.GetBool("videolibrary.seasonthumbs"))

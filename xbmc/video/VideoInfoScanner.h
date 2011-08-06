@@ -48,6 +48,7 @@ namespace VIDEO
     int iEpisode;
     bool isFolder;
     CDateTime cDate;
+    CVideoInfoTag tag;
   } SEpisode;
 
   typedef std::vector<SEpisode> EPISODES;
