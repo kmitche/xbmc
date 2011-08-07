@@ -94,12 +94,12 @@
   <string id="117">Delete</string>
   <string id="118">Rename</string>
   <string id="119">New folder</string>
-  <string id="120">Confirm file copy</string>
-  <string id="121">Confirm file move</string>
-  <string id="122">Confirm file delete?</string>
+  <string id="120">Copy file?</string>
+  <string id="121">Move file?</string>
+  <string id="122">Delete file? Permanent!</string>
   <string id="123">Copy these files?</string>
   <string id="124">Move these files?</string>
-  <string id="125">Delete these files? - Deleting files cannot be undone!</string>
+  <string id="125">Delete these files? Permanent!</string>
   <string id="126">Status</string>
   <string id="127">Objects</string>
   <string id="128">General</string>
@@ -275,28 +275,28 @@
   <string id="306">Non-interleaved</string>
 
   <string id="312">(0=auto)</string>
-  <string id="313">Cleaning database</string>
+  <string id="313">Removing missing content</string>
   <string id="314">Preparing...</string>
   <string id="315">Database error</string>
   <string id="316">Searching songs...</string>
-  <string id="317">Cleaned database successfully</string>
-  <string id="318">Cleaning songs...</string>
-  <string id="319">Error cleaning songs</string>
-  <string id="320">Cleaning artists...</string>
-  <string id="321">Error cleaning artists</string>
-  <string id="322">Cleaning genres...</string>
-  <string id="323">Error cleaning genres</string>
-  <string id="324">Cleaning paths...</string>
-  <string id="325">Error cleaning paths</string>
-  <string id="326">Cleaning albums...</string>
-  <string id="327">Error cleaning albums</string>
-  <string id="328">Writing changes...</string>
-  <string id="329">Error writing changes</string>
+  <string id="317">Missing content removed from library</string>
+  <string id="318">Removing missing songs...</string>
+  <string id="319">Error removing songs</string>
+  <string id="320">Removing artists no longer referenced...</string>
+  <string id="321">Error removing artists</string>
+  <string id="322">Removing genres no longer referenced...</string>
+  <string id="323">Error removing genres</string>
+  <string id="324">Removing content locations no longer referenced...</string>
+  <string id="325">Error removing content locations</string>
+  <string id="326">Removing albums no longer referenced...</string>
+  <string id="327">Error removing albums</string>
+  <string id="328">Updating library...</string>
+  <string id="329">Error updating library</string>
   <string id="330">This may take some time...</string>
-  <string id="331">Compressing database...</string>
-  <string id="332">Error compressing database</string>
-  <string id="333">Do you want to clean the library?</string>
-  <string id="334">Clean library...</string>
+  <string id="331">Compressing library...</string>
+  <string id="332">Error compressing library</string>
+  <string id="333">Remove missing content?</string>
+  <string id="334">Remove missing content from library...</string>
   <string id="335">Start</string>
   <string id="336">Framerate conversion</string>
   <string id="337">Audio output</string>
@@ -391,7 +391,7 @@
   <string id="430">Sort by: DVD#</string>
   <string id="431">No cache</string>
   <string id="432">Remove movie from library</string>
-  <string id="433">Really remove '%s'?</string>
+  <string id="433">Remove '%s'?</string>
   <string id="434">From %s at %i %s</string> <!--From <wind dir.> at <speed> <unit>-->
 
   <string id="437">Removable disk</string>
@@ -535,7 +535,7 @@
   <string id="585">Descending</string>
   <string id="586">Edit playlist</string>
   <string id="587">Filter</string>
-  <string id="588">Cancel party mode</string>
+  <string id="588">Exit party mode</string>
   <string id="589">Party mode</string>
   <string id="590">Random</string>
   <string id="591">Off</string>
@@ -576,14 +576,14 @@
   <string id="635">Original Size</string>
   <string id="636">Custom</string>
   <string id="637">Replay gain</string>
-  <string id="638">Replaygain volume adjustments</string>
+  <string id="638">Replay gain volume adjustments</string>
   <string id="639">Use track levels</string>
   <string id="640">Use album levels</string>
-  <string id="641">PreAmp Level - Replay gained files</string>
-  <string id="642">PreAmp Level - Non replay gained files</string>
+  <string id="641">Pre-amp Level - Replay gained files</string>
+  <string id="642">Pre-amp Level - Non replay gained files</string>
   <string id="643">Avoid clipping on replay gained files</string>
   <string id="644">Crop black bars</string>
-  <string id="645">Need to unpack a big file. Continue?</string>
+  <string id="645">Need to unpack a large file. Continue?</string>
   <string id="646">Remove from library</string>
   <string id="647">Export video library</string>
   <string id="648">Import video library</string>
@@ -591,7 +591,7 @@
   <string id="650">Exporting</string>
   <string id="651">Browse for library</string>
   <string id="652">Years</string>
-  <string id="653">Update library</string>
+  <string id="653">Scan for new content</string>
   <string id="654">Show debug info</string>
   <string id="655">Browse for executable</string>
   <string id="656">Browse for playlist</string>
@@ -602,12 +602,12 @@
   <string id="660">Volume amplification</string>
   <string id="661">Choose export folder</string>
   <string id="662">This file is no longer available.</string>
-  <string id="663">Would you like to remove it from the library?</string>
+  <string id="663">Remove it from the library?</string>
   <string id="664">Browse for Script</string>
   <string id="665">Compression level</string>
 
-  <string id="700">Cleaning up library</string>
-  <string id="701">Removing old songs from the library</string>
+  <string id="700">Removing missing content</string>
+  <string id="701">Removing missing songs</string>
   <string id="702">This path has been scanned before</string>
   <string id="705">Network</string>
   <string id="706">- Server</string>
@@ -615,7 +615,7 @@
   <string id="708">Use an HTTP proxy server to access the internet</string>
 
   <string id="711">Internet Protocol (IP)</string>
-  <string id="712">Invalid port specified. Value must be between 1 and 65535.</string>
+  <string id="712">Invalid port specified. Must be between 1 and 65535.</string>
   <string id="713">HTTP proxy</string>
 
   <string id="715">- Assignment</string>
@@ -627,7 +627,7 @@
   <string id="721">- Default gateway</string>
   <string id="722">- DNS server</string>
   <string id="723">Save &amp; restart</string>
-  <string id="724">Invalid address specified. Value must be AAA.BBB.CCC.DDD</string>
+  <string id="724">Invalid address specified. Must be formated as AAA.BBB.CCC.DDD</string>
   <string id="725">with numbers between 0 and 255.</string>
   <string id="726">Changes not saved. Continue without saving?</string>
   <string id="727">Web server</string>
@@ -687,16 +687,16 @@
   <string id="782">WPA</string>
   <string id="783">WPA2</string>
   <string id="784">Applying network interface settings. Please wait.</string>
-  <string id="785">Network interface restarted successfully.</string>
-  <string id="786">Network interface did not start successfully.</string>
+  <string id="785">Network interface restarted.</string>
+  <string id="786">Network interface did not start.</string>
   <string id="787">Interface disabled</string>
-  <string id="788">Network interface disabled successfully.</string>
+  <string id="788">Network interface disabled.</string>
   <string id="789">Wireless network name (ESSID)</string>
 
   <string id="791">Allow programs on this system to control XBMC</string>
   <string id="792">Port</string>
   <string id="793">Port range</string>
-  <string id="794">Allow programs on other systems to control XBMC</string>
+  <string id="794">Allow programs on other devices to control XBMC</string>
   <string id="795">Initial repeat delay (ms)</string>
   <string id="796">Continuous repeat delay (ms)</string>
   <string id="797">Maximum number of clients</string>
@@ -710,7 +710,7 @@
   <string id="999">Add Videos...</string>
   <string id="1000">- Preview</string>
   <string id="1001">Unable to connect</string>
-  <string id="1002">XBMC was unable to connect to the network location.</string>
+  <string id="1002">Unable to connect to the network location.</string>
   <string id="1003">This could be due to the network not being connected.</string>
   <string id="1004">Would you like to add it anyway?</string>
 
@@ -801,7 +801,7 @@
   <string id="1254">Ask to connect</string>
   <string id="1255">Send FTP user and password</string>
   <string id="1256">Ping interval</string>
-  <string id="1257">Would you like to connect to the auto-detected system?</string>
+  <string id="1257">Connect to the auto-detected system?</string>
 
   <string id="1260">Announce these services to other systems via Zeroconf</string>
 
@@ -1007,7 +1007,7 @@
   <string id="13020">Is another session active, perhaps over ssh?</string>
   <string id="13021">Mounted removable harddrive</string>
   <string id="13022">Unsafe device removal</string>
-  <string id="13023">Successfully removed device</string>
+  <string id="13023">Device removed</string>
   <string id="13024">Joystick plugged</string>
   <string id="13025">Joystick unplugged</string>
 
@@ -1022,7 +1022,7 @@
   <string id="13108">Always enabled</string>
   <string id="13109">Test &amp; apply resolution</string>
   <string id="13110">Save resolution?</string>
-  <string id="13111">Would you like to keep this resolution?</string>
+  <string id="13111">Keep this resolution?</string>
 
   <string id="13112">High quality upscaling</string>
   <string id="13113">Disabled</string>
@@ -1042,13 +1042,13 @@
   <string id="13132">Blank displays</string>
 
   <string id="13140">Active connections detected!</string>
-  <string id="13141">If you proceed, you might not be able to control XBMC</string>
-  <string id="13142">any longer. Are you sure you want to stop the Event server?</string>
+  <string id="13141">If you continue, you might not be able to control XBMC</string>
+  <string id="13142">any longer. Continue to stop the Event server?</string>
 
   <string id="13144">Change Apple Remote mode?</string>
   <string id="13145">If you are currently using the Apple Remote to control</string>
   <string id="13146">XBMC, changing this setting might affect your ability</string>
-  <string id="13147">to continue controlling it. Do you want to proceed?</string>
+  <string id="13147">to continue controlling it. Continue?</string>
 
   <string id="13159">Subnet mask</string>
   <string id="13160">Gateway</string>
@@ -1116,7 +1116,7 @@
   <string id="13305">Show RSS news feeds</string>
   <string id="13306">Show parent folder items</string>
   <string id="13307">Track naming template</string>
-  <string id="13308">Do you wish to reboot your system</string>
+  <string id="13308">Reboot your system</string>
   <string id="13309">instead of just XBMC?</string>
   <string id="13310">Zoom effect</string>
   <string id="13311">Float effect</string>
@@ -1237,7 +1237,7 @@
   <string id="13506">Low(fast)</string>
   <string id="13507">Medium</string>
   <string id="13508">High</string>
-  <string id="13509">Really high(slow!)</string>
+  <string id="13509">Really high (slow!)</string>
   <string id="13510">Sync playback to display</string>
 
   <string id="13550">Pause during refresh rate change</string>
@@ -1441,8 +1441,8 @@
   <string id="15294">Tracks recently banned by %name%</string>
   <string id="15295">Remove from loved tracks</string>
   <string id="15296">Un-ban</string>
-  <string id="15297">Do you want to remove this track from your loved tracks?</string>
-  <string id="15298">Do you want to un-ban this track?</string>
+  <string id="15297">Remove this track from your loved tracks?</string>
+  <string id="15298">Un-ban this track?</string>
 
   <string id="15300">Path not found or invalid</string>
   <string id="15301">Could not connect to network server</string>
@@ -1543,7 +1543,7 @@
 
   <string id="20011">Music playlists</string>
   <string id="20012">Video playlists</string>
-  <string id="20013">Do you wish to launch the game?</string>
+  <string id="20013">Launch the game?</string>
   <string id="20014">Sort by: Playlist</string>
   <string id="20015">Remote thumb</string>
   <string id="20016">Current thumb</string>
@@ -1642,7 +1642,7 @@
   <string id="20116">Use lock on login screen</string>
   <string id="20117">Invalid lock code.</string>
   <string id="20118">This requires the master lock to be set.</string>
-  <string id="20119">Would you like to set it now?</string>
+  <string id="20119">Set the master lock now?</string>
   <string id="20120">Loading program information</string>
   <string id="20121">Party on!</string>
   <string id="20122">True</string>
@@ -1657,7 +1657,7 @@
   <string id="20132">Restart video</string>
   <string id="20133">Edit network location</string>
   <string id="20134">Remove network location</string>
-  <string id="20135">Do you want to scan the folder?</string>
+  <string id="20135">Scan the folder?</string>
   <string id="20136">Memory unit</string>
   <string id="20137">Memory unit mounted</string>
   <string id="20138">Unable to mount memory unit</string>
@@ -1739,7 +1739,7 @@
   <string id="20300">Web server directory (HTTP)</string>
   <string id="20301">Web server directory (HTTPS)</string>
   <string id="20302">Unable to write to folder:</string>
-  <string id="20303">Do you want to skip and proceed?</string>
+  <string id="20303">Skip and proceed?</string>
   <string id="20304">RSS Feed</string>
 
   <string id="20307">Secondary DNS</string>
@@ -1769,8 +1769,8 @@
   <string id="20337">Actor</string>
   <string id="20338">Movie</string>
   <string id="20339">Director</string>
-  <string id="20340">Do you want to remove all items within</string>
-  <string id="20341">this path from the XBMC library?</string>
+  <string id="20340">Remove all content in this</string>
+  <string id="20341">location from the library?</string>
   <string id="20342">Movies</string>
   <string id="20343">TV shows</string>
   <string id="20344">This directory contains</string>
@@ -1873,8 +1873,8 @@
   <string id="20440">Current fanart</string>
   <string id="20441">Remote fanart</string>
   <string id="20442">Change content</string>
-  <string id="20443">Do you want to refresh info for all</string>
-  <string id="20444">items within this path?</string>
+  <string id="20443">Refresh info for all</string>
+  <string id="20444">content in this location?</string>
   <string id="20445">Fanart</string>
   <string id="20446">Locally stored information found.</string>
   <string id="20447">Ignore and refresh from internet?</string>
@@ -1895,7 +1895,7 @@
   <string id="21332">WARNING: Target TuxBox device is in recording-mode!</string>
   <string id="21333">The stream will be stopped!</string>
   <string id="21334">Zap to channel: %s failed!</string>
-  <string id="21335">Are you sure to start the stream?</string>
+  <string id="21335">Start the stream?</string>
   <string id="21336">Connecting to: %s</string>
   <string id="21337">TuxBox device</string>
   <!-- up to 21355 is reserved for the TuxBox Client!! !-->
@@ -2073,8 +2073,8 @@
 
   <!-- strings 21900 thru 21999 reserved for slideshow info -->
 
-  <string id="22000">Update library on startup</string>
-  <string id="22001">Hide progress of library updates</string>
+  <string id="22000">Scan for new content on startup</string>
+  <string id="22001">Scan for new content in the background</string>
   <string id="22002">- DNS suffix</string>
 
   <string id="22003">%2.3fs</string>
@@ -2291,7 +2291,7 @@
   <string id="33078">Next page</string>
   <string id="33079">Love</string>
   <string id="33080">Hate</string>
-  <string id="33081">This file is stacked, select the part you want to play from.</string>
+  <string id="33081">This file is stacked, select the part to play from.</string>
   <string id="33082">Path to script</string>
   <string id="33083">Enable custom script button</string>
 
