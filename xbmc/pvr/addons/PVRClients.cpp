@@ -44,6 +44,7 @@
 using namespace std;
 using namespace ADDON;
 using namespace PVR;
+using namespace EPG;
 
 CPVRClients::CPVRClients(void) :
     CThread("PVR add-on updater"),
@@ -526,7 +527,11 @@ bool CPVRClients::SwitchChannel(const CPVRChannel &channel)
     return bReturn;
   }
 
-  if (m_currentChannel && m_currentChannel->ClientID() != channel.ClientID())
+  if (m_currentChannel && (
+      /* different client add-on */
+      m_currentChannel->ClientID() != channel.ClientID() ||
+      /* switch from radio -> tv or tv -> radio */
+      m_currentChannel->IsRadio() != channel.IsRadio()))
   {
     lock.Leave();
     CloseStream();
@@ -831,7 +836,7 @@ bool CPVRClients::HasEPGSupport(int iClientId)
   return IsConnectedClient(iClientId) && m_clientMap[iClientId]->GetAddonCapabilities().bSupportsEPG;
 }
 
-bool CPVRClients::GetEPGForChannel(const CPVRChannel &channel, CPVREpg *epg, time_t start, time_t end, PVR_ERROR *error)
+bool CPVRClients::GetEPGForChannel(const CPVRChannel &channel, CEpg *epg, time_t start, time_t end, PVR_ERROR *error)
 {
   *error = PVR_ERROR_UNKNOWN;
   boost::shared_ptr<CPVRClient> client;

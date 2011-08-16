@@ -33,7 +33,7 @@
 #include "pvr/windows/GUIWindowPVR.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/timers/PVRTimers.h"
-#include "pvr/epg/PVREpgContainer.h"
+#include "epg/EpgContainer.h"
 #include "settings/GUISettings.h"
 #include "settings/Settings.h"
 #include "storage/MediaManager.h"
@@ -41,6 +41,7 @@
 #include "threads/SingleLock.h"
 
 using namespace PVR;
+using namespace EPG;
 
 CGUIWindowPVRChannels::CGUIWindowPVRChannels(CGUIWindowPVR *parent, bool bRadio) :
   CGUIWindowPVRCommon(parent,
@@ -55,7 +56,7 @@ CGUIWindowPVRChannels::CGUIWindowPVRChannels(CGUIWindowPVR *parent, bool bRadio)
 
 CGUIWindowPVRChannels::~CGUIWindowPVRChannels(void)
 {
-  g_PVREpg->UnregisterObserver(this);
+  g_EpgContainer.UnregisterObserver(this);
   g_PVRTimers->UnregisterObserver(this);
   g_infoManager.UnregisterObserver(this);
 }
@@ -63,7 +64,7 @@ CGUIWindowPVRChannels::~CGUIWindowPVRChannels(void)
 void CGUIWindowPVRChannels::ResetObservers(void)
 {
   CSingleLock lock(m_critSection);
-  g_PVREpg->RegisterObserver(this);
+  g_EpgContainer.RegisterObserver(this);
   g_PVRTimers->RegisterObserver(this);
   g_infoManager.RegisterObserver(this);
 }
@@ -74,7 +75,7 @@ void CGUIWindowPVRChannels::GetContextButtons(int itemNumber, CContextButtons &b
     return;
   CFileItemPtr pItem = m_parent->m_vecItems->Get(itemNumber);
 
-  if (pItem->m_strPath == "pvr://channels/.add.channel")
+  if (pItem->GetPath() == "pvr://channels/.add.channel")
   {
     /* If yes show only "New Channel" on context menu */
     buttons.Add(CONTEXT_BUTTON_ADD, 19046);                                           /* add new channel */
@@ -178,7 +179,7 @@ void CGUIWindowPVRChannels::UpdateData(void)
   m_bIsFocusing = true;
   m_bUpdateRequired = false;
 
-  g_PVREpg->RegisterObserver(this);
+  g_EpgContainer.RegisterObserver(this);
   g_PVRTimers->RegisterObserver(this);
 
   /* lock the graphics context while updating */
@@ -193,11 +194,13 @@ void CGUIWindowPVRChannels::UpdateData(void)
   if (!currentGroup)
     return;
 
-  m_parent->m_vecItems->m_strPath.Format("pvr://channels/%s/%s/",
+  CStdString strPath;
+  strPath.Format("pvr://channels/%s/%s/",
       m_bRadio ? "radio" : "tv",
       m_bShowHiddenChannels ? ".hidden" : currentGroup->GroupName());
 
-  m_parent->Update(m_parent->m_vecItems->m_strPath);
+  m_parent->m_vecItems->SetPath(strPath);
+  m_parent->Update(m_parent->m_vecItems->GetPath());
 
   /* empty list */
   if (m_parent->m_vecItems->Size() == 0)

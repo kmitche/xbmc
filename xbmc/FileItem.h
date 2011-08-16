@@ -48,7 +48,6 @@ namespace EPG
 }
 namespace PVR
 {
-  class CPVREpgInfoTag;
   class CPVRChannel;
   class CPVRRecording;
   class CPVRTimerInfoTag;
@@ -85,7 +84,6 @@ public:
   CFileItem(const CArtist& artist);
   CFileItem(const CGenre& genre);
   CFileItem(const CVideoInfoTag& movie);
-  CFileItem(const PVR::CPVREpgInfoTag& tag);
   CFileItem(const EPG::CEpgInfoTag& tag);
   CFileItem(const PVR::CPVRChannel& channel);
   CFileItem(const PVR::CPVRRecording& record);
@@ -93,6 +91,9 @@ public:
   CFileItem(const CMediaSource& share);
   virtual ~CFileItem(void);
   virtual CGUIListItem *Clone() const { return new CFileItem(*this); };
+
+  const CStdString &GetPath() const { return m_strPath; };
+  void SetPath(const CStdString &path) { m_strPath = path; };
 
   void Reset();
   const CFileItem& operator=(const CFileItem& item);
@@ -115,6 +116,7 @@ public:
   bool IsPythonScript() const;
   bool IsXBE() const;
   bool IsPlugin() const;
+  bool IsScript() const;
   bool IsAddonsPath() const;
   bool IsShortCut() const;
   bool IsNFO() const;
@@ -350,7 +352,6 @@ private:
   CStdString GetPreviouslyCachedMusicThumb() const;
 
 public:
-  CStdString m_strPath;            ///< complete path to item
   bool m_bIsShareOrDrive;    ///< is this a root share/drive
   int m_iDriveType;     ///< If \e m_bIsShareOrDrive is \e true, use to get the share type. Types see: CMediaSource::m_iDriveType
   CDateTime m_dateTime;             ///< file creation date & time
@@ -365,7 +366,9 @@ public:
   CStdString m_strLockCode;
   int m_iHasLock; // 0 - no lock 1 - lock, but unlocked 2 - locked
   int m_iBadPwdCount;
+
 private:
+  CStdString m_strPath;            ///< complete path to item
 
   SPECIAL_SORT m_specialSort;
   bool m_bIsParentFolder;
@@ -468,7 +471,14 @@ public:
   void SetFastLookup(bool fastLookup);
   bool Contains(const CStdString& fileName) const;
   bool GetFastLookup() const { return m_fastLookup; };
-  void Stack();
+
+  /*! \brief stack a CFileItemList
+   By default we stack all items (files and folders) in a CFileItemList
+   \param stackFiles whether to stack all items or just collapse folders (defaults to true)
+   \sa StackFiles,StackFolders
+   */
+  void Stack(bool stackFiles = true);
+
   SORT_ORDER GetSortOrder() const { return m_sortOrder; }
   SORT_METHOD GetSortMethod() const { return m_sortMethod; }
   /*! \brief load a CFileItemList out of the cache
@@ -541,6 +551,18 @@ private:
   void Sort(FILEITEMLISTCOMPARISONFUNC func);
   void FillSortFields(FILEITEMFILLFUNC func);
   CStdString GetDiscCacheFile(int windowID) const;
+
+  /*!
+   \brief stack files in a CFileItemList
+   \sa Stack
+   */
+  void StackFiles();
+
+  /*!
+   \brief stack folders in a CFileItemList
+   \sa Stack
+   */
+  void StackFolders();
 
   VECFILEITEMS m_items;
   MAPFILEITEMS m_map;

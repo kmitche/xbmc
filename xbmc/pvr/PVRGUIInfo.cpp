@@ -31,7 +31,7 @@
 #include "pvr/timers/PVRTimers.h"
 #include "pvr/recordings/PVRRecordings.h"
 #include "pvr/channels/PVRChannel.h"
-#include "pvr/epg/PVREpgInfoTag.h"
+#include "epg/EpgInfoTag.h"
 #include "settings/AdvancedSettings.h"
 
 using namespace PVR;
@@ -199,6 +199,8 @@ void CPVRGUIInfo::Process(void)
 
     Sleep(1000);
   }
+
+  ResetPlayingTag();
 }
 
 void CPVRGUIInfo::UpdateQualityData(void)
@@ -684,6 +686,13 @@ int CPVRGUIInfo::GetStartTime(void) const
   {
     return 0;
   }
+}
+
+void CPVRGUIInfo::ResetPlayingTag(void)
+{
+  CSingleLock lock(m_critSection);
+
+  m_playingEpgTag = NULL;
 }
 
 void CPVRGUIInfo::UpdatePlayingTag(void)

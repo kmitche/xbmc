@@ -29,7 +29,7 @@
 
 #include "addons/include/xbmc_pvr_types.h"
 #include "pvr/PVRManager.h"
-#include "pvr/epg/PVREpgSearchFilter.h"
+#include "epg/EpgSearchFilter.h"
 #include "pvr/channels/PVRChannelGroupsContainer.h"
 
 using namespace std;
@@ -104,13 +104,13 @@ void CGUIDialogPVRGuideSearch::UpdateGroupsSpin(void)
   /* tv groups */
   g_PVRChannelGroups->GetTV()->GetGroupList(&groups);
   for (int iGroupPtr = 0; iGroupPtr < groups.Size(); iGroupPtr++)
-    pSpin->AddLabel(groups[iGroupPtr]->GetLabel(), atoi(groups[iGroupPtr]->m_strPath));
+    pSpin->AddLabel(groups[iGroupPtr]->GetLabel(), atoi(groups[iGroupPtr]->GetPath()));
 
   /* radio groups */
   groups.ClearItems();
   g_PVRChannelGroups->GetRadio()->GetGroupList(&groups);
   for (int iGroupPtr = 0; iGroupPtr < groups.Size(); iGroupPtr++)
-    pSpin->AddLabel(groups[iGroupPtr]->GetLabel(), atoi(groups[iGroupPtr]->m_strPath));
+    pSpin->AddLabel(groups[iGroupPtr]->GetLabel(), atoi(groups[iGroupPtr]->GetPath()));
 
   pSpin->SetValue(m_searchFilter->m_iChannelGroup);
 }

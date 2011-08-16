@@ -339,13 +339,7 @@ void CGUIWindow::Close_Internal(bool forceClose /*= false*/, int nextWindowID /*
     return;
 
   forceClose |= (nextWindowID == WINDOW_FULLSCREEN_VIDEO);
-  if (forceClose)
-  {
-    CGUIMessage msg(GUI_MSG_WINDOW_DEINIT, 0, 0);
-    OnMessage(msg);
-    m_closing = false;
-  }
-  else if (m_active && !m_closing)
+  if (!forceClose && m_active && !m_closing && HasAnimation(ANIM_TYPE_WINDOW_CLOSE))
   {
     if (enableSound && IsSoundEnabled())
       g_audioManager.PlayWindowSound(GetID(), SOUND_DEINIT);
@@ -354,15 +348,21 @@ void CGUIWindow::Close_Internal(bool forceClose /*= false*/, int nextWindowID /*
     QueueAnimation(ANIM_TYPE_WINDOW_CLOSE);
     m_closing = true;
   }
+  else
+  {
+    CGUIMessage msg(GUI_MSG_WINDOW_DEINIT, 0, 0);
+    OnMessage(msg);
+    m_closing = false;
+  }
 }
 
-void CGUIWindow::Close(bool forceClose /*= false*/, int nextWindowID /*= 0*/, bool enableSound /*= true*/)
+void CGUIWindow::Close(bool forceClose /*= false*/, int nextWindowID /*= 0*/, bool enableSound /*= true*/, bool bWait /* = true */)
 {
   if (!g_application.IsCurrentThread())
   {
     // make sure graphics lock is not held
     CSingleExit leaveIt(g_graphicsContext);
-    g_application.getApplicationMessenger().Close(this, forceClose, true, nextWindowID, enableSound);
+    g_application.getApplicationMessenger().Close(this, forceClose, bWait, nextWindowID, enableSound);
   }
   else
     Close_Internal(forceClose, nextWindowID, enableSound);
@@ -389,10 +389,8 @@ bool CGUIWindow::OnAction(const CAction &action)
 
   // default implementations
   if (action.GetID() == ACTION_NAV_BACK || action.GetID() == ACTION_PREVIOUS_MENU)
-  {
-    g_windowManager.PreviousWindow();
-    return true;
-  }
+    return OnBack(action.GetID());
+
   return false;
 }
 
@@ -789,6 +787,12 @@ void CGUIWindow::ResetControlStates()
   m_lastControlID = 0;
   m_focusedControl = 0;
   m_controlStates.clear();
+}
+
+bool CGUIWindow::OnBack(int actionID)
+{
+  g_windowManager.PreviousWindow();
+  return true;
 }
 
 bool CGUIWindow::OnMove(int fromControl, int moveAction)

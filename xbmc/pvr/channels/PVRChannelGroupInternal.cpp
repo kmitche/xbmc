@@ -28,11 +28,12 @@
 #include "PVRChannelGroupsContainer.h"
 #include "pvr/PVRDatabase.h"
 #include "pvr/PVRManager.h"
-#include "pvr/epg/PVREpg.h"
+#include "epg/EpgContainer.h"
 #include "pvr/timers/PVRTimers.h"
 #include "pvr/addons/PVRClients.h"
 
 using namespace PVR;
+using namespace EPG;
 
 CPVRChannelGroupInternal::CPVRChannelGroupInternal(bool bRadio) :
   CPVRChannelGroup(bRadio)
@@ -46,6 +47,7 @@ int CPVRChannelGroupInternal::Load(void)
 {
   int iChannelCount = CPVRChannelGroup::Load();
   UpdateChannelPaths();
+  CreateChannelEpgs();
 
   return iChannelCount;
 }
@@ -413,7 +415,7 @@ bool CPVRChannelGroupInternal::Persist(void)
   return bReturn;
 }
 
-bool CPVRChannelGroupInternal::CreateChannelEpgs(void)
+bool CPVRChannelGroupInternal::CreateChannelEpgs(bool bForce /* = false */)
 {
   CSingleLock lock(m_critSection);
   for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
@@ -422,9 +424,7 @@ bool CPVRChannelGroupInternal::CreateChannelEpgs(void)
     if (!channel)
       continue;
 
-    CPVREpg *epg = channel->GetEPG();
-    if (epg)
-      epg->SetChannel(channel);
+    channel->CreateEPG(bForce);
   }
   lock.Leave();
 

@@ -343,7 +343,7 @@ bool CDVDPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
 {
   try
   {
-    CLog::Log(LOGNOTICE, "DVDPlayer: Opening: %s", file.m_strPath.c_str());
+    CLog::Log(LOGNOTICE, "DVDPlayer: Opening: %s", file.GetPath().c_str());
 
     // if playing a file close it first
     // this has to be changed so we won't have to close it.
@@ -359,7 +359,7 @@ bool CDVDPlayer::OpenFile(const CFileItem& file, const CPlayerOptions &options)
     m_PlayerOptions = options;
     m_item     = file;
     m_mimetype  = file.GetMimeType();
-    m_filename = file.m_strPath;
+    m_filename = file.GetPath();
     m_scanStart = 0;
 
     m_ready.Reset();
@@ -2236,7 +2236,7 @@ void CDVDPlayer::HandleMessages()
         }else
         {
           CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-          g_application.getApplicationMessenger().MediaStop();
+          g_application.getApplicationMessenger().MediaStop(false);
         }
       }
       else if (pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_SELECT) && m_messenger.GetPacketCount(CDVDMsg::PLAYER_CHANNEL_SELECT) == 0)
@@ -2249,7 +2249,7 @@ void CDVDPlayer::HandleMessages()
         }else
         {
           CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-          g_application.getApplicationMessenger().MediaStop();
+          g_application.getApplicationMessenger().MediaStop(false);
         }
       }
       else if (pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_NEXT) || pMsg->IsType(CDVDMsg::PLAYER_CHANNEL_PREV))
@@ -2289,7 +2289,7 @@ void CDVDPlayer::HandleMessages()
           else
           {
             CLog::Log(LOGWARNING, "%s - failed to switch channel. playback stopped", __FUNCTION__);
-            g_application.getApplicationMessenger().MediaStop();
+            g_application.getApplicationMessenger().MediaStop(false);
           }
         }
       }

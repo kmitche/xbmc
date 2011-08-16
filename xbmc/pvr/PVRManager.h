@@ -29,6 +29,11 @@
 
 class CGUIDialogExtendedProgressBar;
 
+namespace EPG
+{
+  class CEpgContainer;
+}
+
 namespace PVR
 {
   class CPVRClients;
@@ -36,13 +41,11 @@ namespace PVR
   class CPVRChannelGroup;
   class CPVRRecordings;
   class CPVRTimers;
-  class CPVREpgContainer;
   class CPVRGUIInfo;
   class CPVRDatabase;
 
   #define g_PVRManager       CPVRManager::Get()
   #define g_PVRChannelGroups g_PVRManager.ChannelGroups()
-  #define g_PVREpg           g_PVRManager.EPG()
   #define g_PVRTimers        g_PVRManager.Timers()
   #define g_PVRRecordings    g_PVRManager.Recordings()
   #define g_PVRClients       g_PVRManager.Clients()
@@ -81,12 +84,6 @@ namespace PVR
      * @return The groups container.
      */
     CPVRChannelGroupsContainer *ChannelGroups(void) const { return m_channelGroups; }
-
-    /*!
-     * @brief Get the EPG container.
-     * @return The EPG container.
-     */
-    CPVREpgContainer *EPG(void) const { return m_epg; }
 
     /*!
      * @brief Get the recordings container.
@@ -180,6 +177,11 @@ namespace PVR
     bool IsRunning(void) const;
 
     /*!
+     * @return True while the PVRManager is initialising.
+     */
+    bool IsInitialising(void) const;
+
+    /*!
      * @brief Return the channel that is currently playing.
      * @param channel The channel or NULL if none is playing.
      * @return True if a channel is playing, false otherwise.
@@ -191,7 +193,7 @@ namespace PVR
      * @param channel The EPG or NULL if no channel is playing.
      * @return The amount of results that was added or -1 if none.
      */
-    int GetCurrentEpg(CFileItemList *results) const;
+    int GetCurrentEpg(CFileItemList &results) const;
 
     /*!
      * @brief Check whether the PVRManager has fully started.
@@ -518,7 +520,6 @@ namespace PVR
     /** @name containers */
     //@{
     CPVRChannelGroupsContainer *    m_channelGroups;               /*!< pointer to the channel groups container */
-    CPVREpgContainer *              m_epg;                         /*!< pointer to the EPG container */
     CPVRRecordings *                m_recordings;                  /*!< pointer to the recordings container */
     CPVRTimers *                    m_timers;                      /*!< pointer to the timers container */
     CPVRClients *                   m_addons;                      /*!< pointer to the pvr addon container */

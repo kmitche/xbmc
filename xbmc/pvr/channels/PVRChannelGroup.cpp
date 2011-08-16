@@ -36,9 +36,10 @@
 #include "pvr/PVRDatabase.h"
 #include "pvr/PVRManager.h"
 #include "pvr/addons/PVRClients.h"
-#include "pvr/epg/PVREpgContainer.h"
+#include "epg/EpgContainer.h"
 
 using namespace PVR;
+using namespace EPG;
 
 CPVRChannelGroup::CPVRChannelGroup(bool bRadio, unsigned int iGroupId, const CStdString &strGroupName) :
     m_bRadio(bRadio),
@@ -106,6 +107,9 @@ int CPVRChannelGroup::Load(void)
     CLog::Log(LOGDEBUG, "PVRChannelGroup - %s - %d channels added from clients to group '%s'",
         __FUNCTION__, (int) size() - iChannelCount, m_strGroupName.c_str());
   }
+
+  SortByChannelNumber();
+  Renumber();
 
   g_guiSettings.RegisterObserver(this);
   m_bLoaded = true;
@@ -418,9 +422,9 @@ const CPVRChannel *CPVRChannelGroup::GetByChannelUp(const CPVRChannel &channel) 
 const CPVRChannel *CPVRChannelGroup::GetByChannelDown(const CPVRChannel &channel) const
 {
   CSingleLock lock(m_critSection);
-  unsigned int iChannelIndex = GetIndex(channel) - 1;
+  int iChannelIndex = GetIndex(channel) - 1;
   if (iChannelIndex < 0)
-    iChannelIndex = size();
+    iChannelIndex = size() - 1;
 
   return GetByIndex(iChannelIndex);
 }
@@ -464,9 +468,6 @@ int CPVRChannelGroup::GetMembers(CFileItemList &results, bool bGroupMembers /* =
 
     if (bGroupMembers || !IsGroupMember(*channel))
     {
-      /* ensure that the epg pointer is set for this channel */
-      CPVREpg *epg = channel->GetEPG(); epg = NULL;
-
       CFileItemPtr pFileItem(new CFileItem(*channel));
       results.Add(pFileItem);
     }
@@ -927,4 +928,106 @@ void CPVRChannelGroup::Notify(const Observable &obs, const CStdString& msg)
 bool CPVRPersistGroupJob::DoWork(void)
 {
   return m_group->Persist();
+}
+
+const CDateTime CPVRChannelGroup::GetFirstEPGDate(void)
+{
+  // TODO should use two separate containers, one for radio, one for tv
+  return g_EpgContainer.GetFirstEPGDate();
+}
+
+const CDateTime CPVRChannelGroup::GetLastEPGDate(void)
+{
+  // TODO should use two separate containers, one for radio, one for tv
+  return g_EpgContainer.GetLastEPGDate();
+}
+
+int CPVRChannelGroup::GetEPGSearch(CFileItemList &results, const EpgSearchFilter &filter)
+{
+  int iInitialSize = results.Size();
+
+  /* get filtered results from all tables */
+  g_EpgContainer.GetEPGSearch(results, filter);
+
+  /* remove duplicate entries */
+  if (filter.m_bPreventRepeats)
+    EpgSearchFilter::RemoveDuplicates(results);
+
+  /* filter recordings */
+  if (filter.m_bIgnorePresentRecordings)
+    EpgSearchFilter::FilterRecordings(results);
+
+  /* filter timers */
+  if (filter.m_bIgnorePresentTimers)
+    EpgSearchFilter::FilterTimers(results);
+
+  return results.Size() - iInitialSize;
+}
+
+int CPVRChannelGroup::GetEPGNow(CFileItemList &results)
+{
+  int iInitialSize = results.Size();
+  CSingleLock lock(m_critSection);
+
+  for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
+  {
+    CPVRChannel *channel = at(iChannelPtr).channel;
+    CEpg *epg = channel->GetEPG();
+    if (!epg || !epg->HasValidEntries())
+      continue;
+
+    const CEpgInfoTag *epgNow = epg->InfoTagNow();
+    if (!epgNow)
+      continue;
+
+    CFileItemPtr entry(new CFileItem(*epgNow));
+    entry->SetLabel2(epgNow->StartAsLocalTime().GetAsLocalizedTime("", false));
+    entry->SetPath(channel->ChannelName());
+    entry->SetThumbnailImage(channel->IconPath());
+    results.Add(entry);
+  }
+
+  return results.Size() - iInitialSize;
+}
+
+int CPVRChannelGroup::GetEPGNext(CFileItemList &results)
+{
+  int iInitialSize = results.Size();
+  CSingleLock lock(m_critSection);
+
+  for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
+  {
+    CPVRChannel *channel = at(iChannelPtr).channel;
+    CEpg *epg = channel->GetEPG();
+    if (!epg || !epg->HasValidEntries())
+      continue;
+
+    const CEpgInfoTag *epgNow = epg->InfoTagNext();
+    if (!epgNow)
+      continue;
+
+    CFileItemPtr entry(new CFileItem(*epgNow));
+    entry->SetLabel2(epgNow->StartAsLocalTime().GetAsLocalizedTime("", false));
+    entry->SetPath(channel->ChannelName());
+    entry->SetThumbnailImage(channel->IconPath());
+    results.Add(entry);
+  }
+
+  return results.Size() - iInitialSize;
+}
+
+int CPVRChannelGroup::GetEPGAll(CFileItemList &results)
+{
+  int iInitialSize = results.Size();
+  CSingleLock lock(m_critSection);
+
+  for (unsigned int iChannelPtr = 0; iChannelPtr < size(); iChannelPtr++)
+  {
+    if (!at(iChannelPtr).channel || at(iChannelPtr).channel->IsHidden())
+      continue;
+
+    at(iChannelPtr).channel->GetEPG(results);
+  }
+
+  return results.Size() - iInitialSize;
 }

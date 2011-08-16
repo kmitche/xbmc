@@ -32,7 +32,7 @@
 #include "pvr/dialogs/GUIDialogPVRGuideInfo.h"
 #include "pvr/dialogs/GUIDialogPVRRecordingInfo.h"
 #include "pvr/dialogs/GUIDialogPVRTimerSettings.h"
-#include "pvr/epg/PVREpgInfoTag.h"
+#include "epg/EpgInfoTag.h"
 #include "pvr/timers/PVRTimers.h"
 #include "pvr/addons/PVRClients.h"
 #include "pvr/windows/GUIWindowPVR.h"
@@ -45,6 +45,7 @@
 
 using namespace std;
 using namespace PVR;
+using namespace EPG;
 
 CGUIWindowPVRCommon::CGUIWindowPVRCommon(CGUIWindowPVR *parent, PVRWindow window,
     unsigned int iControlButton, unsigned int iControlList)
@@ -160,7 +161,7 @@ bool CGUIWindowPVRCommon::OnMessageFocus(CGUIMessage &message)
     bool bIsActive = IsActive();
     m_parent->SetActiveView(this);
 
-    if (!bIsActive)
+    if (!bIsActive || m_bUpdateRequired)
       UpdateData();
     else
       m_iSelected = m_parent->m_viewControl.GetSelectedItem();
@@ -318,8 +319,8 @@ bool CGUIWindowPVRCommon::OnContextButtonMenuHooks(CFileItem *item, CONTEXT_BUTT
   {
     bReturn = true;
 
-    if (item->IsEPG())
-      g_PVRClients->ProcessMenuHooks(((CPVREpgInfoTag *) item->GetEPGInfoTag())->ChannelTag()->ClientID());
+    if (item->IsEPG() && item->GetEPGInfoTag()->HasPVRChannel())
+      g_PVRClients->ProcessMenuHooks(item->GetEPGInfoTag()->ChannelTag()->ClientID());
     else if (item->IsPVRChannel())
       g_PVRClients->ProcessMenuHooks(item->GetPVRChannelInfoTag()->ClientID());
     else if (item->IsPVRRecording())
@@ -381,7 +382,7 @@ bool CGUIWindowPVRCommon::ActionShowTimer(CFileItem *item)
   /* Check if "Add timer..." entry is pressed by OK, if yes
      create a new timer and open settings dialog, otherwise
      open settings for selected timer entry */
-  if (item->m_strPath == "pvr://timers/add.timer")
+  if (item->GetPath() == "pvr://timers/add.timer")
   {
     bReturn = ShowNewTimerDialog();
   }
@@ -401,7 +402,7 @@ bool CGUIWindowPVRCommon::ActionRecord(CFileItem *item)
 {
   bool bReturn = false;
 
-  CPVREpgInfoTag *epgTag = (CPVREpgInfoTag *) item->GetEPGInfoTag();
+  CEpgInfoTag *epgTag = item->GetEPGInfoTag();
   if (!epgTag)
     return bReturn;
 
@@ -478,7 +479,7 @@ bool CGUIWindowPVRCommon::ActionPlayChannel(CFileItem *item)
 {
   bool bReturn = false;
 
-  if (item->m_strPath == "pvr://channels/.add.channel")
+  if (item->GetPath() == "pvr://channels/.add.channel")
   {
     /* show "add channel" dialog */
     CGUIDialogOK::ShowAndGetInput(19033,0,19038,0);
@@ -497,7 +498,7 @@ bool CGUIWindowPVRCommon::ActionPlayEpg(CFileItem *item)
 {
   bool bReturn = false;
 
-  CPVREpgInfoTag *epgTag = (CPVREpgInfoTag *) item->GetEPGInfoTag();
+  CEpgInfoTag *epgTag = item->GetEPGInfoTag();
   if (!epgTag)
     return bReturn;
 
@@ -572,7 +573,7 @@ bool CGUIWindowPVRCommon::ShowTimerSettings(CFileItem *item)
 
 bool CGUIWindowPVRCommon::PlayRecording(CFileItem *item, bool bPlayMinimized /* = false */)
 {
-  if (item->m_strPath.Left(17) != "pvr://recordings/")
+  if (item->GetPath().Left(17) != "pvr://recordings/")
     return false;
 
   CStdString stream = item->GetPVRRecordingInfoTag()->m_strStreamURL;
@@ -600,7 +601,7 @@ bool CGUIWindowPVRCommon::PlayRecording(CFileItem *item, bool bPlayMinimized /* 
       vector<int> stack;
       for (int i = 0; i < items.Size(); ++i)
       {
-        if (URIUtils::GetExtension(items[i]->m_strPath) == ext)
+        if (URIUtils::GetExtension(items[i]->GetPath()) == ext)
           stack.push_back(i);
       }
 
@@ -609,13 +610,13 @@ bool CGUIWindowPVRCommon::PlayRecording(CFileItem *item, bool bPlayMinimized /* 
         /* If we have a stack change the path of the item to it */
         CStackDirectory dir;
         CStdString stackPath = dir.ConstructStackPath(items, stack);
-        item->m_strPath = stackPath;
+        item->SetPath(stackPath);
       }
     }
     else
     {
       /* If no asterisk is present play only the given stream URL */
-      item->m_strPath = stream;
+      item->SetPath(stream);
     }
   }
   else
@@ -634,7 +635,7 @@ bool CGUIWindowPVRCommon::PlayFile(CFileItem *item, bool bPlayMinimized /* = fal
 {
   if (bPlayMinimized)
   {
-    if (item->m_strPath == g_application.CurrentFile())
+    if (item->GetPath() == g_application.CurrentFile())
     {
       CGUIMessage msg(GUI_MSG_FULLSCREEN, 0, m_parent->GetID());
       g_windowManager.SendMessage(msg);
@@ -646,7 +647,7 @@ bool CGUIWindowPVRCommon::PlayFile(CFileItem *item, bool bPlayMinimized /* = fal
     }
   }
 
-  if (item->m_strPath.Left(17) == "pvr://recordings/")
+  if (item->GetPath().Left(17) == "pvr://recordings/")
   {
     return PlayRecording(item, bPlayMinimized);
   }
@@ -679,7 +680,7 @@ bool CGUIWindowPVRCommon::StartRecordFile(CFileItem *item)
   if (!item->HasEPGInfoTag())
     return false;
 
-  CPVREpgInfoTag *tag = (CPVREpgInfoTag *) item->GetEPGInfoTag();
+  CEpgInfoTag *tag = item->GetEPGInfoTag();
   if (!tag || !tag->ChannelTag() || tag->ChannelTag()->ChannelNumber() <= 0)
     return false;
 
@@ -713,7 +714,7 @@ bool CGUIWindowPVRCommon::StopRecordFile(CFileItem *item)
   if (!item->HasEPGInfoTag())
     return false;
 
-  CPVREpgInfoTag *tag = (CPVREpgInfoTag *) item->GetEPGInfoTag();
+  CEpgInfoTag *tag = item->GetEPGInfoTag();
   if (!tag || !tag->ChannelTag() || tag->ChannelTag()->ChannelNumber() <= 0)
     return false;
 
@@ -733,7 +734,7 @@ void CGUIWindowPVRCommon::ShowEPGInfo(CFileItem *item)
   }
   else if (item->IsPVRChannel())
   {
-    const CPVREpgInfoTag *epgnow = item->GetPVRChannelInfoTag()->GetEPGNow();
+    const CEpgInfoTag *epgnow = item->GetPVRChannelInfoTag()->GetEPGNow();
     if (!epgnow)
     {
       CGUIDialogOK::ShowAndGetInput(19033,0,19055,0);
