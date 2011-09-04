@@ -153,7 +153,7 @@ void CMythSession::SetFileItemMetaData(CFileItem &item, cmyth_proginfo_t program
    * Set the VideoInfoTag meta-data so it matches the FileItem meta-data where possible.
    */
   CVideoInfoTag* tag      = item.GetVideoInfoTag();
-  tag->m_strPath          = item.m_strPath;
+  tag->m_strPath          = item.GetPath();
   tag->m_strTitle         = subtitle; // The title is just supposed to be the episode title.
   tag->m_strShowTitle     = title;
   tag->m_strOriginalTitle = title;

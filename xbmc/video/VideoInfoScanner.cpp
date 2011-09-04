@@ -501,7 +501,7 @@ namespace VIDEO
             return INFO_ERROR;
           INFO_RET ret = RetrieveInfoForEpisodes(pItem, lResult, info2, useLocal, pDlgProgress);
           if (ret == INFO_ADDED)
-            m_database.SetPathHash(pItem->m_strPath, pItem->GetProperty("hash"));
+            m_database.SetPathHash(pItem->GetPath(), pItem->GetProperty("hash"));
           return ret;
         }
       }
@@ -770,7 +770,7 @@ namespace VIDEO
      * using original air date or title if there isn't a valid season or episode number known.
      */
     SEpisode episode;
-    episode.strPath = item->m_strPath;
+    episode.strPath = item->GetPath();
     episode.tag = *tag;
     episode.iSeason = -1;
     episode.iEpisode = -1;
@@ -810,7 +810,7 @@ namespace VIDEO
     {
       bValid = true;
       CLog::Log(LOGDEBUG,"%s - found default match for: %s. Both season and episode are 0.",
-                __FUNCTION__, item->m_strPath.c_str());
+                __FUNCTION__, item->GetPath().c_str());
     }
 
     if (bValid)
