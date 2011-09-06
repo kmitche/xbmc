@@ -60,9 +60,10 @@ void CGUIProgressControl::SetPosition(float posX, float posY)
 
 void CGUIProgressControl::Process(unsigned int currentTime, CDirtyRegionList &dirtyregions)
 {
-  bool changed = m_bChanged;
+  bool changed = false;
 
-  changed |= UpdateLayout();
+  if (!IsDisabled())
+    changed |= UpdateLayout();
   changed |= m_guiBackground.Process(currentTime);
   changed |= m_guiMid.Process(currentTime);
   changed |= m_guiLeft.Process(currentTime);
@@ -212,8 +213,6 @@ CStdString CGUIProgressControl::GetDescription() const
 bool CGUIProgressControl::UpdateLayout(void)
 {
   bool bChanged(false);
-  if (IsDisabled())
-    return bChanged;
 
   if (m_width == 0)
     m_width = m_guiBackground.GetTextureWidth();
@@ -308,15 +307,12 @@ bool CGUIProgressControl::UpdateLayout(void)
 
 void CGUIProgressControl::UpdateInfo(const CGUIListItem *item)
 {
-  m_bChanged = false;
   if (!IsDisabled())
   {
-    float percent = m_fPercent;
     if (m_iInfoCode)
       m_fPercent = (float)g_infoManager.GetInt(m_iInfoCode, m_parentID, item);
 
     if (m_fPercent < 0.0f) m_fPercent = 0.0f;
     if (m_fPercent > 100.0f) m_fPercent = 100.0f;
-    m_bChanged = (percent != m_fPercent);
   }
 }
