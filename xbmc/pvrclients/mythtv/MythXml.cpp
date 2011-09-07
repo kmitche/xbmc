@@ -273,7 +273,6 @@ PVR_ERROR MythXml::requestRecordingsList(PVR_HANDLE handle)
   const vector<MythRecording> recordings = cmd.GetRecordings();
   vector<MythRecording>::const_iterator it;
 
-  int i = 0;
   for (it = recordings.begin(); it != recordings.end(); ++it)
   {
     PVR_RECORDING pvrrecording;
@@ -281,7 +280,7 @@ PVR_ERROR MythXml::requestRecordingsList(PVR_HANDLE handle)
 
     const MythRecording& mythrecording = *it;
 
-    pvrrecording.iClientIndex    = i++;
+    pvrrecording.strRecordingId  = GetRecordingId(mythrecording.chanid, mythrecording.recstart);
     pvrrecording.strTitle        = mythrecording.title;
     pvrrecording.strPlotOutline  = mythrecording.subtitle;
     pvrrecording.strPlot         = mythrecording.description;
@@ -399,10 +398,10 @@ CStdString MythXml::GetChannelIconPath(const MythChannel &channel)
   return icon;
 }
 
-CStdString MythXml::GetRecordingId(const int chanid, const time_t start)
+CStdString MythXml::GetRecordingId(const int chanid, const time_t recstart)
 {
   char buffer[16];
-  tm *local = localtime(&start);
+  tm *local = localtime(&recstart);
   strftime(buffer, 16, "%Y%m%d%H%M%S", local); // YYYYmmddHHMMSS
 
   CStdString recording;

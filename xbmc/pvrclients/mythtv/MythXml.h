@@ -40,7 +40,7 @@ private:
   CStdString GetLiveTvPath(const MythChannel &channel);
   CStdString GetChannelIconPath(const MythChannel &channel);
   CStdString GetUrlPrefix();
-  CStdString GetRecordingId(const int chanid, const time_t start);
+  CStdString GetRecordingId(const int chanid, const time_t recstart);
 
   CStdString hostname_;
   CStdString username_;
