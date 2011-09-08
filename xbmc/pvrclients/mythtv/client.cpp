@@ -529,7 +529,24 @@ PVR_ERROR GetTimers(PVR_HANDLE handle)
 
 PVR_ERROR AddTimer(const PVR_TIMER &timer)
 {
-  return PVR_ERROR_NOT_IMPLEMENTED;
+  if (p_mythsql == NULL)
+    return PVR_ERROR_SERVER_ERROR;
+
+  MythSchedule schedule;
+  memset(&schedule, 0, sizeof(MythSchedule));
+
+  schedule.chanid      = timer.iClientChannelUid;
+  schedule.start       = timer.startTime;
+  schedule.end         = timer.endTime;
+  schedule.title       = timer.strTitle;
+  schedule.description = timer.strSummary;
+  schedule.startoffset = timer.iMarginStart;
+  schedule.endoffset   = timer.iMarginEnd;
+
+  if (!p_mythsql->AddSchedule(schedule))
+    return PVR_ERROR_SERVER_ERROR;
+
+  return PVR_ERROR_NO_ERROR;
 }
 
 PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete)
@@ -539,9 +556,9 @@ PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete)
 
   int recordid = timer.iClientIndex;
   if (!p_mythsql->DeleteSchedule(recordid))
-      return PVR_ERROR_SERVER_ERROR;
+    return PVR_ERROR_SERVER_ERROR;
 
-  return PVR_ERROR_NOT_IMPLEMENTED;
+  return PVR_ERROR_NO_ERROR;
 }
 
 PVR_ERROR UpdateTimer(const PVR_TIMER &timer)
