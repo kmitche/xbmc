@@ -1,10 +1,7 @@
 TODO:
-- Add Timer (aka Schedule a Recordings)
 - Start recording from LiveTV
 
 KNOWN ISSUES:
-- Playback of Live TV is not working after the update to the new API
-- Listing of channels is not working after the update to the new API
 - Listing of EPG entries may have some issues as a HACK is being used to synthesize the unique
   broadcast ID (which MythTV doesn't expose)
 - The listing of Timers may have the next scheduled start time appear in the past. This is because
@@ -20,6 +17,9 @@ map to MythTV.
   what to record.
 
 RELEASE NOTES:
+0.6.0 (08-Sep-2011)
+- Updated to expose the Add and Delete Timer functionality (test at your own peril).
+
 0.5.0 (22-Jun-2011)
 - Updated to put recordings into a directory structure. Movies are in a folder called "Movies" and
   all other recordings are in a folder with the name of the TV Show.
