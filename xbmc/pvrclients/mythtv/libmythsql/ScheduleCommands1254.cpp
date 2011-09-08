@@ -93,7 +93,11 @@ bool ScheduleCommands1254::GetAllSchedules(std::vector<MythSchedule>& schedules,
 bool ScheduleCommands1254::AddSchedule(const MythSchedule& schedule, MYSQL* conn)
 {
   /*
-   * Table definition for the record table can be found at http://www.mythtv.org/wiki/Record_table
+   * Table definition for the record table can be found at http://www.mythtv.org/wiki/Record_table.
+   *
+   * Type is currently hardcoded to kWeekslotRecord until there is some better way of getting that
+   * information from the XBMC UI. The current Timer behavior is not well suited to MythTV's
+   * superior scheduler, which is based on shows not channels and times.
    */
   CStdString query;
   query.Format("INSERT INTO record (type, chanid, starttime, startdate, endtime, enddate, \
