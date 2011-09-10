@@ -533,8 +533,6 @@ PVR_ERROR AddTimer(const PVR_TIMER &timer)
     return PVR_ERROR_SERVER_ERROR;
 
   MythSchedule schedule;
-  memset(&schedule, 0, sizeof(MythSchedule));
-
   schedule.chanid      = timer.iClientChannelUid;
   schedule.start       = timer.startTime;
   schedule.end         = timer.endTime;
