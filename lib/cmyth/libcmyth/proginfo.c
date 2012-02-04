@@ -1297,9 +1297,9 @@ fill_command(cmyth_conn_t control, cmyth_proginfo_t prog, char *cmd)
 	}
 
 	if(control->conn_version > 32) {
-	    cmyth_timestamp_to_isostring(originalairdate,
+		cmyth_timestamp_to_isostring(originalairdate,
 	                         prog->proginfo_originalairdate);
-        }				 
+	}				 
 
 	if (control->conn_version < 12)
 	{
