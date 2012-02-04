@@ -460,7 +460,7 @@ cmyth_rcv_ulong(cmyth_conn_t conn, int *err, unsigned long *buf,
 	int consumed;
 	int tmp;
 
-  *buf = 0;
+	*buf = 0;
 
 	if (!err) {
 		err = &tmp;
@@ -1176,7 +1176,7 @@ cmyth_rcv_ulong_long(cmyth_conn_t conn, int *err,
 	int consumed;
 	int tmp;
 
-  *buf = 0;
+	*buf = 0;
 
 	if (!err) {
 		err = &tmp;
