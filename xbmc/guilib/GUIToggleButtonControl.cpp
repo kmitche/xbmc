@@ -58,7 +58,7 @@ void CGUIToggleButtonControl::Process(unsigned int currentTime, CDirtyRegionList
     m_selectButton.SetVisible(IsVisible());
     m_selectButton.SetEnabled(!IsDisabled());
     m_selectButton.SetPulseOnSelect(m_pulseOnSelect);
-    m_selectButton.Process(currentTime, dirtyregions);
+    m_selectButton.DoProcess(currentTime, dirtyregions);
   }
   CGUIButtonControl::Process(currentTime, dirtyregions);
 }
@@ -156,7 +156,7 @@ CStdString CGUIToggleButtonControl::GetDescription() const
   return CGUIButtonControl::GetDescription();
 }
 
-void CGUIToggleButtonControl::SetAltClickActions(const vector<CGUIActionDescriptor> &clickActions)
+void CGUIToggleButtonControl::SetAltClickActions(const CGUIAction &clickActions)
 {
   m_selectButton.SetClickActions(clickActions);
 }
