@@ -882,22 +882,31 @@ cmyth_rcv_long_long(cmyth_conn_t conn, int *err, long long *buf, int count)
 		*err = EINVAL;
 		return 0;
 	}
-	consumed = cmyth_rcv_u_long(conn, err, &hi, count);
-	if (*err) {
-		cmyth_dbg(CMYTH_DBG_ERROR,
-			  "%s: cmyth_rcv_long_long() failed (%d)\n",
-			  __FUNCTION__, consumed);
-		return consumed;
-	}
-	consumed += cmyth_rcv_u_long(conn, err, &lo, count-consumed);
-	if (*err) {
-		cmyth_dbg(CMYTH_DBG_ERROR,
-			  "%s: cmyth_rcv_long_long() failed (%d)\n",
-			  __FUNCTION__, consumed);
-		return consumed;
-	}
 
-	val = (((long long)hi) << 32) | ((long long)(lo & 0xFFFFFFFF));
+	if (conn->conn_version >= 66) {
+		/*
+		 * Since protocol 66 mythbackend now sends a single 64 bit integer rather than two hi and lo
+		 * 32 bit integers for ALL 64 bit values.
+		 */
+		consumed = cmyth_rcv_int64(conn, err, &val, count);
+	}
+	else {
+		consumed = cmyth_rcv_u_long(conn, err, &hi, count);
+		if (*err) {
+			cmyth_dbg(CMYTH_DBG_ERROR,
+				  "%s: cmyth_rcv_long_long() failed (%d)\n",
+				  __FUNCTION__, consumed);
+			return consumed;
+		}
+		consumed += cmyth_rcv_u_long(conn, err, &lo, count-consumed);
+		if (*err) {
+			cmyth_dbg(CMYTH_DBG_ERROR,
+				  "%s: cmyth_rcv_long_long() failed (%d)\n",
+				  __FUNCTION__, consumed);
+			return consumed;
+		}
+		val = (((long long)hi) << 32) | ((long long)(lo & 0xFFFFFFFF));
+	}
 
 	*err = 0;
 	*buf = val;
@@ -1485,7 +1494,8 @@ cmyth_rcv_proginfo(cmyth_conn_t conn, int *err, cmyth_proginfo_t buf,
 
 	if (buf->proginfo_version >= 57) {
 		/*
-		 * Myth now sends a single 64bit int, rather than 2 32bit ints
+		 * Since protocol 57 mythbackend now sends a single 64 bit integer rather than two 32 bit
+		 * hi and lo integers for the proginfo length.
 		 */
 		rcv_64 = &cmyth_rcv_int64;
 	} else {
@@ -1649,7 +1659,7 @@ cmyth_rcv_proginfo(cmyth_conn_t conn, int *err, cmyth_proginfo_t buf,
 	count -= consumed;
 	total += consumed;
 	if (*err) {
-		failed = "cmyth_rcv_long_long";
+		failed = "rcv_64";
 		goto fail;
 	}
 

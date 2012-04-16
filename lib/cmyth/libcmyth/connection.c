@@ -57,6 +57,7 @@ static myth_protomap_t protomap[] = {
 	{63, "3875641D"},
 	{64, "8675309J"},
 	{65, "D2BB94C2"},
+	{66, "0C0FFEE0"},
 	{0, 0}
 };
 
@@ -632,7 +633,7 @@ cmyth_conn_connect_file(cmyth_proginfo_t prog,  cmyth_conn_t control,
 	r = cmyth_rcv_u_long_long(conn, &err, &ret->file_length, count);
 	if (err) {
 		cmyth_dbg(CMYTH_DBG_ERROR,
-			  "%s: (length) cmyth_rcv_longlong() failed (%d)\n",
+			  "%s: (length) cmyth_rcv_u_long_long() failed (%d)\n",
 			  __FUNCTION__, err);
 		goto shut;
 	}
@@ -772,7 +773,7 @@ cmyth_conn_connect_path(char* path, cmyth_conn_t control,
 	r = cmyth_rcv_u_long_long(conn, &err, &ret->file_length, count);
 	if (err) {
 		cmyth_dbg(CMYTH_DBG_ERROR,
-			  "%s: (length) cmyth_rcv_longlong() failed (%d)\n",
+			  "%s: (length) cmyth_rcv_u_long_long() failed (%d)\n",
 			  __FUNCTION__, err);
 		goto shut;
 	}
