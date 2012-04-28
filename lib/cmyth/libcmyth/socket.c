@@ -889,6 +889,12 @@ cmyth_rcv_long_long(cmyth_conn_t conn, int *err, long long *buf, int count)
 		 * 32 bit integers for ALL 64 bit values.
 		 */
 		consumed = cmyth_rcv_int64(conn, err, &val, count);
+		if (*err) {
+			cmyth_dbg(CMYTH_DBG_ERROR,
+				  "%s: cmyth_rcv_int64() failed (%d)\n",
+				  __FUNCTION__, consumed);
+			return consumed;
+		}
 	}
 	else {
 		consumed = cmyth_rcv_u_long(conn, err, &hi, count);
