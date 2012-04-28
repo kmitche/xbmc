@@ -1547,8 +1547,9 @@ cmyth_proginfo_fill(cmyth_conn_t control, cmyth_proginfo_t prog)
 	 */
 	if (prog->proginfo_Length == 0) {
 		prog->proginfo_Length = length;
-		ret = -1;
-		goto out;
+		cmyth_dbg(CMYTH_DBG_WARN,
+			  "%s: cmyth_rcv_proginfo() returned 0 proginfo_length. Using existing length instead",
+			  __FUNCTION__);
 	}
 
 	ret = 0;
