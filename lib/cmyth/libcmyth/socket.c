@@ -872,7 +872,7 @@ cmyth_rcv_long_long(cmyth_conn_t conn, int *err, long long *buf, int count)
 	long long val;
 	int consumed;
 	int tmp;
-	unsigned long hi, lo;
+	long hi, lo;
 
 	if (!err) {
 		err = &tmp;
@@ -897,20 +897,17 @@ cmyth_rcv_long_long(cmyth_conn_t conn, int *err, long long *buf, int count)
 		}
 	}
 	else {
-		/*
-		 * TODO: Should these be using cmyth_rcv_long rather than cmyth_rcv_ulong.
-		 */
-		consumed = cmyth_rcv_ulong(conn, err, &hi, count);
+		consumed = cmyth_rcv_long(conn, err, &hi, count);
 		if (*err) {
 			cmyth_dbg(CMYTH_DBG_ERROR,
-				  "%s: cmyth_rcv_ulong() failed (%d)\n",
+				  "%s: cmyth_rcv_long() failed (%d)\n",
 				  __FUNCTION__, consumed);
 			return consumed;
 		}
-		consumed += cmyth_rcv_ulong(conn, err, &lo, count - consumed);
+		consumed += cmyth_rcv_long(conn, err, &lo, count - consumed);
 		if (*err) {
 			cmyth_dbg(CMYTH_DBG_ERROR,
-				  "%s: cmyth_rcv_ulong() failed (%d)\n",
+				  "%s: cmyth_rcv_long() failed (%d)\n",
 				  __FUNCTION__, consumed);
 			return consumed;
 		}
@@ -1191,7 +1188,7 @@ cmyth_rcv_ulong_long(cmyth_conn_t conn, int *err,
 {
 	unsigned long long val;
 	long long val64;
-	unsigned long hi, lo;
+	long hi, lo;
 	int consumed;
 	int tmp;
 
@@ -1206,6 +1203,9 @@ cmyth_rcv_ulong_long(cmyth_conn_t conn, int *err,
 		return 0;
 	}
 
+	/*
+	 * TODO: Change this to simply call rcv_long_long and then check the return value is > 0?
+	 */
 	if (conn->conn_version >= 66) {
 		/*
 		 * Since protocol 66 mythbackend now sends a single 64 bit integer rather than two hi and lo
@@ -1228,21 +1228,28 @@ cmyth_rcv_ulong_long(cmyth_conn_t conn, int *err,
 		val = (unsigned long long)val64;
 	}
 	else {
-		consumed = cmyth_rcv_ulong(conn, err, &hi, count);
+		consumed = cmyth_rcv_long(conn, err, &hi, count);
 		if (*err) {
 			cmyth_dbg(CMYTH_DBG_ERROR,
 				  "%s: cmyth_rcv_ulong() failed (%d)\n",
 				  __FUNCTION__, consumed);
 			return consumed;
 		}
-		consumed += cmyth_rcv_ulong(conn, err, &lo, count - consumed);
+		consumed += cmyth_rcv_long(conn, err, &lo, count - consumed);
 		if (*err) {
 			cmyth_dbg(CMYTH_DBG_ERROR,
 				  "%s: cmyth_rcv_ulong() failed (%d)\n",
 				  __FUNCTION__, consumed);
 			return consumed;
 		}
-		val = (((unsigned long long)hi) << 32) | ((unsigned long long)(lo & 0xFFFFFFFF));
+		val = (((long long)hi) << 32) | ((long long)(lo & 0xFFFFFFFF));
+		if (val < 0) {
+			cmyth_dbg(CMYTH_DBG_ERROR,
+				  "%s: cmyth_rcv_ulong_long() failed as signed 64 bit integer received\n",
+				  __FUNCTION__, consumed);
+			*err = EINVAL;
+			return consumed;
+		}
 	}
 
 	*err = 0;
