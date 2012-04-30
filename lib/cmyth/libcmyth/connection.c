@@ -584,6 +584,13 @@ cmyth_conn_connect_file(cmyth_proginfo_t prog,  cmyth_conn_t control,
 			  myth_host, prog->proginfo_port, buflen);
 		goto shut;
 	}
+
+	/*
+	 * HACK: conn->conn_version is always set to 8 out of cmyth_connect. Explicitely set to the control
+	 * version so the downstream rcv_XYZ functions can change based on the connection version.
+	 */
+	conn->conn_version = control->conn_version;
+
 	ann_size += strlen(prog->proginfo_pathname) + strlen(my_hostname);
 	announcement = malloc(ann_size);
 	if (!announcement) {
@@ -725,6 +732,13 @@ cmyth_conn_connect_path(char* path, cmyth_conn_t control,
 			  __FUNCTION__, host, port, buflen);
 		goto shut;
 	}
+
+	/*
+	 * HACK: conn->conn_version is always set to 8 out of cmyth_connect. Explicitely set to the control
+	 * version so the downstream rcv_XYZ functions can change based on the connection version.
+	 */
+	conn->conn_version = control->conn_version;
+
 	ann_size += strlen(path) + strlen(my_hostname);
 	announcement = malloc(ann_size);
 	if (!announcement) {
