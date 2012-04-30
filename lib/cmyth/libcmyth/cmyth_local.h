@@ -313,12 +313,10 @@ extern int cmyth_rcv_short(cmyth_conn_t conn, int *err, short *buf, int count);
 
 #define cmyth_rcv_long __cmyth_rcv_long
 extern int cmyth_rcv_long(cmyth_conn_t conn, int *err, long *buf, int count);
-#define cmyth_rcv_u_long(c, e, b, n) cmyth_rcv_long(c, e, (long*)b, n)
 
 #define cmyth_rcv_long_long __cmyth_rcv_long_long
 extern int cmyth_rcv_long_long(cmyth_conn_t conn, int *err, long long *buf,
 			       int count);
-#define cmyth_rcv_u_long_long(c, e, b, n) cmyth_rcv_long_long(c, e, (long long*)b, n)
 
 #define cmyth_rcv_int64 __cmyth_rcv_int64
 extern int cmyth_rcv_int64(cmyth_conn_t conn, int *err, long long *buf,

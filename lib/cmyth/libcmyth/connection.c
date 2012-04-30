@@ -637,10 +637,10 @@ cmyth_conn_connect_file(cmyth_proginfo_t prog,  cmyth_conn_t control,
 		goto shut;
 	}
 	count -= r;
-	r = cmyth_rcv_u_long_long(conn, &err, &ret->file_length, count);
+	r = cmyth_rcv_ulong_long(conn, &err, &ret->file_length, count);
 	if (err) {
 		cmyth_dbg(CMYTH_DBG_ERROR,
-			  "%s: (length) cmyth_rcv_u_long_long() failed (%d)\n",
+			  "%s: (length) cmyth_rcv_ulong_long() failed (%d)\n",
 			  __FUNCTION__, err);
 		goto shut;
 	}
@@ -777,10 +777,10 @@ cmyth_conn_connect_path(char* path, cmyth_conn_t control,
 		goto shut;
 	}
 	count -= r;
-	r = cmyth_rcv_u_long_long(conn, &err, &ret->file_length, count);
+	r = cmyth_rcv_ulong_long(conn, &err, &ret->file_length, count);
 	if (err) {
 		cmyth_dbg(CMYTH_DBG_ERROR,
-			  "%s: (length) cmyth_rcv_u_long_long() failed (%d)\n",
+			  "%s: (length) cmyth_rcv_ulong_long() failed (%d)\n",
 			  __FUNCTION__, err);
 		goto shut;
 	}
